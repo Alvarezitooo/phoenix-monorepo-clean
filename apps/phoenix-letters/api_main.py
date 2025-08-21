@@ -6,7 +6,11 @@ Clean Architecture exposée via API REST
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
+import os
+from pathlib import Path
 import logging
 from typing import List, Optional
 from datetime import datetime
@@ -205,6 +209,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# === Configuration Frontend Static Files ===
+# Servir les fichiers statiques React buildés
+static_dir = Path(__file__).parent / "frontend" / "project" / "dist"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    # Route pour servir l'app React (SPA)
+    @app.get("/", include_in_schema=False)
+    @app.get("/dashboard", include_in_schema=False)
+    @app.get("/generate", include_in_schema=False)
+    async def serve_frontend():
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        else:
+            return {"message": "Frontend not built yet", "api_docs": "/docs"}
+else:
+    logger.warning("⚠️ Frontend dist directory not found - serving API only")
 
 # === Exception Handlers ===
 
