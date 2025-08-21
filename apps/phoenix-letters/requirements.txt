@@ -1,0 +1,18 @@
+# Phoenix Letters - Service 100% Autonome
+# Aucune shared dependency - Build garanti Railway
+
+# Interface Streamlit
+streamlit>=1.36.0
+
+# IA Gemini (autonome)
+google-generativeai>=0.3.2
+
+# HTTP pour communication inter-services
+httpx>=0.27.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Optionnel si DB/Auth nécessaire plus tard
+# supabase>=2.0.0
+# stripe>=8.0.0
