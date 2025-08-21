@@ -38,18 +38,11 @@ RUN npm run build
 WORKDIR /app
 
 # 🎯 GAME CHANGER - Vérification que la nouvelle feature est présente
-RUN python -c "
-import sys
-sys.path.append('/app')
-try:
-    from domain.entities.career_transition import CareerTransition
-    from domain.services.skill_mapping_service import SkillMappingService
-    from application.use_cases.analyze_career_transition_use_case import AnalyzeCareerTransitionUseCase
-    print('✅ Career Transition Feature - Ready for Production!')
-except ImportError as e:
-    print(f'❌ Missing Career Transition components: {e}')
-    sys.exit(1)
-"
+RUN python -c "import sys; sys.path.append('/app'); \
+from domain.entities.career_transition import CareerTransition; \
+from domain.services.skill_mapping_service import SkillMappingService; \
+from application.use_cases.analyze_career_transition_use_case import AnalyzeCareerTransitionUseCase; \
+print('✅ Career Transition Feature - Ready for Production!')"
 
 # Configuration pour Railway
 EXPOSE $PORT
