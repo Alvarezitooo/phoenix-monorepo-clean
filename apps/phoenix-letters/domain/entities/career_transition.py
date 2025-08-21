@@ -93,12 +93,10 @@ class NarrativeBridge:
     
     bridge_type: str  # "achievement", "challenge_solved", "skill_application"
     narrative_text: str
-    strength_score: float = field(default=0.0)  # Force de ce pont narratif
-    
-    # Contexte
     previous_situation: str
     transferable_lesson: str
     target_application: str
+    strength_score: float = field(default=0.0)  # Force de ce pont narratif
 
 
 @dataclass
