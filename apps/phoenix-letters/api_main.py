@@ -500,7 +500,7 @@ async def ai_service_status(services_container = Depends(get_services)):
         }
     except Exception as e:
         logger.error(f"❌ Erreur status IA: {e}")
-        return {"status": "error", "error": str(e)"}
+        return {"status": "error", "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
