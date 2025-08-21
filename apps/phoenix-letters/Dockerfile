@@ -30,7 +30,7 @@ COPY . .
 # Build du frontend
 WORKDIR /app/frontend/project
 COPY frontend/project/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 COPY frontend/project/ .
 RUN npm run build
 
