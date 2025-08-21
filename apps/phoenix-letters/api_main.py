@@ -214,7 +214,16 @@ app.add_middleware(
 # Servir les fichiers statiques React buildés
 static_dir = Path(__file__).parent / "frontend" / "project" / "dist"
 if static_dir.exists():
+    # Mount assets directory (Vite builds)
+    app.mount("/assets", StaticFiles(directory=static_dir / "assets"), name="assets")
+    
+    # Mount other static files at root level
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    # Serve vite.svg and other root files
+    @app.get("/vite.svg", include_in_schema=False)
+    async def serve_vite_svg():
+        return FileResponse(static_dir / "vite.svg")
     
     # Route pour servir l'app React (SPA)
     @app.get("/", include_in_schema=False)
