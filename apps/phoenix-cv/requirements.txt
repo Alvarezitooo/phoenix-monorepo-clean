@@ -14,7 +14,7 @@ supabase==2.0.0
 
 # Async & HTTP
 aiofiles==23.2.1
-httpx==0.25.2
+httpx==0.24.1
 
 # Configuration
 python-dotenv==1.0.0
