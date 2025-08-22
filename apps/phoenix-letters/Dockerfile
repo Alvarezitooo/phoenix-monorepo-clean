@@ -33,6 +33,7 @@ RUN pip install --upgrade pip && \
 COPY application ./application
 COPY domain ./domain
 COPY infrastructure ./infrastructure
+COPY presentation ./presentation
 COPY shared ./shared
 COPY api_main.py ./api_main.py
 COPY main.py ./main.py
