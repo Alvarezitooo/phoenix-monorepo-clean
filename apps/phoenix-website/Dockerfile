@@ -37,16 +37,16 @@ RUN npm run build
 # Production runner stage
 FROM nginx:alpine AS runner
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl for health checks and gettext for envsubst
+RUN apk add --no-cache curl gettext
 
 # Copy built application
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom nginx config for SPA routing
-COPY <<EOF /etc/nginx/conf.d/default.conf
+# Copy custom nginx config template for SPA routing
+COPY <<EOF /etc/nginx/conf.d/default.conf.template
 server {
-    listen $PORT;
+    listen \${PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -92,4 +92,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE $PORT
 
 # Start script with PORT substitution
-CMD ["sh", "-c", "envsubst '\\$PORT' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.tmp && mv /etc/nginx/conf.d/default.conf.tmp /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "envsubst '\\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
