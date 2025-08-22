@@ -1,5 +1,6 @@
-# 🚀 Phoenix Website - Production Docker Image
+# 🚀 Phoenix Website - Production Docker Image  
 # Sprint 5 - React/Vite with Stripe integration
+# Force rebuild v2 - Simple nginx config
 
 # Multi-stage build for optimized production image
 FROM node:18-alpine AS deps
