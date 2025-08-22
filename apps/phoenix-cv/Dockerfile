@@ -20,6 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
+# Node.js for frontend build
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
 # Install Python dependencies
 COPY requirements.txt ./
 RUN pip install --upgrade pip && \
@@ -33,6 +37,16 @@ COPY shared ./shared
 COPY api_main.py ./api_main.py
 COPY main.py ./main.py
 COPY backend_api_main.py ./backend_api_main.py
+
+# Build frontend
+WORKDIR /app/front-end
+COPY front-end/package*.json ./
+RUN npm ci --production=false
+COPY front-end/ ./
+RUN npm run build
+
+# Back to main directory
+WORKDIR /app
 
 # 🎯 Phoenix CV features will be verified at runtime
 
