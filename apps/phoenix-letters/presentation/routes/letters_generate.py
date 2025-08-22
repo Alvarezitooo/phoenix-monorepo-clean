@@ -10,14 +10,14 @@ import uuid
 import time
 import structlog
 
-from ...infrastructure.clients.luna_client import (
+from infrastructure.clients.luna_client import (
     LunaClient, CheckRequest, ConsumeRequest, 
     LunaInsufficientEnergy, LunaAuthError, LunaClientError
 )
-from ...application.models.actions import LettersActionType, LettersActionValidator
-from ...application.use_cases.generate_letter_use_case import GenerateLetterUseCase
-from ...domain.services.letter_service import LetterService
-from ...infrastructure.database.mock_letter_repository import MockLetterRepository
+from application.models.actions import LettersActionType, LettersActionValidator
+from application.use_cases.generate_letter_use_case import GenerateLetterUseCase
+from domain.services.letter_service import LetterService
+from infrastructure.database.mock_letter_repository import MockLetterRepository
 
 logger = structlog.get_logger("letters_routes")
 
