@@ -17,8 +17,8 @@ from ..clients.luna_client import (
 from ..models.actions import ActionType, ActionValidator
 from ..middleware.observability import business_logger
 from ..use_cases.mirror_match_use_case import MirrorMatchUseCase, MirrorMatchCommand
-from ...domain.services.mirror_match_service import MirrorMatchService
-from ...infrastructure.database.mock_cv_repository import MockCVRepository
+from domain.services.mirror_match_service import MirrorMatchService
+from infrastructure.database.mock_cv_repository import MockCVRepository
 
 logger = structlog.get_logger("cv_routes")
 
