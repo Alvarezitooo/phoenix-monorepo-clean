@@ -11,8 +11,8 @@ from dataclasses import asdict
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
-from ...shared.config.settings import config
-from ...shared.exceptions.business_exceptions import AIServiceError, ProcessingError
+from shared.config.settings import config
+from shared.exceptions.business_exceptions import AIServiceError, ProcessingError
 
 logger = logging.getLogger(__name__)
 

@@ -11,9 +11,9 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 from domain.entities.cv_document import CVDocument, ContactInfo, Experience, Education, Skill
-from ...domain.entities.ats_optimization import ATSOptimization
-from ...domain.entities.mirror_match import MirrorMatchAnalysis
-from ...domain.repositories.cv_repository import CVRepositoryInterface
+from domain.entities.ats_optimization import ATSOptimization
+from domain.entities.mirror_match import MirrorMatchAnalysis
+from domain.repositories.cv_repository import CVRepositoryInterface
 
 logger = logging.getLogger(__name__)
 
