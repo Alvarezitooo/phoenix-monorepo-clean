@@ -1,0 +1,158 @@
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { EnergyGauge, useLuna } from './Luna';
+import { 
+  Zap, 
+  BarChart3, 
+  Palette, 
+  Target, 
+  User, 
+  Menu, 
+  X,
+  Crown,
+  Sparkles
+} from 'lucide-react';
+
+export function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { currentEnergy } = useLuna();
+
+  const navItems = [
+    { path: '/', label: 'Dashboard', icon: BarChart3 },
+    { path: '/builder', label: 'CV Builder', icon: Zap },
+    { path: '/mirror-match', label: 'Mirror Match', icon: Target },
+    { path: '/templates', label: 'Templates', icon: Palette },
+    { path: '/analytics', label: 'Analytics Hub', icon: BarChart3 },
+  ];
+
+  return (
+    <motion.header
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="relative z-50 backdrop-blur-xl bg-white/5 border-b border-white/10"
+    >
+      <div className="container mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-3 group">
+            <motion.div 
+              className="relative"
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <div className="w-10 h-10 bg-phoenix-gradient rounded-xl flex items-center justify-center shadow-lg shadow-phoenix-500/25">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-luna-gradient rounded-full animate-pulse" />
+            </motion.div>
+            <div>
+              <h1 className="text-2xl font-bold bg-phoenix-luna-gradient bg-clip-text text-transparent">
+                Phoenix CV
+              </h1>
+              <p className="text-xs text-gray-400 -mt-1">AI-Powered Career Revolution</p>
+            </div>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="group relative"
+                >
+                  <motion.div
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 ${
+                      isActive
+                        ? 'bg-luna-gradient bg-opacity-20 text-luna-300'
+                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                    }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Premium Button & Profile */}
+          <div className="flex items-center space-x-4">
+            {/* Luna Energy Gauge */}
+            <EnergyGauge currentEnergy={currentEnergy} />
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="hidden md:flex items-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-semibold text-white shadow-lg shadow-phoenix-500/25 hover:shadow-phoenix-500/40 transition-all duration-300"
+            >
+              <Crown className="w-5 h-5" />
+              <span>Upgrade to Pro</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-slate-700 to-slate-600 rounded-xl border border-slate-500/30"
+            >
+              <User className="w-5 h-5" />
+            </motion.button>
+
+            {/* Mobile menu toggle */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden flex items-center justify-center w-10 h-10 bg-slate-800 rounded-xl border border-slate-700"
+            >
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <motion.nav
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden mt-4 pb-4 border-t border-white/10 pt-4"
+          >
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl mb-2 transition-all ${
+                    isActive
+                      ? 'bg-luna-gradient bg-opacity-20 text-luna-300'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+            
+            <button className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-semibold text-white shadow-lg shadow-phoenix-500/25 mt-4">
+              <Crown className="w-5 h-5" />
+              <span>Upgrade to Pro</span>
+            </button>
+          </motion.nav>
+        )}
+      </div>
+    </motion.header>
+  );
+}

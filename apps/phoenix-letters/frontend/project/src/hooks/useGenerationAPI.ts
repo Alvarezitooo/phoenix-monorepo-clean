@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { Letter, GenerationProgress } from '@/types';
 import { apiService } from '@/services/api';
+import { useLuna } from '@/components/Luna';
 
 /**
  * 🔥 Hook de génération connecté à l'API FastAPI
@@ -16,8 +17,15 @@ export function useGeneration() {
   });
 
   const { formData, addLetter, setGenerating, setCurrentLetter } = useStore();
+  const { updateEnergy, currentEnergy } = useLuna();
 
   const generateLetter = async (): Promise<Letter> => {
+    // Check energy before generation (15% for letter generation)
+    const requiredEnergy = 15;
+    if (currentEnergy < requiredEnergy) {
+      throw new Error(`Énergie insuffisante ! Vous avez besoin de ${requiredEnergy}% d'énergie Luna pour générer une lettre.`);
+    }
+
     setGenerating(true);
     
     try {
@@ -57,6 +65,9 @@ export function useGeneration() {
         message: "Letter generated successfully! 🎉",
         estimatedTime: 0,
       });
+
+      // Consume energy for successful generation
+      await updateEnergy(requiredEnergy, 'consume');
 
       // Add to store
       addLetter(generatedLetter);

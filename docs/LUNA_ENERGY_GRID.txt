@@ -1,0 +1,63 @@
+# Grille de Consommation et Modèle Économique : LUNA
+
+## Grille de Consommation d'Énergie
+(Basée sur un pack = 100% d'Énergie)
+
+### Actions Simples (5-10%)
+- conseil_rapide: 5
+- correction_ponctuelle: 5
+- suggestion_mot_clé: 5
+- format_lettre: 8
+- tip_personnalisé: 8
+
+### Actions Moyennes (10-20%)
+- lettre_motivation: 15
+- optimisation_cv: 12
+- analyse_offre: 10
+- suggestion_linkedin: 15
+- coaching_15min: 18
+
+### Actions Complexes (20-40%)
+- analyse_cv_complete: 25
+- mirror_match: 30
+- strategie_candidature: 35
+- salary_analysis: 28
+- coaching_30min: 40
+
+### Actions Premium (35-50%)
+- audit_complet_profil: 45
+- plan_reconversion: 50
+- simulation_entretien: 40
+- suivi_evolution: 35
+
+## Packs Énergie & Tarifs
+
+| Pack             | Prix      | Énergie | Bonus                  |
+|------------------|-----------|---------|------------------------|
+| ☕ Café Luna      | 2,99€     | 100%    | +10% au premier achat  |
+| 🥐 Petit-déj Luna| 5,99€     | 220%    |                        |
+| 🍕 Repas Luna    | 9,99€     | 400%    |                        |
+| 🌙 Luna Unlimited| 29,99€/mois| ∞       |                        |
+
+## Logique de l'Interface de Confirmation
+
+<ActionConfirmation>
+  <LunaMessage>
+    "Cette analyse CV complète est l'une de mes spécialités.
+     Elle utilisera 25% de votre énergie Luna restante.
+     Ensemble, nous allons révéler le potentiel de votre profil ! ✨"
+  </LunaMessage>
+
+  <EnergyImpact>
+    Énergie actuelle: 73% → Après action: 48%
+  </EnergyImpact>
+
+  <ActionButtons>
+    <ButtonConfirm>Oui, allons-y Luna! 🚀</ButtonConfirm>
+    <ButtonCancel>Non, pas maintenant.</ButtonCancel>
+  </ActionButtons>
+
+  <SatisfactionGuarantee>
+    (Optionnel) Un lien discret "Satisfaction ou Énergie Renvoyée" peut être ajouté ici.
+  </SatisfactionGuarantee>
+</ActionConfirmation>

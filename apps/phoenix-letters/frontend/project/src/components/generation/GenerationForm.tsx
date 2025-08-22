@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useStore } from '@/store/useStore';
 import { FormData } from '@/types';
 import { CareerTransitionSection } from './CareerTransitionSection';
+import { LunaInteractionPoint } from '@/components/Luna';
 
 interface GenerationFormProps {
   onSubmit: (data: FormData) => void;
@@ -85,6 +86,11 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
           <CardTitle className="text-2xl text-gradient-primary flex items-center">
             <FileText className="w-6 h-6 mr-2" />
             Generate Your Perfect Cover Letter
+            <LunaInteractionPoint
+              variant="prominent"
+              tooltipText="Luna peut vous aider à optimiser votre lettre"
+              contextMessage="📝 Je suis là pour vous aider à créer la lettre de motivation parfaite ! Je peux vous donner des conseils sur les informations à remplir, analyser votre offre d'emploi, ou vous suggérer le bon ton à adopter. Comment puis-je vous accompagner ?"
+            />
           </CardTitle>
         </CardHeader>
         <CardContent>

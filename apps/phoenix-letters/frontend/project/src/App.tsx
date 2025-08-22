@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Dashboard } from '@/pages/Dashboard';
 import { Generate } from '@/pages/Generate';
 import { useStore } from '@/store/useStore';
+import { LunaProvider, FloatingLuna } from '@/components/Luna';
 
 const queryClient = new QueryClient();
 
@@ -38,24 +39,29 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-gray-50 flex">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1 overflow-auto">
-              <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/generate" element={<Generate />} />
-                <Route path="/letters" element={<div className="p-6">Letters page coming soon...</div>} />
-                <Route path="/letters/:id" element={<div className="p-6">Letter detail coming soon...</div>} />
-                <Route path="/analytics" element={<div className="p-6">Analytics page coming soon...</div>} />
-              </Routes>
-            </main>
+      <LunaProvider initialEnergy={85}>
+        <Router>
+          <div className="min-h-screen bg-gray-50 flex">
+            <Sidebar />
+            <div className="flex-1 flex flex-col">
+              <Header />
+              <main className="flex-1 overflow-auto">
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/generate" element={<Generate />} />
+                  <Route path="/letters" element={<div className="p-6">Letters page coming soon...</div>} />
+                  <Route path="/letters/:id" element={<div className="p-6">Letter detail coming soon...</div>} />
+                  <Route path="/analytics" element={<div className="p-6">Analytics page coming soon...</div>} />
+                </Routes>
+              </main>
+            </div>
+            
+            {/* Luna Floating Assistant */}
+            <FloatingLuna />
           </div>
-        </div>
-      </Router>
+        </Router>
+      </LunaProvider>
     </QueryClientProvider>
   );
 }

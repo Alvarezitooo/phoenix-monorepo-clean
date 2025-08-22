@@ -269,6 +269,13 @@ async def get_services():
         await services.initialize()
     return services
 
+# === Integration Luna Hub ===
+# Import des routes intégrées Luna Hub
+from presentation.routes.letters_generate import router as luna_router
+
+# Ajout du router Luna Hub
+app.include_router(luna_router)
+
 # === API Routes ===
 
 @app.get("/", response_model=dict)
@@ -277,9 +284,10 @@ async def root():
     return {
         "message": "🔥 Phoenix Letters API",
         "version": "2.0.0", 
-        "architecture": "Clean Architecture",
+        "architecture": "Clean Architecture + Luna Hub",
         "docs": "/docs",
-        "status": "operational"
+        "status": "operational",
+        "luna_integration": "Sprint 4 ✅"
     }
 
 @app.get("/health", response_model=HealthCheck)

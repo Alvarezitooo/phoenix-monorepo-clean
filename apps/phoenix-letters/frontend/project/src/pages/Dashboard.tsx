@@ -14,9 +14,16 @@ import { Button } from '@/components/ui/button';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { useStore } from '@/store/useStore';
 import { formatDate } from '@/lib/utils';
+import { LunaInteractionPoint, useLuna } from '@/components/Luna';
 
 export function Dashboard() {
   const { user, letters, userStats, setUserStats } = useStore();
+  const { setContext } = useLuna();
+
+  // Set Luna context for dashboard
+  useEffect(() => {
+    setContext('dashboard');
+  }, [setContext]);
 
   useEffect(() => {
     // Simulate fetching user stats
@@ -79,8 +86,13 @@ export function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
           Welcome back, {user?.name}! 👋
+          <LunaInteractionPoint
+            variant="prominent"
+            tooltipText="Luna peut vous expliquer votre tableau de bord"
+            contextMessage="🌙 Bienvenue sur votre tableau de bord Phoenix Letters ! Je peux vous expliquer vos statistiques, vous aider à améliorer vos performances ou vous guider vers les bonnes fonctionnalités. Que souhaitez-vous faire ?"
+          />
         </h1>
         <p className="text-gray-600">
           Ready to create your next outstanding cover letter?
@@ -112,6 +124,11 @@ export function Dashboard() {
             <CardTitle className="flex items-center">
               <Sparkles className="w-5 h-5 mr-2 text-gradient-primary" />
               Quick Actions
+              <LunaInteractionPoint
+                variant="subtle"
+                tooltipText="Luna peut vous guider dans vos actions"
+                contextMessage="🚀 Ces actions rapides vous permettent de naviguer efficacement dans Phoenix Letters. Voulez-vous que je vous explique chaque fonctionnalité ou que je vous aide à choisir la meilleure action pour votre situation ?"
+              />
             </CardTitle>
           </CardHeader>
           <CardContent>

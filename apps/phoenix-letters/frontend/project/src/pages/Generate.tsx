@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { GenerationForm } from '@/components/generation/GenerationForm';
@@ -6,12 +6,19 @@ import { GenerationProgress } from '@/components/generation/GenerationProgress';
 import { useGeneration } from '@/hooks/useGeneration';
 import { useStore } from '@/store/useStore';
 import { FormData } from '@/types';
+import { useLuna } from '@/components/Luna';
 
 export function Generate() {
   const navigate = useNavigate();
   const { isGenerating } = useStore();
   const { generateLetter, progress } = useGeneration();
   const [showProgress, setShowProgress] = useState(false);
+  const { setContext } = useLuna();
+
+  // Set Luna context for generation page
+  useEffect(() => {
+    setContext('generate');
+  }, [setContext]);
 
   const handleSubmit = async (data: FormData) => {
     setShowProgress(true);

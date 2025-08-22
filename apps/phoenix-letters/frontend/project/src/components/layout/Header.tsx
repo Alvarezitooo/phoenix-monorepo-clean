@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/useStore';
+import { EnergyGauge } from '@/components/Luna';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +53,11 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center space-x-4">
+          {/* Luna Energy Gauge */}
+          <div className="hidden sm:block">
+            <EnergyGauge variant="luna" size="md" />
+          </div>
+
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="w-5 h-5" />
