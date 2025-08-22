@@ -47,15 +47,7 @@ RUN npm run build
 # Back to main directory
 WORKDIR /app
 
-# 🎯 GAME CHANGER - Vérification Career Transition + Luna Hub
-RUN python -c "import sys; sys.path.append('/app'); \
-print('📝 Phoenix Letters - Verifying Career Transition + Luna Integration...'); \
-try: \
-    from domain.entities.career_transition import CareerTransition; \
-    from infrastructure.clients.luna_client import LunaClient; \
-    from application.models.actions import LettersActionType; \
-    print('✅ Career Transition + Luna Hub Integration - Ready for Production!'); \
-except Exception as e: print(f'⚠️  Some features may need runtime config: {e}')"
+# 🎯 Career Transition + Luna Hub Integration will be verified at runtime
 
 # Security: create non-root user
 RUN useradd -m appuser && \
