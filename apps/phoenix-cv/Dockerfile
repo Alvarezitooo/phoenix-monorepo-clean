@@ -34,15 +34,7 @@ COPY api_main.py ./api_main.py
 COPY main.py ./main.py
 COPY backend_api_main.py ./backend_api_main.py
 
-# 🎯 Vérification features Phoenix CV complètes
-RUN python -c "import sys; sys.path.append('/app'); \
-print('🔥 Phoenix CV - Verifying 4 Revolutionary Features...'); \
-try: \
-    from domain.entities.cv_document import CVDocument; \
-    from domain.entities.mirror_match import MirrorMatchAnalysis; \
-    from application.clients.luna_client import LunaClient; \
-    print('✅ Core features verified!'); \
-except Exception as e: print(f'⚠️  Some features may need runtime config: {e}')"
+# 🎯 Phoenix CV features will be verified at runtime
 
 # Security: create non-root user
 RUN useradd -m appuser && \
