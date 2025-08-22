@@ -8,11 +8,11 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import logging
 
-from ...domain.entities.cv_document import CVDocument
-from ...domain.entities.mirror_match import JobDescription, MirrorMatchAnalysis
-from ...domain.repositories.cv_repository import CVRepositoryInterface
-from ...domain.services.mirror_match_service import MirrorMatchService
-from ...shared.exceptions.business_exceptions import ValidationError, ProcessingError
+from domain.entities.cv_document import CVDocument
+from domain.entities.mirror_match import JobDescription, MirrorMatchAnalysis
+from domain.repositories.cv_repository import CVRepositoryInterface
+from domain.services.mirror_match_service import MirrorMatchService
+from shared.exceptions.business_exceptions import ValidationError, ProcessingError
 
 logger = logging.getLogger(__name__)
 
