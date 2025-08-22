@@ -252,3 +252,7 @@ class SupabaseEventStore:
 
 # Instance globale du Event Store
 event_store = SupabaseEventStore()
+
+def get_supabase_client() -> Optional[Client]:
+    """Récupère le client Supabase pour usage direct"""
+    return event_store.client
