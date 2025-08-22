@@ -29,10 +29,10 @@ RUN pip install --upgrade pip && \
 COPY application ./application
 COPY domain ./domain  
 COPY infrastructure ./infrastructure
-COPY presentation ./presentation
 COPY shared ./shared
 COPY api_main.py ./api_main.py
 COPY main.py ./main.py
+COPY backend_api_main.py ./backend_api_main.py
 
 # 🎯 Vérification features Phoenix CV complètes
 RUN python -c "import sys; sys.path.append('/app'); \
