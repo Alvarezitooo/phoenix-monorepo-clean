@@ -31,11 +31,6 @@ from application.use_cases.mirror_match_use_case import (
     MirrorMatchCommand,
     MirrorMatchResult
 )
-from application.use_cases.optimize_cv_use_case import (
-    OptimizeCVUseCase,
-    OptimizeCVCommand, 
-    OptimizeCVResult
-)
 
 # Infrastructure
 from infrastructure.ai.cv_gemini_service import CVGeminiService
