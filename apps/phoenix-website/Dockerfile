@@ -46,7 +46,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy custom nginx config for SPA routing
 COPY <<EOF /etc/nginx/conf.d/default.conf
 server {
-    listen 80;
+    listen $PORT;
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -82,24 +82,14 @@ server {
 }
 EOF
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -S appuser -u 1001 -G appgroup && \
-    chown -R appuser:appgroup /var/cache/nginx && \
-    chown -R appuser:appgroup /var/log/nginx && \
-    chown -R appuser:appgroup /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R appuser:appgroup /var/run/nginx.pid
-
-# Switch to non-root user
-USER appuser
+# Note: Running as root for Railway compatibility
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
+    CMD curl -f http://localhost:${PORT:-80}/health || exit 1
 
 # Expose port
-EXPOSE 80
+EXPOSE $PORT
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start script with PORT substitution
+CMD ["sh", "-c", "envsubst '\\$PORT' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.tmp && mv /etc/nginx/conf.d/default.conf.tmp /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
