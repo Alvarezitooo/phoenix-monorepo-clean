@@ -30,7 +30,8 @@ RUN echo "fastapi>=0.104.0" > requirements.txt && \
     echo "httpx>=0.25.0" >> requirements.txt && \
     echo "python-multipart>=0.0.6" >> requirements.txt && \
     echo "python-jose[cryptography]>=3.3.0" >> requirements.txt && \
-    echo "bleach>=6.0.0" >> requirements.txt
+    echo "bleach>=6.0.0" >> requirements.txt && \
+    echo "psutil>=5.9.0" >> requirements.txt
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
