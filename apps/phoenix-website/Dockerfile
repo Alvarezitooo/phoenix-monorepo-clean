@@ -43,10 +43,10 @@ RUN apk add --no-cache curl gettext
 # Copy built application
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom nginx config template for SPA routing
-COPY <<EOF /etc/nginx/conf.d/default.conf.template
+# Copy custom nginx config for SPA routing (using Railway standard port)
+COPY <<EOF /etc/nginx/conf.d/default.conf
 server {
-    listen \${PORT};
+    listen 8080;
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -86,10 +86,10 @@ EOF
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-80}/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose port
-EXPOSE $PORT
+EXPOSE 8080
 
-# Start script with PORT substitution
-CMD ["sh", "-c", "envsubst '\\$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Start nginx directly
+CMD ["nginx", "-g", "daemon off;"]
