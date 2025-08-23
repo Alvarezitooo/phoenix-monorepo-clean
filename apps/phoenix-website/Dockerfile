@@ -51,11 +51,14 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 # Make entrypoint executable
 RUN chmod +x /docker-entrypoint.sh
 
+# Set default PORT environment variable
+ENV PORT=8080
+
 # Note: Running as root for Railway compatibility
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Expose port
 EXPOSE 8080
