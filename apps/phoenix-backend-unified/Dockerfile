@@ -22,9 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies - FORCE REBUILD 2025-08-23
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+    pip install -r requirements.txt && \
+    pip install email-validator==2.2.0
 
 # Copy application code
 COPY app ./app
