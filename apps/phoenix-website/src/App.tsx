@@ -33,12 +33,15 @@ import AnimatedGradient from './components/AnimatedGradient';
 import LunaAvatar from './components/LunaAvatar';
 import EnergyConsumptionGuide from './components/EnergyConsumptionGuide';
 import ActionConfirmation from './components/ActionConfirmation';
+import { LunaPresence } from './components/LunaPresence';
+import { LunaModal } from './components/LunaModal';
 import { redirectToService } from './services/api';
 
 function App() {
   const [lunaEnergy, setLunaEnergy] = useState(85);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [hasFirstPurchaseBonus, setHasFirstPurchaseBonus] = useState(true);
+  const [showLunaModal, setShowLunaModal] = useState(false);
 
   // Fonction pour démarrer avec Luna (redirige vers Letters en premier)
   const handleStartWithLuna = () => {
@@ -492,6 +495,10 @@ function App() {
         onCancel={() => setShowConfirmation(false)}
         isOpen={showConfirmation}
       />
+
+      {/* Luna Presence + Modal */}
+      <LunaPresence onClick={() => setShowLunaModal(true)} />
+      <LunaModal isOpen={showLunaModal} onClose={() => setShowLunaModal(false)} />
     </div>
   );
 }
