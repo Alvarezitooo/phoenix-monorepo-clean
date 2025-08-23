@@ -23,7 +23,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install structlog==25.4.0 bleach==6.2.0 psutil==7.0.0 email-validator==2.2.0
 
-# Copy application code with explicit structure
+# Copy application code with explicit structure - CACHE BUST 2025-08-23-22:15
 COPY main.py ./main.py
 COPY app/ ./app/
 
