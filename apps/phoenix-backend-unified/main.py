@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from app.core.logging_config import logger, performance_logger, business_logger
 
 # Import des modules Luna
-from app.api.luna_endpoints import luna_router
+from app.api.luna_endpoints import router as luna_router
 from app.api.capital_narratif_endpoints import narratif_router
 from app.api.billing_endpoints import router as billing_router
 from app.api.refund_endpoints import router as refund_router
