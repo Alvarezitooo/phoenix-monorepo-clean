@@ -35,6 +35,7 @@ import EnergyConsumptionGuide from './components/EnergyConsumptionGuide';
 import ActionConfirmation from './components/ActionConfirmation';
 import { LunaPresence } from './components/LunaPresence';
 import { LunaModal } from './components/LunaModalV2';
+import { LunaSessionZero } from './components/LunaSessionZero';
 import { redirectToService } from './services/api';
 
 function App() {
@@ -42,11 +43,25 @@ function App() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [hasFirstPurchaseBonus, setHasFirstPurchaseBonus] = useState(true);
   const [showLunaModal, setShowLunaModal] = useState(false);
+  const [showSessionZero, setShowSessionZero] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Fonction pour démarrer avec Luna (redirige vers Letters en premier)
+  // Fonction pour démarrer avec Luna
   const handleStartWithLuna = () => {
-    setLunaEnergy(prev => Math.min(100, prev + 15));
-    // Petite pause pour l'animation puis redirection
+    if (currentUser) {
+      setLunaEnergy(prev => Math.min(100, prev + 15));
+      // Petite pause pour l'animation puis redirection
+      setTimeout(() => redirectToService('letters'), 500);
+    } else {
+      setShowSessionZero(true);
+    }
+  };
+
+  const handleAuthenticated = (user: any) => {
+    setCurrentUser(user);
+    setLunaEnergy(user.luna_energy || 100);
+    setShowSessionZero(false);
+    // Redirect to Letters after authentication
     setTimeout(() => redirectToService('letters'), 500);
   };
 
@@ -74,7 +89,17 @@ function App() {
                 </div>
               </div>
             </div>
-            <LunaEnergyGauge energy={lunaEnergy} hasFirstPurchaseBonus={hasFirstPurchaseBonus} />
+            <div className="flex items-center space-x-4">
+              {currentUser && (
+                <button
+                  onClick={() => setShowSessionZero(true)}
+                  className="text-sm text-slate-600 hover:text-slate-800 flex items-center space-x-2"
+                >
+                  <span>👤 {currentUser.email}</span>
+                </button>
+              )}
+              <LunaEnergyGauge energy={lunaEnergy} hasFirstPurchaseBonus={hasFirstPurchaseBonus} />
+            </div>
           </div>
         </div>
       </nav>
@@ -499,6 +524,13 @@ function App() {
       {/* Luna Presence + Modal */}
       <LunaPresence onClick={() => setShowLunaModal(true)} />
       <LunaModal isOpen={showLunaModal} onClose={() => setShowLunaModal(false)} />
+      
+      {/* Luna Session Zero */}
+      <LunaSessionZero 
+        isOpen={showSessionZero} 
+        onClose={() => setShowSessionZero(false)}
+        onAuthenticated={handleAuthenticated}
+      />
     </div>
   );
 }
