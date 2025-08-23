@@ -34,7 +34,7 @@ import LunaAvatar from './components/LunaAvatar';
 import EnergyConsumptionGuide from './components/EnergyConsumptionGuide';
 import ActionConfirmation from './components/ActionConfirmation';
 import { LunaPresence } from './components/LunaPresence';
-import { LunaModal } from './components/LunaModal';
+import { LunaModal } from './components/LunaModalV2';
 import { redirectToService } from './services/api';
 
 function App() {

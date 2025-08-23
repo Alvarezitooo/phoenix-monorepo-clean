@@ -21,6 +21,9 @@ from app.api.capital_narratif_endpoints import narratif_router
 from app.api.billing_endpoints import router as billing_router
 from app.api.refund_endpoints import router as refund_router
 from app.api.monitoring_endpoints import router as monitoring_router
+# Luna Session Zero - New endpoints
+from app.api.auth_endpoints import router as auth_router
+from app.api.luna_narrative_endpoints import router as luna_narrative_router
 from app.middleware.security_middleware import security_middleware
 
 # Load environment
@@ -119,6 +122,9 @@ app.include_router(narratif_router)
 app.include_router(billing_router)
 app.include_router(refund_router)
 app.include_router(monitoring_router)  # Sprint 5 - Monitoring avancé
+# Luna Session Zero routers
+app.include_router(auth_router)
+app.include_router(luna_narrative_router)
 
 # Models de base
 class HealthResponse(BaseModel):

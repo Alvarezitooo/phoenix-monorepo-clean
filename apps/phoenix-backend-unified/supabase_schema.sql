@@ -3,13 +3,23 @@
 -- À exécuter dans Supabase SQL Editor
 
 -- ================================
--- USERS TABLE
+-- USERS TABLE (Updated for Luna Session Zero)
 -- ================================
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     name VARCHAR(255),
     subscription_type VARCHAR(50) DEFAULT 'free',
+    is_active BOOLEAN DEFAULT TRUE,
+    
+    -- Luna Session Zero fields
+    luna_energy INTEGER DEFAULT 100 CHECK (luna_energy >= 0),
+    capital_narratif_started BOOLEAN DEFAULT FALSE,
+    narrative_id VARCHAR(255),
+    initial_motivation TEXT,
+    narrative_started_at TIMESTAMP WITH TIME ZONE,
+    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -67,9 +77,20 @@ CREATE TABLE IF NOT EXISTS energy_purchases (
 );
 
 -- ================================
--- EVENT STORE TABLE (Capital Narratif)
+-- EVENT STORE TABLE (Capital Narratif - Updated for Luna Session Zero)
 -- ================================
 CREATE TABLE IF NOT EXISTS events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type VARCHAR(100) NOT NULL,
+    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    actor_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    payload JSONB NOT NULL DEFAULT '{}',
+    meta JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Legacy events table support (if needed for migration)
+CREATE TABLE IF NOT EXISTS events_legacy (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id VARCHAR(255) UNIQUE NOT NULL,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
