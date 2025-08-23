@@ -23,6 +23,8 @@ passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 # Background tasks & Redis
 celery = "^5.3.0"
 redis = "^5.0.0"
+# Logging
+structlog = "^25.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.0"
