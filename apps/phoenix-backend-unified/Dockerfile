@@ -1,19 +1,51 @@
-# 🚀 Phoenix Backend Unified - Railway Simple
-FROM python:3.11-slim
+# 🚀 Phoenix Backend Unified - Production Grade Luna Hub
+# Moteur central de l'écosystème Phoenix
+FROM python:3.11-slim AS base
+
+# Production environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install system dependencies for production
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Copy and install Python dependencies
+# Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install structlog==25.4.0 bleach==6.2.0 psutil==7.0.0 email-validator==2.2.0
 
-# Copy application
-COPY . .
+# Copy application code with explicit structure
+COPY main.py ./main.py
+COPY app/ ./app/
 
-# Simple start command
+# Verify critical files are copied
+RUN ls -la ./app/api/ && \
+    ls -la ./app/core/ && \
+    ls -la ./app/middleware/ && \
+    python3 -c "import app.api.luna_endpoints; print('✅ Import test OK')"
+
+# Security: create non-root user for production
+RUN useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /app && \
+    chmod -R 755 /app
+
+USER appuser
+
+# Health check for production monitoring
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/monitoring/health || exit 1
+
+# Expose port (Railway will override)
+EXPOSE 8000
+
+# Production startup with proper error handling
 CMD ["python", "main.py"]
