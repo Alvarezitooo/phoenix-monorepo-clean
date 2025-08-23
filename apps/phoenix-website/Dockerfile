@@ -1,68 +1,46 @@
-# 🚀 Phoenix Website - Production Docker Image  
-# Sprint 5 - React/Vite with Stripe integration
-# Force rebuild v2 - Simple nginx config
+# 🚀 Phoenix Website - Railway Compatible Architecture
+# FastAPI + Static Serving (matches Phoenix CV/Letters)
 
-# Multi-stage build for optimized production image
-FROM node:18-alpine AS deps
+FROM python:3.11-slim AS base
+
+# Environment variables for Railway compatibility
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app \
+    PORT=8080
 
 WORKDIR /app
 
-# Copy package files
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs \
+    npm \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install Python dependencies
+COPY requirements.txt ./
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Build React frontend
 COPY package*.json ./
-COPY yarn.lock* ./
+RUN npm ci --production=false
 
-# Install dependencies based on the preferred package manager
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  else npm install; fi
-
-# Builder stage
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy source code
 COPY . .
-
-# Set build environment variables
-ENV NODE_ENV=production
-ENV VITE_APP_ENV=production
-
-# Build the application
 RUN npm run build
 
-# Production runner stage
-FROM nginx:alpine AS runner
+# Copy FastAPI backend
+COPY api_main.py ./
 
-# Install curl for health checks and gettext for envsubst
-RUN apk add --no-cache curl gettext
-
-# Copy built application
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx template and entrypoint script
-COPY nginx/default.conf.template /etc/nginx/conf.d/default.conf.template
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-
-# Make entrypoint executable
-RUN chmod +x /docker-entrypoint.sh
-
-# Set default PORT environment variable
-ENV PORT=8080
-
-# Note: Running as root for Railway compatibility
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Health check for Railway
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Expose port
-EXPOSE 8080
+EXPOSE ${PORT}
 
-# Use entrypoint for proper template substitution
-ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+# Railway-compatible command (same as CV/Letters)
+CMD ["sh", "-c", "gunicorn api_main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:${PORT} --timeout 120 --keep-alive 30 --max-requests 200 --max-requests-jitter 20 --preload --access-logfile - --error-logfile -"]
