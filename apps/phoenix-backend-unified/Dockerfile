@@ -19,13 +19,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Copy requirements file
+# CACHE BUST - Force rebuild with structlog 2025-08-23-19:20
 COPY requirements.txt .
 
-# Install Python dependencies - FORCE REBUILD 2025-08-23
+# Install Python dependencies - FORCE REBUILD with structlog
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
-    pip install email-validator==2.2.0
+    pip install email-validator==2.2.0 && \
+    pip install structlog==25.4.0
 
 # Copy application code
 COPY app ./app
