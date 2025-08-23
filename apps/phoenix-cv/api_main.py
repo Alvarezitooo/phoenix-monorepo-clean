@@ -330,15 +330,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration Frontend Static Files (si disponible)
+# Configuration Frontend Static Files (si disponible) 
 static_dir = Path(__file__).parent / "front-end" / "dist"
 if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    # Mount assets directory for CSS/JS files
+    assets_dir = static_dir / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
     
+    # Serve index.html for SPA routes
     @app.get("/", include_in_schema=False)
-    @app.get("/dashboard", include_in_schema=False)
-    @app.get("/optimize", include_in_schema=False)
-    async def serve_frontend():
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str = ""):
+        # Don't serve index.html for API routes
+        if full_path.startswith(("api", "health", "docs", "openapi.json", "assets")):
+            raise HTTPException(status_code=404, detail="Not found")
+        
         index_file = static_dir / "index.html"
         if index_file.exists():
             return FileResponse(index_file)
