@@ -41,7 +41,13 @@ COPY backend_api_main.py ./backend_api_main.py
 # Build frontend
 WORKDIR /app/front-end
 COPY front-end/package*.json ./
-RUN npm ci --production=false
+
+# Install frontend dependencies with robust fallback
+RUN npm ci --production=false || \
+    (echo "npm ci failed, cleaning and retrying..." && \
+     rm -rf node_modules package-lock.json && \
+     npm install --production=false)
+
 COPY front-end/ ./
 RUN npm run build
 
