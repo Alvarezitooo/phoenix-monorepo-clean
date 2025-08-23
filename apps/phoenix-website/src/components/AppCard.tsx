@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { ExternalLink, Clock, Moon, Zap } from 'lucide-react';
 import PhoenixButton from './PhoenixButton';
+import { redirectToService } from '../services/api';
 
 interface AppCardProps {
   icon: ReactNode;
@@ -12,10 +13,17 @@ interface AppCardProps {
   stats: string;
   lunaFeature?: string;
   energyCost?: number;
+  serviceKey?: 'letters' | 'cv' | 'luna-hub'; // Clé pour redirection
 }
 
-export default function AppCard({ icon, title, subtitle, description, status, url, stats, lunaFeature, energyCost }: AppCardProps) {
+export default function AppCard({ icon, title, subtitle, description, status, url, stats, lunaFeature, energyCost, serviceKey }: AppCardProps) {
   const isAvailable = status === 'available';
+
+  const handleServiceRedirect = () => {
+    if (serviceKey && isAvailable) {
+      redirectToService(serviceKey);
+    }
+  };
 
   return (
     <div className={`relative p-6 rounded-2xl border transition-all duration-300 hover:scale-105 ${
@@ -85,6 +93,7 @@ export default function AppCard({ icon, title, subtitle, description, status, ur
             icon={<ExternalLink className="h-4 w-4" />}
             energyCost={energyCost}
             className="w-full"
+            onClick={handleServiceRedirect}
           >
             Continuer avec Luna
           </PhoenixButton>

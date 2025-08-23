@@ -33,11 +33,19 @@ import AnimatedGradient from './components/AnimatedGradient';
 import LunaAvatar from './components/LunaAvatar';
 import EnergyConsumptionGuide from './components/EnergyConsumptionGuide';
 import ActionConfirmation from './components/ActionConfirmation';
+import { redirectToService } from './services/api';
 
 function App() {
   const [lunaEnergy, setLunaEnergy] = useState(85);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [hasFirstPurchaseBonus, setHasFirstPurchaseBonus] = useState(true);
+
+  // Fonction pour démarrer avec Luna (redirige vers Letters en premier)
+  const handleStartWithLuna = () => {
+    setLunaEnergy(prev => Math.min(100, prev + 15));
+    // Petite pause pour l'animation puis redirection
+    setTimeout(() => redirectToService('letters'), 500);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-indigo-50 text-slate-900 overflow-x-hidden">
@@ -103,7 +111,7 @@ function App() {
               variant="primary" 
               size="large"
               icon={<Coffee className="h-5 w-5" />}
-              onClick={() => setLunaEnergy(prev => Math.min(100, prev + 15))}
+              onClick={handleStartWithLuna}
             >
               ☕ Commencer avec Luna (Session découverte offerte)
             </PhoenixButton>
@@ -227,6 +235,7 @@ function App() {
               stats="12 lettres générées avec Luna"
               lunaFeature="Luna connaît votre parcours et adapte chaque lettre à votre évolution"
               energyCost={15}
+              serviceKey="letters"
             />
             <AppCard
               icon={<BarChart3 className="h-8 w-8" />}
@@ -238,6 +247,7 @@ function App() {
               stats="3 analyses approfondies Luna"
               lunaFeature="Luna intègre vos réussites de Letters pour renforcer votre profil"
               energyCost={25}
+              serviceKey="cv"
             />
             <AppCard
               icon={<Sunrise className="h-8 w-8" />}
@@ -443,7 +453,7 @@ function App() {
             variant="primary" 
             size="large"
             icon={<Coffee className="h-5 w-5" />}
-            onClick={() => setLunaEnergy(prev => Math.min(100, prev + 15))}
+            onClick={handleStartWithLuna}
           >
             ☕ Commencer avec Luna (Session découverte offerte)
           </PhoenixButton>
