@@ -10,6 +10,10 @@ from typing import Dict, Any, List, Optional
 from supabase import create_client, Client
 from app.core.security_guardian import SecurityGuardian
 import structlog
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configuration du logger structuré
 logger = structlog.get_logger()
@@ -256,3 +260,6 @@ event_store = SupabaseEventStore()
 def get_supabase_client() -> Optional[Client]:
     """Récupère le client Supabase pour usage direct"""
     return event_store.client
+
+# Alias for backward compatibility with new auth system
+sb = event_store.client

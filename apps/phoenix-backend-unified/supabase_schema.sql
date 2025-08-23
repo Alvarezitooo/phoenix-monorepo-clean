@@ -103,7 +103,60 @@ CREATE TABLE IF NOT EXISTS events_legacy (
 );
 
 -- ================================
--- INDEXES POUR PERFORMANCE
+-- AUTH HARDENING TABLES (Enterprise Security)
+-- ================================
+
+-- REFRESH TOKENS TABLE (JWT Rotation)
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(255) UNIQUE NOT NULL,
+    jti UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+    device_label TEXT,
+    user_agent TEXT,
+    ip INET,
+    geo_location JSONB DEFAULT '{}',
+    issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used_at TIMESTAMP WITH TIME ZONE,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    parent_id UUID REFERENCES refresh_tokens(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- SESSIONS TABLE (Multi-Device Management)
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    refresh_token_id UUID REFERENCES refresh_tokens(id) ON DELETE CASCADE,
+    device_label TEXT,
+    user_agent TEXT,
+    ip INET,
+    geo_location JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_seen TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Business constraints
+    CONSTRAINT sessions_valid_dates CHECK (expires_at > created_at)
+);
+
+-- RATE LIMITING TABLE (Anti-Brute Force)
+CREATE TABLE IF NOT EXISTS rate_limits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scope VARCHAR(50) NOT NULL, -- 'auth_login', 'auth_register', etc.
+    identifier VARCHAR(255) NOT NULL, -- IP, email, user_id
+    attempts INTEGER DEFAULT 1,
+    window_start TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    window_end TIMESTAMP WITH TIME ZONE NOT NULL,
+    blocked_until TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ================================
+-- INDEXES POUR PERFORMANCE (Updated + New)
 -- ================================
 
 -- User Energy
@@ -121,12 +174,34 @@ CREATE INDEX IF NOT EXISTS idx_energy_purchases_user_id ON energy_purchases(user
 CREATE INDEX IF NOT EXISTS idx_energy_purchases_payment_status ON energy_purchases(payment_status);
 CREATE INDEX IF NOT EXISTS idx_energy_purchases_created_at ON energy_purchases(created_at);
 
--- Events
-CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
-CREATE INDEX IF NOT EXISTS idx_events_event_type ON events(event_type);
-CREATE INDEX IF NOT EXISTS idx_events_app_source ON events(app_source);
-CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
-CREATE INDEX IF NOT EXISTS idx_events_processed ON events(processed);
+-- Events (Updated for new schema)
+CREATE INDEX IF NOT EXISTS idx_events_actor_user_id ON events(actor_user_id);
+CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
+CREATE INDEX IF NOT EXISTS idx_events_occurred_at ON events(occurred_at);
+CREATE INDEX IF NOT EXISTS idx_events_meta_gin ON events USING gin(meta);
+
+-- Legacy Events (if exists)
+CREATE INDEX IF NOT EXISTS idx_events_legacy_user_id ON events_legacy(user_id);
+CREATE INDEX IF NOT EXISTS idx_events_legacy_type ON events_legacy(event_type);
+CREATE INDEX IF NOT EXISTS idx_events_legacy_processed ON events_legacy(processed);
+
+-- Refresh Tokens Indexes
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_jti ON refresh_tokens(jti);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_active ON refresh_tokens(user_id, revoked_at) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires ON refresh_tokens(expires_at) WHERE revoked_at IS NULL;
+
+-- Sessions Indexes
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_refresh_token ON sessions(refresh_token_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_active ON sessions(user_id, revoked_at) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at) WHERE revoked_at IS NULL;
+
+-- Rate Limits Indexes
+CREATE INDEX IF NOT EXISTS idx_rate_limits_scope_identifier ON rate_limits(scope, identifier);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_window ON rate_limits(window_start, window_end);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_blocked ON rate_limits(blocked_until) WHERE blocked_until IS NOT NULL;
 
 -- ================================
 -- TRIGGERS POUR AUTO-UPDATE

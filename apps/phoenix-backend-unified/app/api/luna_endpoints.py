@@ -12,7 +12,7 @@ from app.core.security_guardian import SecurityGuardian, SecureUserIdValidator, 
 
 
 # Router Luna
-luna_router = APIRouter(prefix="/luna", tags=["Luna Energy Management"])
+router = APIRouter(prefix="/luna", tags=["Luna Energy Management"])
 
 
 # ============================================================================
@@ -147,7 +147,7 @@ async def get_current_user_id(user_id: str = None) -> str:
 # ENDPOINTS LUNA ÉNERGIE
 # ============================================================================
 
-@luna_router.post("/energy/check", 
+@router.post("/energy/check", 
                   response_model=EnergyCheckResponse,
                   summary="Vérifier le solde d'énergie Luna",
                   description="""
@@ -198,7 +198,7 @@ async def check_energy_balance(
         )
 
 
-@luna_router.post("/energy/can-perform", response_model=CanPerformActionResponse)
+@router.post("/energy/can-perform", response_model=CanPerformActionResponse)
 async def can_perform_action(
     request: CanPerformActionRequest
 ) -> CanPerformActionResponse:
@@ -226,7 +226,7 @@ async def can_perform_action(
         )
 
 
-@luna_router.post("/energy/consume", response_model=EnergyConsumeResponse)
+@router.post("/energy/consume", response_model=EnergyConsumeResponse)
 async def consume_energy(
     request: EnergyConsumeRequest
 ) -> EnergyConsumeResponse:
@@ -275,7 +275,7 @@ async def consume_energy(
         )
 
 
-@luna_router.post("/energy/refund", response_model=Dict[str, Any])
+@router.post("/energy/refund", response_model=Dict[str, Any])
 async def refund_energy(
     request: EnergyRefundRequest
 ) -> Dict[str, Any]:
@@ -300,7 +300,7 @@ async def refund_energy(
         )
 
 
-@luna_router.post("/energy/purchase", response_model=EnergyPurchaseResponse)
+@router.post("/energy/purchase", response_model=EnergyPurchaseResponse)
 async def purchase_energy_pack(
     request: EnergyPurchaseRequest
 ) -> EnergyPurchaseResponse:
@@ -332,7 +332,7 @@ async def purchase_energy_pack(
         )
 
 
-@luna_router.get("/energy/transactions/{user_id}", response_model=TransactionHistoryResponse)
+@router.get("/energy/transactions/{user_id}", response_model=TransactionHistoryResponse)
 async def get_energy_transactions(
     user_id: str,
     limit: int = 50
@@ -358,7 +358,7 @@ async def get_energy_transactions(
         )
 
 
-@luna_router.get("/energy/analytics/{user_id}", response_model=EnergyAnalyticsResponse)
+@router.get("/energy/analytics/{user_id}", response_model=EnergyAnalyticsResponse)
 async def get_energy_analytics(
     user_id: str
 ) -> EnergyAnalyticsResponse:
@@ -386,7 +386,7 @@ async def get_energy_analytics(
 # ENDPOINTS UTILITAIRES
 # ============================================================================
 
-@luna_router.get("/energy/costs")
+@router.get("/energy/costs")
 async def get_energy_costs() -> Dict[str, Any]:
     """
     📋 Grille des coûts d'énergie Luna

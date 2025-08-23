@@ -19,19 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Create requirements.txt with production dependencies
-RUN echo "fastapi>=0.104.0" > requirements.txt && \
-    echo "uvicorn[standard]>=0.24.0" >> requirements.txt && \
-    echo "gunicorn>=21.2.0" >> requirements.txt && \
-    echo "pydantic>=2.5.0" >> requirements.txt && \
-    echo "stripe>=7.0.0" >> requirements.txt && \
-    echo "supabase>=2.0.0" >> requirements.txt && \
-    echo "structlog>=23.2.0" >> requirements.txt && \
-    echo "httpx>=0.25.0" >> requirements.txt && \
-    echo "python-multipart>=0.0.6" >> requirements.txt && \
-    echo "python-jose[cryptography]>=3.3.0" >> requirements.txt && \
-    echo "bleach>=6.0.0" >> requirements.txt && \
-    echo "psutil>=5.9.0" >> requirements.txt
+# Copy requirements file
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \

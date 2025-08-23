@@ -5,7 +5,7 @@ Sécurité par défaut selon Directive Oracle #5
 
 import re
 from typing import Any, Dict, Optional
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends, Request
 from pydantic import BaseModel, Field, validator
 import bleach
 
@@ -154,3 +154,34 @@ class SecureActionValidator(BaseModel):
     @validator('action_name')
     def validate_action_name(cls, v):
         return SecurityGuardian.validate_action_name(v)
+
+
+async def ensure_request_is_clean(request: Request) -> None:
+    """
+    Dependency to ensure request is clean and safe
+    Used in auth endpoints for additional security
+    """
+    # Basic checks for suspicious patterns in URL and headers
+    url_path = str(request.url.path).lower()
+    
+    # Check for common attack patterns in URL
+    suspicious_patterns = [
+        '../', './', 'script', 'eval', 'exec', 'union', 'select', 'drop', 'delete'
+    ]
+    
+    for pattern in suspicious_patterns:
+        if pattern in url_path:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Suspicious request pattern detected"
+            )
+    
+    # Check User-Agent for suspicious patterns
+    user_agent = request.headers.get("user-agent", "").lower()
+    if not user_agent or len(user_agent) > 1000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user agent"
+        )
+    
+    return None

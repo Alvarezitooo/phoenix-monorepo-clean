@@ -41,10 +41,12 @@ def create_jwt_token(user_data: Dict[str, Any]) -> str:
         "sub": str(user_data["id"]),  # Subject (user ID)
         "email": user_data["email"],
         "iat": datetime.now(timezone.utc),  # Issued at
-        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS),  # Expires
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=15),  # Short lived access token
         "type": "access_token",
         "luna_energy": user_data.get("luna_energy", 100),
-        "narrative_started": user_data.get("capital_narratif_started", False)
+        "narrative_started": user_data.get("capital_narratif_started", False),
+        "session_id": user_data.get("session_id"),
+        "jti": user_data.get("jti")  # JWT ID for tracking
     }
     
     # Generate token
@@ -91,7 +93,9 @@ def extract_user_from_token(token: str) -> Optional[Dict[str, Any]]:
         "id": payload.get("sub"),
         "email": payload.get("email"),
         "luna_energy": payload.get("luna_energy", 100),
-        "narrative_started": payload.get("narrative_started", False)
+        "narrative_started": payload.get("narrative_started", False),
+        "session_id": payload.get("session_id"),
+        "jti": payload.get("jti")
     }
 
 def get_bearer_token(authorization: str) -> Optional[str]:

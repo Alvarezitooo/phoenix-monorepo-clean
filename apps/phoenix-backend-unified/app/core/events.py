@@ -14,6 +14,7 @@ async def create_event(event: Dict[str, Any]) -> str:
     """
     Create an immutable event in the Event Store (Supabase)
     
+    Adapté pour votre schéma existant : table events avec ts_ms
     Events are the single source of truth for all Luna Capital Narratif
     Follows the "Tout est un Événement" Oracle principle
     
@@ -27,28 +28,35 @@ async def create_event(event: Dict[str, Any]) -> str:
         RuntimeError: If event creation fails
     """
     try:
-        # Ensure event has required fields
-        if "id" not in event:
-            event["id"] = str(uuid.uuid4())
+        # Adapter au schéma existant : events table avec user_id, type, payload, ts_ms
+        event_id = str(uuid.uuid4())
+        current_time = datetime.now(timezone.utc)
         
-        if "occurred_at" not in event:
-            event["occurred_at"] = datetime.now(timezone.utc).isoformat()
+        # Enterprise Event Store - Security by Design
+        # Support pour événements sans utilisateur (rate limiting, system events)
+        user_id = event.get("actor_user_id")  # Peut être null après ALTER COLUMN
         
-        if "meta" not in event:
-            event["meta"] = {}
+        event_data = {
+            "id": event_id,
+            "user_id": user_id,  # Enterprise: Audit trail avec utilisateur ou null pour events système
+            "type": event["type"],
+            "payload": event.get("payload", {}),
+            "ts_ms": int(current_time.timestamp() * 1000)  # Timestamp précis en millisecondes
+        }
         
-        # Add service metadata
-        event["meta"]["service"] = "phoenix-backend-unified"
-        event["meta"]["schema_version"] = 1
+        # Skip if no Supabase client
+        if sb is None:
+            logger.warning("Supabase not available, event logged locally", event_id=event_id)
+            return event_id
         
-        # Insert into Supabase events table
-        result = sb.table("events").insert(event).execute()
+        # Insert into your existing events table
+        result = sb.table("events").insert(event_data).execute()
         
         if not result.data:
             raise RuntimeError("Failed to create event - no data returned")
         
-        logger.info(f"Event created successfully: {event['type']} - {event['id']}")
-        return event["id"]
+        logger.info(f"Event created successfully: {event['type']} - {event_id}")
+        return event_id
         
     except Exception as e:
         logger.error(f"Failed to create event {event.get('type', 'unknown')}: {str(e)}")
