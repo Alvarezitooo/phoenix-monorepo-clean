@@ -1,10 +1,10 @@
 # 🔥 Phoenix CV - Python Dependencies
 # Production-ready requirements
 
-# Core Framework
+# Core Framework - Updated for security
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-gunicorn==22.0.0
+gunicorn==23.0.0
 pydantic==2.5.0
 
 # AI & ML
@@ -20,8 +20,8 @@ httpx==0.24.1
 # Configuration
 python-dotenv==1.0.0
 
-# Utilities
-python-multipart==0.0.7
+# Utilities - Updated for security (DoS fix)
+python-multipart==0.0.9
 python-dateutil==2.8.2
 
 # Document Processing  

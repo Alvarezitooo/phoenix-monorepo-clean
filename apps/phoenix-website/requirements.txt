@@ -1,10 +1,10 @@
 # 🚀 Phoenix Website - Python Dependencies
 # Railway-compatible FastAPI architecture
 
-# Core Framework
+# Core Framework - Updated for security
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-gunicorn==22.0.0
+gunicorn==23.0.0
 
 # Utilities
 aiofiles==23.2.1
