@@ -1314,7 +1314,7 @@ if __name__ == "__main__":
     import uvicorn
     
     # Configuration pour production Railway
-    port = int(os.environ.get("PORT", 8002))
+    port = int(os.environ.get("PORT", 8080))  # Railway standard port
     host = os.environ.get("HOST", "0.0.0.0")
     is_production = config.app.is_production
     

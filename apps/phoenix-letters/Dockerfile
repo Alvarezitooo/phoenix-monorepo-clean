@@ -63,5 +63,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 EXPOSE ${PORT}
 
-# Production command optimized for Letters workloads
-CMD ["sh", "-c", "gunicorn api_main:app -k uvicorn.workers.UvicornWorker -w ${WORKERS:-2} -b 0.0.0.0:${PORT} --timeout 90 --keep-alive 30 --max-requests 300 --max-requests-jitter 30 --preload --access-logfile - --error-logfile -"]
+# Railway-compatible command - Use Python entry point for consistency
+CMD ["python", "api_main.py"]

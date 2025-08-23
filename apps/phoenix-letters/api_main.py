@@ -547,7 +547,7 @@ if __name__ == "__main__":
     import os
     
     # Configuration pour production Railway
-    port = int(os.environ.get("PORT", 8001))
+    port = int(os.environ.get("PORT", 8080))  # Railway standard port
     host = os.environ.get("HOST", "0.0.0.0")
     is_production = os.environ.get("PHOENIX_LETTERS_ENVIRONMENT", "development") == "production"
     

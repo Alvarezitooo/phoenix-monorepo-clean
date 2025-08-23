@@ -56,4 +56,4 @@ EXPOSE ${PORT}
 
 # Production command with Gunicorn + Uvicorn workers
 # Optimized for Railway: auto-scaling workers based on CPU
-CMD ["sh", "-c", "gunicorn main:app -k uvicorn.workers.UvicornWorker -w ${WORKERS:-2} -b 0.0.0.0:${PORT} --timeout 60 --keep-alive 30 --max-requests 1000 --max-requests-jitter 100 --preload --access-logfile - --error-logfile -"]
+CMD ["python", "main.py"]
