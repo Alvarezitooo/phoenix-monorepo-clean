@@ -28,7 +28,7 @@ RUN pip install --upgrade pip && \
 
 # Build React frontend
 COPY package*.json ./
-RUN npm ci --production=false
+RUN npm install
 
 COPY . .
 RUN npm run build
