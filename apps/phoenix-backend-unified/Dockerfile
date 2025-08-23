@@ -22,11 +22,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # CACHE BUST - Force rebuild with structlog 2025-08-23-19:20
 COPY requirements.txt .
 
-# Install Python dependencies - FORCE REBUILD with structlog
+# Install Python dependencies - FORCE REBUILD with ALL missing deps
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install email-validator==2.2.0 && \
-    pip install structlog==25.4.0
+    pip install structlog==25.4.0 && \
+    pip install bleach==6.2.0 && \
+    pip install psutil==7.0.0
 
 # Copy application code
 COPY app ./app

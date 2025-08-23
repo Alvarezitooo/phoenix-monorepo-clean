@@ -91,3 +91,7 @@ websockets==15.0.1 ; python_version >= "3.11" and python_version < "4.0"
 email-validator==2.2.0
 # CRITICAL: Add missing structlog dependency
 structlog==25.4.0
+# CRITICAL: Add missing bleach dependency for security
+bleach==6.2.0
+# CRITICAL: Add missing psutil dependency for monitoring
+psutil==7.0.0
