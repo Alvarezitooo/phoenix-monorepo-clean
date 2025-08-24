@@ -115,7 +115,9 @@ app.add_middleware(
 )
 
 # Security Middleware (Directive Oracle #5)
-app.middleware("http")(security_middleware)
+# TEMPORARY DISABLE: Global middleware conflicts with Railway health checks
+# Oracle directive: Security via Guardian dependencies on specific routers only
+# app.middleware("http")(security_middleware)
 
 # Include Luna routers
 app.include_router(luna_router)
