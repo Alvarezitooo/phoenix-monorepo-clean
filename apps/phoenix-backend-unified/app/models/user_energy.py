@@ -131,6 +131,7 @@ ENERGY_COSTS = {
     "conseil_rapide": 5,
     "correction_ponctuelle": 5,
     "format_lettre": 8,
+    "verification_format": 3,        # Phoenix CV - Vérification format gratuite
     
     # Actions moyennes (10-20%)
     "lettre_motivation": 15,
@@ -140,6 +141,7 @@ ENERGY_COSTS = {
     # Actions complexes (20-40%)
     "analyse_cv_complete": 25,
     "mirror_match": 30,
+    "salary_analysis": 20,           # Phoenix CV - Analyse salariale
     "strategie_candidature": 35,
     
     # Actions premium (35-50%)
