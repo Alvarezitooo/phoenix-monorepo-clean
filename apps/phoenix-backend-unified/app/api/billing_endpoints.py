@@ -31,9 +31,23 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 def get_bearer_token(authorization: Optional[str] = Header(None)) -> str:
     """Extraction et validation du token Bearer"""
+    logger.info("🔍 DEBUG: get_bearer_token called",
+               has_auth=bool(authorization),
+               auth_length=len(authorization) if authorization else 0,
+               starts_with_bearer=authorization.startswith("Bearer ") if authorization else False,
+               debug_step="token_extraction")
+    
     if not authorization or not authorization.startswith("Bearer "):
+        logger.error("🔍 DEBUG: Missing or invalid Bearer token",
+                    authorization=authorization[:20] + "..." if authorization and len(authorization) > 20 else authorization,
+                    debug_step="token_extraction_failed")
         raise HTTPException(status_code=401, detail="Missing Bearer token")
-    return authorization.split(" ", 1)[1]
+    
+    token = authorization.split(" ", 1)[1]
+    logger.info("🔍 DEBUG: Bearer token extracted",
+               token_length=len(token),
+               debug_step="token_extraction_success")
+    return token
 
 def get_correlation_id(request: Request) -> str:
     """Récupère le correlation_id depuis le middleware"""
@@ -411,25 +425,71 @@ async def create_subscription(
     """
     start_time = time.time()
     
+    # DEBUG: Log détaillé entrée endpoint
+    logger.info("🔍 DEBUG: create_subscription endpoint called",
+               user_id=getattr(body, 'user_id', 'MISSING'),
+               plan=getattr(body, 'plan', 'MISSING'),
+               currency=getattr(body, 'currency', 'MISSING'),
+               correlation_id=correlation_id,
+               token_provided=bool(token),
+               token_length=len(token) if token else 0,
+               debug_step="endpoint_entry")
+    
     logger.info("Creating Luna Unlimited subscription",
                user_id=body.user_id,
                plan=body.plan,
                correlation_id=correlation_id)
     
     try:
+        logger.info("🔍 DEBUG: Validating plan",
+                   plan=body.plan,
+                   debug_step="plan_validation")
+        
         if body.plan != "luna_unlimited":
+            logger.error("🔍 DEBUG: Invalid plan provided",
+                        plan=body.plan,
+                        expected="luna_unlimited",
+                        debug_step="plan_validation_failed")
             raise HTTPException(
                 status_code=422,
                 detail="Only luna_unlimited plan is supported"
             )
         
+        logger.info("🔍 DEBUG: Validating user_id with SecurityGuardian",
+                   user_id=body.user_id,
+                   debug_step="security_validation")
+        
         # Validation sécurisée de l'user_id
-        clean_user_id = SecurityGuardian.validate_user_id(body.user_id)
+        try:
+            clean_user_id = SecurityGuardian.validate_user_id(body.user_id)
+            logger.info("🔍 DEBUG: SecurityGuardian validation passed",
+                       user_id=body.user_id,
+                       clean_user_id=clean_user_id,
+                       debug_step="security_validation_success")
+        except Exception as security_error:
+            logger.error("🔍 DEBUG: SecurityGuardian validation failed",
+                        user_id=body.user_id,
+                        error=str(security_error),
+                        error_type=type(security_error).__name__,
+                        debug_step="security_validation_failed")
+            raise
         
         # 1. Récupérer/créer le customer Stripe
+        logger.info("🔍 DEBUG: Fetching user from Supabase",
+                   user_id=clean_user_id,
+                   debug_step="user_fetch")
         try:
             user_result = sb.table("users").select("*").eq("id", clean_user_id).execute()
+            logger.info("🔍 DEBUG: Supabase user query result",
+                       user_id=clean_user_id,
+                       has_data=bool(user_result.data),
+                       data_count=len(user_result.data) if user_result.data else 0,
+                       debug_step="user_fetch_result")
+            
             if not user_result.data:
+                logger.error("🔍 DEBUG: User not found in Supabase",
+                            user_id=clean_user_id,
+                            debug_step="user_fetch_failed")
                 raise HTTPException(status_code=404, detail="User not found")
             
             user = user_result.data[0]
@@ -518,14 +578,23 @@ async def create_subscription(
             current_period_end=current_period_end
         )
         
-    except HTTPException:
+    except HTTPException as http_exc:
+        duration_ms = int((time.time() - start_time) * 1000)
+        logger.error("🔍 DEBUG: HTTPException in create_subscription",
+                    user_id=getattr(body, 'user_id', 'UNKNOWN'),
+                    status_code=http_exc.status_code,
+                    detail=http_exc.detail,
+                    duration_ms=duration_ms,
+                    debug_step="http_exception")
         raise
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
-        logger.error("Unexpected error creating subscription",
-                    user_id=body.user_id,
+        logger.error("🔍 DEBUG: Unexpected error creating subscription",
+                    user_id=getattr(body, 'user_id', 'UNKNOWN'),
                     error=str(e),
-                    duration_ms=duration_ms)
+                    error_type=type(e).__name__,
+                    duration_ms=duration_ms,
+                    debug_step="unexpected_exception")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/webhook")
