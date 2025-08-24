@@ -410,6 +410,73 @@ async def get_purchase_history(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # ============================================================================
+# ADMIN ENDPOINTS (FOUNDER)
+# ============================================================================
+
+@router.post("/admin/activate-founder-unlimited")
+async def activate_founder_unlimited(
+    user_id: str = "8828da30-8e8a-458f-8888-846aac2f17bd",
+    token: str = Depends(get_bearer_token),
+    _: None = Depends(ensure_request_is_clean)
+):
+    """
+    🏛️ Active Luna Unlimited pour le compte fondateur (ADMIN ONLY)
+    """
+    try:
+        # Vérifier que c'est bien le fondateur
+        if user_id != "8828da30-8e8a-458f-8888-846aac2f17bd":
+            raise HTTPException(status_code=403, detail="Admin access only")
+        
+        logger.info("Activating founder unlimited access", user_id=user_id)
+        
+        # Mettre à jour le profil utilisateur directement
+        from datetime import datetime, timezone, timedelta
+        
+        end_date = datetime.now(timezone.utc) + timedelta(days=365)  # 1 an gratuit
+        
+        result = await sb.table("users").update({
+            "subscription_type": "luna_unlimited",
+            "subscription_status": "active",
+            "subscription_ends_at": end_date.isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", user_id).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Log événement
+        await event_store.log_event(
+            user_id=user_id,
+            event_type="subscription_activated",
+            action="admin_founder_unlimited",
+            details={
+                "plan": "luna_unlimited",
+                "status": "active",
+                "admin_action": True,
+                "expires_at": end_date.isoformat()
+            }
+        )
+        
+        logger.info("Founder unlimited activated successfully", 
+                   user_id=user_id,
+                   expires_at=end_date.isoformat())
+        
+        return {
+            "success": True,
+            "message": "Luna Unlimited activé pour le fondateur",
+            "user_id": user_id,
+            "subscription_type": "luna_unlimited", 
+            "subscription_status": "active",
+            "expires_at": end_date.isoformat()
+        }
+        
+    except Exception as e:
+        logger.error("Error activating founder unlimited", 
+                    user_id=user_id, 
+                    error=str(e))
+        raise HTTPException(status_code=500, detail="Activation failed")
+
+# ============================================================================
 # ENDPOINTS SUBSCRIPTION (LUNA UNLIMITED)
 # ============================================================================
 
