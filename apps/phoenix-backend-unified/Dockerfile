@@ -30,7 +30,6 @@ COPY app/ ./app/
 # Verify critical files are copied
 RUN ls -la ./app/api/ && \
     ls -la ./app/core/ && \
-    ls -la ./app/middleware/ && \
     python3 -c "import app.api.luna_endpoints; print('✅ Import test OK')"
 
 # Security: create non-root user for production
