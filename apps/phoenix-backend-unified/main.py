@@ -1,6 +1,8 @@
 """
 🌙 Phoenix Backend Unified - Luna Hub Central
 API centralisée pour tout l'écosystème Phoenix avec gestion énergie Luna
+
+Force Rebuild: 2025-08-24T09:35:00Z - Middleware eradication
 """
 
 import os
