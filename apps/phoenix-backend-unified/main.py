@@ -32,7 +32,7 @@ load_dotenv()
 
 # Configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-PORT = int(os.getenv("PORT", 8003))  # Port distinct pour le hub Luna
+PORT = int(os.getenv("PORT", 8080))  # Railway assigns PORT automatically
 
 # FastAPI app avec documentation Oracle-compliant
 app = FastAPI(
