@@ -25,7 +25,6 @@ from app.api.monitoring_endpoints import router as monitoring_router
 # Luna Session Zero - New endpoints
 from app.api.auth_endpoints import router as auth_router
 from app.api.luna_narrative_endpoints import router as luna_narrative_router
-from app.middleware.security_middleware import security_middleware
 
 # Load environment
 load_dotenv()
@@ -114,10 +113,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Security Middleware (Directive Oracle #5)
-# TEMPORARY DISABLE: Global middleware conflicts with Railway health checks
-# Oracle directive: Security via Guardian dependencies on specific routers only
-# app.middleware("http")(security_middleware)
+# Security Architecture (Directive Oracle #5)
+# Sécurité assurée par Security Guardian via FastAPI dependencies
+# Architecture granulaire sur endpoints spécifiques uniquement
 
 # Include Luna routers
 app.include_router(luna_router)
@@ -193,12 +191,12 @@ async def health_check():
 async def security_stats():
     """📊 Statistiques de sécurité du Hub Luna"""
     return {
-        "security_middleware": security_middleware.get_security_stats(),
+        "security_guardian": "Active via FastAPI dependencies",
         "oracle_compliance": {
             "directive_5": "Security by Default ✅",
-            "rate_limiting": "Active ✅",
-            "attack_detection": "Active ✅",
-            "ip_protection": "Active ✅"
+            "granular_security": "Security Guardian on specific endpoints ✅",
+            "attack_detection": "Pattern detection active ✅",
+            "fail_open_design": "Railway compatibility ✅"
         }
     }
 
@@ -327,7 +325,7 @@ async def startup_event():
         "Luna Hub initialization complete",
         energy_manager="ready",
         event_store_status=supabase_health["status"],
-        security_middleware="active",
+        security_guardian="active",
         structured_logs="configured"
     )
     

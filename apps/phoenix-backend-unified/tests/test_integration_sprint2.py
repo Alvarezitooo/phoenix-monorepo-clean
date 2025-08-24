@@ -9,7 +9,6 @@ from httpx import AsyncClient
 from main import app
 from app.core.supabase_client import event_store
 from app.core.energy_manager import energy_manager
-from app.middleware.security_middleware import security_middleware
 
 
 class TestIntegrationSprint2:
@@ -126,11 +125,11 @@ class TestIntegrationSprint2:
         assert len(events) >= 0  # Mode dev peut retourner liste vide
 
     @pytest.mark.asyncio
-    async def test_security_middleware_protection(self):
-        """Test protection du middleware de sécurité"""
+    async def test_security_guardian_protection(self):
+        """Test protection du Security Guardian via dependencies"""
         async with AsyncClient(app=app, base_url="http://test") as client:
             
-            # 1. Test requête normale
+            # 1. Test requête normale (health sans sécurité)
             response = await client.get("/health")
             assert response.status_code == 200
             assert "X-Luna-Security" in response.headers
