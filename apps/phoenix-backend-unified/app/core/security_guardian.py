@@ -171,7 +171,7 @@ async def ensure_request_is_clean(request: Request) -> None:
         
         # Allow-list: Endpoints système Railway + santé (CRITIQUE)
         system_endpoints = {
-            '/', '/health', '/docs', '/openapi.json',
+            '/', '/health', '/docs', '/openapi.json', '/__edge_probe',
             '/monitoring/health', '/monitoring/ready', '/monitoring/metrics'
         }
         
@@ -200,7 +200,7 @@ async def ensure_request_is_clean(request: Request) -> None:
                        security_action="allow_list_bypass",
                        guardian_status="trusted")
             return  # Skip pattern checks pour endpoints de confiance
-    
+        
         # Check for common attack patterns in URL (endpoints non-trusted uniquement)
         suspicious_patterns = [
             '../', './', 'script', 'eval', 'exec', 'union', 'select', 'drop', 'delete'
