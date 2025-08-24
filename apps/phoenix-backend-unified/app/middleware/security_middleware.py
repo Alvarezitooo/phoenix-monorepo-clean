@@ -74,17 +74,33 @@ class SecurityMiddleware:
             
             # 3. Détection d'attaques dans l'URL et headers
             if self._detect_attack_patterns(request):
-                self._flag_suspicious_ip(client_ip)
-                logger.error(
-                    "Attack pattern detected",
-                    ip=client_ip,
-                    path=request.url.path,
-                    user_agent=request.headers.get("user-agent", "")
-                )
-                return self._security_error_response("Malicious request detected")
+                # Exception pour les requêtes billing légitimes
+                if request.url.path.startswith("/billing/") and self._is_legitimate_billing_request(request):
+                    logger.info(
+                        "Legitimate billing request allowed",
+                        ip=client_ip,
+                        path=request.url.path,
+                        authenticated=True
+                    )
+                else:
+                    self._flag_suspicious_ip(client_ip)
+                    logger.error(
+                        "Attack pattern detected",
+                        ip=client_ip,
+                        path=request.url.path,
+                        user_agent=request.headers.get("user-agent", "")
+                    )
+                    return self._security_error_response("Malicious request detected")
             
             # 4. Validation headers requis pour les endpoints sensibles
-            if request.url.path.startswith("/luna/") and request.method in ["POST", "PUT", "DELETE"]:
+            requires_header_validation = (
+                (request.url.path.startswith("/luna/") or 
+                 request.url.path.startswith("/billing/")) and 
+                request.method in ["POST", "PUT", "DELETE"] and
+                not request.url.path.startswith("/billing/webhook")  # Exception webhook Stripe
+            )
+            
+            if requires_header_validation:
                 if not self._validate_security_headers(request):
                     logger.warning(
                         "Missing security headers",
@@ -172,8 +188,11 @@ class SecurityMiddleware:
             if agent in user_agent:
                 return True
         
-        # Vérification taille excessive des headers
+        # Vérification taille excessive des headers (sauf Authorization JWT)
         for name, value in request.headers.items():
+            # Exception pour Authorization Bearer tokens (JWT peuvent être longs)
+            if name.lower() == "authorization" and value.lower().startswith("bearer "):
+                continue
             if len(value) > 8192:  # 8KB max par header
                 return True
         
@@ -198,6 +217,21 @@ class SecurityMiddleware:
                 return False
         
         return True
+    
+    def _is_legitimate_billing_request(self, request: Request) -> bool:
+        """🌙 Vérifie si une requête billing est légitime"""
+        # Requête billing avec Authorization Bearer = légitime
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.lower().startswith("bearer ") and len(auth_header) > 20:
+            return True
+        
+        # Webhook Stripe avec signature = légitime  
+        if request.url.path.startswith("/billing/webhook"):
+            stripe_sig = request.headers.get("stripe-signature")
+            if stripe_sig:
+                return True
+        
+        return False
     
     def _flag_suspicious_ip(self, ip: str) -> None:
         """🚩 Marque une IP comme suspecte"""

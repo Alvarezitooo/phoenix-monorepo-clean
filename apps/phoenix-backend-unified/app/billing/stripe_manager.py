@@ -164,25 +164,58 @@ class StripeManager:
     @staticmethod
     def verify_webhook_signature(payload: bytes, sig_header: str) -> Dict[str, Any]:
         """
-        Vérifie la signature webhook Stripe
+        🔒 Vérifie la signature webhook Stripe avec protection anti-replay
+        Conforme aux directives Oracle de sécurité
         """
+        import time
+        
         try:
+            # 1. Vérification cryptographique Stripe (POINT 1)
             event = stripe.Webhook.construct_event(
                 payload, sig_header, STRIPE_WEBHOOK_SECRET
             )
             
-            logger.info("Stripe webhook verified",
+            # 2. Protection contre les attaques par rejeu (POINT 2)
+            event_timestamp = event.get('created', 0)
+            current_timestamp = int(time.time())
+            time_difference = abs(current_timestamp - event_timestamp)
+            
+            # Rejeter si événement trop ancien (> 5 minutes = 300 secondes)
+            if time_difference > 300:
+                logger.warning("Webhook event too old - replay attack suspected",
+                             event_id=event.get('id'),
+                             event_timestamp=event_timestamp,
+                             current_timestamp=current_timestamp,
+                             time_difference=time_difference)
+                raise StripeError(f"Event too old: {time_difference}s ago")
+            
+            # 3. Log réussite avec audit trail complet (POINT 3)
+            logger.info("Stripe webhook verified - security compliant",
                        event_type=event['type'],
-                       event_id=event['id'])
+                       event_id=event['id'],
+                       event_timestamp=event_timestamp,
+                       time_difference=time_difference,
+                       security_status="verified")
             
             return event
             
         except ValueError as e:
-            logger.error("Invalid webhook payload", error=str(e))
+            # Log erreur payload avec détails sécurité
+            logger.error("Invalid webhook payload - security violation",
+                        error=str(e),
+                        payload_length=len(payload) if payload else 0,
+                        has_signature=bool(sig_header),
+                        security_status="payload_invalid")
             raise StripeError("Invalid webhook payload")
             
         except stripe.error.SignatureVerificationError as e:
-            logger.error("Invalid webhook signature", error=str(e))
+            # Log tentative signature invalide (potentielle attaque)
+            logger.error("Invalid webhook signature - potential attack",
+                        error=str(e),
+                        signature_header=sig_header[:20] + "..." if len(sig_header) > 20 else sig_header,
+                        payload_length=len(payload) if payload else 0,
+                        security_status="signature_invalid",
+                        threat_level="high")
             raise StripeError("Invalid webhook signature")
     
     @staticmethod
