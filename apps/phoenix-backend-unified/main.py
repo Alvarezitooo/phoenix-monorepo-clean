@@ -166,6 +166,11 @@ async def root():
         environment=ENVIRONMENT
     )
 
+@app.get("/__edge_probe", include_in_schema=False)
+async def edge_probe():
+    """Railway edge probe endpoint - NO SECURITY"""
+    return {"status": "ok", "service": "phoenix-luna-hub", "edge": "accessible"}
+
 @app.get("/health", response_model=HealthResponse, tags=["Health & Status"])
 async def health_check():
     """Health check complet du hub Luna"""
