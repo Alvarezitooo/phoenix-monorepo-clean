@@ -8,6 +8,9 @@ from typing import Any, Dict, Optional
 from fastapi import HTTPException, status, Depends, Request
 from pydantic import BaseModel, Field, validator
 import bleach
+import structlog
+
+logger = structlog.get_logger("security_guardian")
 
 
 class SecurityGuardian:
