@@ -217,4 +217,5 @@ async def ensure_request_is_clean(request: Request) -> None:
             detail="Invalid user agent"
         )
     
-    return None
+    # Validation passed - return nothing (FastAPI dependency pattern)
+    return
