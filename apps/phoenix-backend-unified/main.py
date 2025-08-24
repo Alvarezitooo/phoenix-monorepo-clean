@@ -6,10 +6,11 @@ API centralisée pour tout l'écosystème Phoenix avec gestion énergie Luna
 import os
 from datetime import datetime
 from typing import Dict, Any
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, ValidationError
 from dotenv import load_dotenv
 
 # Configuration logs structurés (doit être fait en premier)
@@ -246,6 +247,27 @@ async def api_status():
 # ============================================================================
 # HANDLERS D'ERREUR
 # ============================================================================
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """🔍 DEBUG: Handler pour erreurs validation Pydantic"""
+    logger.error("🔍 DEBUG: Pydantic validation error",
+                method=request.method,
+                path=request.url.path,
+                errors=exc.errors(),
+                body=exc.body if hasattr(exc, 'body') else None,
+                debug_step="pydantic_validation_failed")
+    
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "error": "validation_error",
+            "message": "Invalid request data",
+            "details": exc.errors(),
+            "debug": True
+        }
+    )
 
 @app.exception_handler(404)
 async def not_found_handler(request, exc):
