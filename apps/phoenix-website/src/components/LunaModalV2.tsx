@@ -7,13 +7,15 @@ interface LunaModalProps {
   onClose: () => void;
 }
 
-type Step = "intro" | "email" | "password" | "motivation" | "gift" | "mission";
+type Step = "intro" | "email" | "password" | "motivation" | "gift" | "mission" | "login_intro" | "login_form";
 type Status = "idle" | "sending" | "success" | "error";
+type AuthMode = "register" | "login";
 
 export function LunaModal({ isOpen, onClose }: LunaModalProps) {
   const [step, setStep] = useState<Step>("intro");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState("");
+  const [authMode, setAuthMode] = useState<AuthMode>("register");
   
   // Form data
   const [email, setEmail] = useState("");
@@ -38,6 +40,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
       setMotivation("");
       setToken(null);
       setEnergyLevel(0);
+      setAuthMode("register");
     }
   }, [isOpen]);
 
@@ -51,8 +54,18 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
     }
   }, [isOpen, step]);
 
-  // API endpoints from environment
+  // Reset form when switching auth modes
+  useEffect(() => {
+    setEmail("");
+    setPassword("");
+    setMessage("");
+    setStatus("idle");
+    setStep("intro");
+  }, [authMode]);
+
+  // API endpoints from environment - Cache bust: 2025-08-24-21:12
   const registerEndpoint = import.meta.env.VITE_LUNA_REGISTER_ENDPOINT;
+  const loginEndpoint = import.meta.env.VITE_LUNA_LOGIN_ENDPOINT;
   const narrativeEndpoint = import.meta.env.VITE_LUNA_NARRATIVE_START_ENDPOINT;
   const cvAppUrl = import.meta.env.VITE_CV_APP_URL || "https://phoenix-cv-production.up.railway.app";
 
@@ -103,6 +116,57 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Erreur d'inscription");
       console.error("Registration error:", error);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setStatus("error");
+      setMessage("Email et mot de passe requis");
+      return;
+    }
+
+    setStatus("sending");
+
+    try {
+      if (!loginEndpoint) {
+        // Fallback simulation for development
+        console.warn("VITE_LUNA_LOGIN_ENDPOINT not configured, simulating success");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setToken("mock-jwt-token-login-" + Date.now());
+        setStep("mission");
+        setStatus("idle");
+        return;
+      }
+
+      const response = await fetch(loginEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const authToken = data.access_token || data.token || data.jwt;
+        
+        if (authToken) {
+          setToken(authToken);
+          setStep("mission"); // Direct vers mission pour utilisateur existant
+          setStatus("idle");
+          setMessage("Connexion réussie ! Bienvenue de retour.");
+        } else {
+          throw new Error("No token received");
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP ${response.status}`);
+      }
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Erreur de connexion");
+      console.error("Login error:", error);
     }
   };
 
@@ -210,29 +274,47 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
       <>
         <StepHeaderBlock />
         <div className="prose prose-sm max-w-none text-gray-800">
-          <p className="mb-3">
-            Salut ! Moi c'est Luna. 👋
-          </p>
-          <p className="mb-3">
-            Je suis là pour transformer le chaos de ta reconversion en un récit clair et puissant.
-          </p>
-          <p className="mb-4">
-            Prêt pour notre première session ensemble ? On commence par mieux se connaître.
-          </p>
+          {authMode === "register" ? (
+            <>
+              <p className="mb-3">
+                Bienvenue, partenaire. 🌙
+              </p>
+              <p className="mb-4">
+                Prêt(e) pour ta première mission ? Je vais transformer le chaos de ta reconversion en récit clair et puissant.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mb-3">
+                Bon retour parmi nous. 🌙
+              </p>
+              <p className="mb-4">
+                Pour continuer là où nous nous étions arrêtés, veuillez vous identifier.
+              </p>
+            </>
+          )}
         </div>
-        <div className="mt-4 flex items-center justify-end gap-2">
+        <div className="mt-4 flex items-center justify-between gap-2">
           <button
-            onClick={onClose}
-            className="rounded-2xl border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+            onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}
+            className="text-sm text-gray-600 hover:text-gray-800 underline"
           >
-            Plus tard
+            {authMode === "register" ? "Déjà un partenaire ? Connectez-vous" : "Nouveau ici ? Commencez votre histoire"}
           </button>
-          <button
-            onClick={() => setStep("email")}
-            className="flex items-center gap-2 rounded-2xl bg-black px-4 py-2 text-white shadow hover:shadow-md"
-          >
-            C'est parti ! <ChevronRight className="h-4 w-4" />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="rounded-2xl border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+            >
+              Plus tard
+            </button>
+            <button
+              onClick={() => setStep(authMode === "register" ? "email" : "login_form")}
+              className="flex items-center gap-2 rounded-2xl bg-black px-4 py-2 text-white shadow hover:shadow-md"
+            >
+              {authMode === "register" ? "Commencer" : "Se connecter"} <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </>
     );
@@ -465,6 +547,93 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
     );
   }
 
+  function renderLoginForm() {
+    return (
+      <>
+        <StepHeaderBlock />
+        <div className="prose prose-sm max-w-none text-gray-800">
+          <p className="mb-4">
+            Bon retour parmi nous ! 🎯 Entrez vos identifiants pour reprendre là où vous vous étiez arrêté.
+          </p>
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="mt-2">
+          <div className="mb-4">
+            <label htmlFor="luna-login-email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              id="luna-login-email"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="vous@exemple.com"
+              className="w-full rounded-xl border border-gray-300 px-4 py-2 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="luna-login-password" className="block text-sm font-medium text-gray-700 mb-2">
+              Mot de passe
+            </label>
+            <div className="relative">
+              <input
+                id="luna-login-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Votre mot de passe"
+                className="w-full rounded-xl border border-gray-300 px-4 py-2 pr-12 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          {message && (
+            <div className={`mb-2 text-sm ${status === "error" ? "text-red-600" : "text-green-700"}`}>
+              {message}
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={() => setAuthMode("register")}
+              className="text-sm text-gray-600 hover:text-gray-800 underline"
+            >
+              Nouveau ici ? Commencez votre histoire
+            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setStep("intro")}
+                className="rounded-2xl border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+              >
+                Retour
+              </button>
+              <button
+                type="submit"
+                disabled={!email.trim() || !password.trim() || status === "sending"}
+                className="flex items-center gap-2 rounded-2xl bg-black px-4 py-2 text-white shadow hover:shadow-md disabled:opacity-50"
+              >
+                {status === "sending" ? "Connexion..." : "Se connecter"} 
+                {status !== "sending" && <ChevronRight className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+        </form>
+      </>
+    );
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -498,6 +667,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
               {step === "motivation" && renderMotivation()}
               {step === "gift" && renderGift()}
               {step === "mission" && renderMission()}
+              {step === "login_form" && renderLoginForm()}
             </motion.div>
           </motion.div>
         </>
