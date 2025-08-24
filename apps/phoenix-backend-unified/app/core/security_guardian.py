@@ -201,24 +201,24 @@ async def ensure_request_is_clean(request: Request) -> None:
                        guardian_status="trusted")
             return  # Skip pattern checks pour endpoints de confiance
     
-    # Check for common attack patterns in URL (endpoints non-trusted uniquement)
-    suspicious_patterns = [
-        '../', './', 'script', 'eval', 'exec', 'union', 'select', 'drop', 'delete'
-    ]
-    
-    for pattern in suspicious_patterns:
-        if pattern in url_path:
-            logger.warning("Security Guardian: Suspicious pattern blocked",
-                          path=request.url.path,
-                          method=request.method,
-                          pattern_detected=pattern,
-                          security_action="pattern_block",
-                          guardian_status="blocked")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Suspicious request pattern detected"
-            )
-    
+        # Check for common attack patterns in URL (endpoints non-trusted uniquement)
+        suspicious_patterns = [
+            '../', './', 'script', 'eval', 'exec', 'union', 'select', 'drop', 'delete'
+        ]
+        
+        for pattern in suspicious_patterns:
+            if pattern in url_path:
+                logger.warning("Security Guardian: Suspicious pattern blocked",
+                              path=request.url.path,
+                              method=request.method,
+                              pattern_detected=pattern,
+                              security_action="pattern_block",
+                              guardian_status="blocked")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Suspicious request pattern detected"
+                )
+        
         # Check User-Agent for suspicious patterns
         user_agent = request.headers.get("user-agent", "").lower()
         if not user_agent or len(user_agent) > 1000:
