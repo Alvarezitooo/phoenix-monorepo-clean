@@ -142,7 +142,7 @@ class LunaCVAPIService {
   }
 
   /**
-   * Vérifie le niveau d'énergie de l'utilisateur
+   * Vérifie le niveau d'énergie via Luna Hub
    */
   async checkEnergy(userId: string): Promise<EnergyCheckResponse> {
     if (!LUNA_ENABLED) {
@@ -150,16 +150,23 @@ class LunaCVAPIService {
     }
 
     try {
-      // TODO: Créer endpoint /api/luna/energy/check dans le backend CV
-      // Pour l'instant, simulation avec données stockées localement
-      const storedEnergy = localStorage.getItem(`luna-cv-energy-${userId}`);
-      const currentEnergy = storedEnergy ? parseInt(storedEnergy) : 90;
+      const response = await fetch(`${API_BASE_URL}/api/luna/energy/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          action_name: 'conseil_rapide' // Action basique pour check
+        }),
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
 
       return {
-        currentEnergy,
+        currentEnergy: data.current_energy || 90,
         maxEnergy: 100,
-        canPerformAction: currentEnergy >= 10,
-        energyRequired: 10,
+        canPerformAction: data.can_perform || false,
+        energyRequired: data.energy_required || 10,
       };
     } catch (error) {
       lunaLog('Error in checkEnergy', error);
@@ -168,7 +175,7 @@ class LunaCVAPIService {
   }
 
   /**
-   * Met à jour l'énergie de l'utilisateur
+   * Consomme l'énergie via Luna Hub
    */
   async updateEnergy(request: EnergyUpdateRequest): Promise<EnergyCheckResponse> {
     if (!LUNA_ENABLED) {
@@ -176,36 +183,29 @@ class LunaCVAPIService {
     }
 
     try {
-      // TODO: Créer endpoint /api/luna/energy/update dans le backend CV
-      // Pour l'instant, gestion locale
-      const currentEnergy = await this.checkEnergy(request.userId);
-      let newEnergy = currentEnergy.currentEnergy;
+      if (request.action === 'consume') {
+        const response = await fetch(`${API_BASE_URL}/api/luna/energy/consume`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: request.userId,
+            action_name: request.reason || 'analyse_cv_complete',
+            context: { amount: request.amount }
+          }),
+        });
 
-      switch (request.action) {
-        case 'consume':
-          newEnergy = Math.max(0, newEnergy - request.amount);
-          break;
-        case 'refund':
-          newEnergy = Math.min(100, newEnergy + request.amount);
-          break;
-        case 'purchase':
-          newEnergy = Math.min(100, newEnergy + request.amount);
-          break;
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        return {
+          currentEnergy: data.energy_remaining || 0,
+          maxEnergy: 100,
+          canPerformAction: data.energy_remaining >= 10,
+        };
+      } else {
+        // Pour refund/purchase, garde mock pour l'instant
+        return this.getMockEnergyResponse();
       }
-
-      localStorage.setItem(`luna-cv-energy-${request.userId}`, newEnergy.toString());
-      
-      lunaLog(`Energy ${request.action}`, { 
-        userId: request.userId, 
-        amount: request.amount, 
-        newEnergy 
-      });
-
-      return {
-        currentEnergy: newEnergy,
-        maxEnergy: 100,
-        canPerformAction: newEnergy >= 10,
-      };
     } catch (error) {
       lunaLog('Error in updateEnergy', error);
       return this.getMockEnergyResponse();
@@ -223,12 +223,13 @@ class LunaCVAPIService {
   // 🔧 Méthodes utilitaires privées
 
   private calculateEnergyCost(context?: string): number {
+    // Coûts alignés avec Luna Hub ENERGY_COSTS
     const costs = {
-      'mirror-match': 25,    // Analyse Mirror Match
-      'optimizer': 20,       // Optimisation CV
-      'salary': 15,          // Analyse salaire
-      'linkedin': 10,        // LinkedIn integration
-      'dashboard': 5,        // Chat général
+      'mirror-match': 30,       // mirror_match dans Luna Hub
+      'optimizer': 12,          // optimisation_cv dans Luna Hub
+      'salary': 20,             // salary_analysis dans Luna Hub
+      'linkedin': 10,           // Fonctionnalité LinkedIn
+      'dashboard': 5,           // conseil_rapide dans Luna Hub
     };
 
     return costs[context as keyof typeof costs] || 8;

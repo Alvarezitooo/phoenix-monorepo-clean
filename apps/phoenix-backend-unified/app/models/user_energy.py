@@ -142,6 +142,7 @@ ENERGY_COSTS = {
     "analyse_cv_complete": 25,
     "mirror_match": 30,
     "salary_analysis": 20,           # Phoenix CV - Analyse salariale
+    "transition_carriere": 35,       # Phoenix Letters - Stratégie reconversion
     "strategie_candidature": 35,
     
     # Actions premium (35-50%)

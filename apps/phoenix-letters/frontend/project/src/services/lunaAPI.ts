@@ -93,7 +93,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 class LunaAPIService {
   
   /**
-   * Envoie un message à Luna et récupère la réponse
+   * Envoie un message à Luna avec vérification d'énergie réelle
    */
   async sendMessage(request: LunaAPIRequest): Promise<LunaAPIResponse> {
     if (!LUNA_ENABLED) {
@@ -101,8 +101,18 @@ class LunaAPIService {
     }
 
     try {
-      // Pour l'instant, on utilise l'endpoint de génération pour simuler Luna
-      // TODO: Créer un endpoint dédié /api/luna/chat dans le backend
+      // Vérification d'énergie avant l'action
+      const energyCheck = await this.checkEnergy(request.userId || 'anonymous');
+      if (!energyCheck.canPerformAction) {
+        return {
+          message: "🌙 Énergie insuffisante ! Rechargez votre énergie Luna pour continuer.",
+          type: 'energy-notification',
+          energyConsumed: 0,
+          contextualActions: [{ label: "Recharger", action: "purchase-energy" }]
+        };
+      }
+
+      // Génération avec vraie consommation d'énergie
       const response = await apiCall('/api/letters/generate', {
         method: 'POST',
         body: JSON.stringify({
@@ -114,10 +124,20 @@ class LunaAPIService {
         }),
       });
 
+      // Consomme l'énergie après succès
+      if (request.userId) {
+        await this.updateEnergy({
+          userId: request.userId,
+          action: 'consume',
+          amount: 5,
+          reason: 'conseil_rapide'
+        });
+      }
+
       return {
         message: this.extractLunaResponse(response.letter_content || 'Désolé, je ne peux pas répondre pour le moment.'),
         type: 'text',
-        energyConsumed: 5, // Consommation basique pour un message Luna
+        energyConsumed: 5,
         suggestions: this.generateSuggestions(request.context),
       };
     } catch (error) {
@@ -127,7 +147,7 @@ class LunaAPIService {
   }
 
   /**
-   * Vérifie le niveau d'énergie de l'utilisateur
+   * Vérifie le niveau d'énergie de l'utilisateur via Luna Hub
    */
   async checkEnergy(userId: string): Promise<EnergyCheckResponse> {
     if (!LUNA_ENABLED) {
@@ -135,16 +155,19 @@ class LunaAPIService {
     }
 
     try {
-      // TODO: Créer endpoint /api/luna/energy/check dans le backend
-      // Pour l'instant, simulation avec données stockées localement
-      const storedEnergy = localStorage.getItem(`luna-energy-${userId}`);
-      const currentEnergy = storedEnergy ? parseInt(storedEnergy) : 85;
+      const response = await apiCall('/api/luna/energy/check', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: userId,
+          action_name: 'conseil_rapide' // Action basique pour check
+        }),
+      });
 
       return {
-        currentEnergy,
+        currentEnergy: response.current_energy || 85,
         maxEnergy: 100,
-        canPerformAction: currentEnergy >= 5,
-        energyRequired: 5,
+        canPerformAction: response.can_perform || false,
+        energyRequired: response.energy_required || 5,
       };
     } catch (error) {
       lunaLog('Error in checkEnergy', error);
@@ -153,7 +176,7 @@ class LunaAPIService {
   }
 
   /**
-   * Met à jour l'énergie de l'utilisateur
+   * Consomme l'énergie via Luna Hub
    */
   async updateEnergy(request: EnergyUpdateRequest): Promise<EnergyCheckResponse> {
     if (!LUNA_ENABLED) {
@@ -161,36 +184,26 @@ class LunaAPIService {
     }
 
     try {
-      // TODO: Créer endpoint /api/luna/energy/update dans le backend
-      // Pour l'instant, gestion locale
-      const currentEnergy = await this.checkEnergy(request.userId);
-      let newEnergy = currentEnergy.currentEnergy;
+      if (request.action === 'consume') {
+        // Utilise l'endpoint de consommation réel Luna Hub
+        const response = await apiCall('/api/luna/energy/consume', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: request.userId,
+            action_name: request.reason || 'lettre_motivation',
+            context: { amount: request.amount }
+          }),
+        });
 
-      switch (request.action) {
-        case 'consume':
-          newEnergy = Math.max(0, newEnergy - request.amount);
-          break;
-        case 'refund':
-          newEnergy = Math.min(100, newEnergy + request.amount);
-          break;
-        case 'purchase':
-          newEnergy = Math.min(100, newEnergy + request.amount);
-          break;
+        return {
+          currentEnergy: response.energy_remaining || 0,
+          maxEnergy: 100,
+          canPerformAction: response.energy_remaining >= 5,
+        };
+      } else {
+        // Pour refund/purchase, garde la logique locale pour l'instant
+        return this.getMockEnergyResponse();
       }
-
-      localStorage.setItem(`luna-energy-${request.userId}`, newEnergy.toString());
-      
-      lunaLog(`Energy ${request.action}`, { 
-        userId: request.userId, 
-        amount: request.amount, 
-        newEnergy 
-      });
-
-      return {
-        currentEnergy: newEnergy,
-        maxEnergy: 100,
-        canPerformAction: newEnergy >= 5,
-      };
     } catch (error) {
       lunaLog('Error in updateEnergy', error);
       return this.getMockEnergyResponse();
