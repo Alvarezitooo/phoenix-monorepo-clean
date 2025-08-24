@@ -11,7 +11,7 @@ from typing import Tuple, Dict, Any, Optional
 from datetime import datetime, timezone
 
 import stripe
-from ..models.billing import PackCode, get_pack_price, get_pack_energy
+from ..models.billing import PackCode, get_pack_price, get_pack_energy, get_subscription_price
 
 # Configuration
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
@@ -278,6 +278,185 @@ class StripeManager:
         """
         supported_packs = ["cafe_luna", "petit_dej_luna", "repas_luna"]
         return pack in supported_packs
+    
+    # ============================================================================
+    # MÉTHODES SUBSCRIPTION (LUNA UNLIMITED)
+    # ============================================================================
+    
+    @staticmethod
+    def create_subscription(
+        user_id: str,
+        customer_id: str, 
+        plan: str = "luna_unlimited"
+    ) -> Tuple[str, str, str, Optional[str]]:
+        """
+        Crée une Subscription Stripe pour Luna Unlimited
+        
+        Returns:
+            (subscription_id, status, current_period_end, client_secret)
+        """
+        try:
+            # Récupération du price_id depuis les variables d'environnement
+            price_id = os.getenv("STRIPE_PRICE_UNLIMITED")
+            if not price_id:
+                raise StripeError("STRIPE_PRICE_UNLIMITED not configured")
+            
+            logger.info("Creating Stripe Subscription",
+                       user_id=user_id,
+                       customer_id=customer_id,
+                       plan=plan,
+                       price_id=price_id)
+            
+            # Création de la subscription
+            subscription = stripe.Subscription.create(
+                customer=customer_id,
+                items=[{"price": price_id}],
+                payment_behavior="default_incomplete",
+                expand=["latest_invoice.payment_intent"],
+                metadata={
+                    "user_id": user_id,
+                    "plan": plan,
+                    "luna_hub_version": "1.0.0",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            )
+            
+            # Extraction du client_secret pour finalisation paiement
+            client_secret = None
+            if subscription.latest_invoice and subscription.latest_invoice.payment_intent:
+                pi = subscription.latest_invoice.payment_intent
+                if hasattr(pi, 'client_secret'):
+                    client_secret = pi.client_secret
+            
+            # Formatage de current_period_end
+            current_period_end = datetime.fromtimestamp(
+                subscription.current_period_end, 
+                tz=timezone.utc
+            ).isoformat()
+            
+            logger.info("Stripe Subscription created successfully",
+                       subscription_id=subscription.id,
+                       user_id=user_id,
+                       status=subscription.status,
+                       current_period_end=current_period_end)
+            
+            return (
+                subscription.id,
+                subscription.status,
+                current_period_end,
+                client_secret
+            )
+            
+        except stripe.error.InvalidRequestError as e:
+            logger.error("Stripe invalid subscription request", 
+                        error=str(e), 
+                        user_id=user_id)
+            raise StripeError(f"Invalid subscription request: {str(e)}")
+            
+        except stripe.error.StripeError as e:
+            logger.error("General Stripe subscription error", 
+                        error=str(e), 
+                        user_id=user_id)
+            raise StripeError(f"Subscription error: {str(e)}")
+            
+        except Exception as e:
+            logger.error("Unexpected error creating subscription",
+                        error=str(e),
+                        user_id=user_id)
+            raise StripeError("Unexpected subscription error")
+    
+    @staticmethod
+    def create_customer(user_id: str, email: str) -> str:
+        """
+        Crée un Customer Stripe
+        
+        Returns:
+            customer_id
+        """
+        try:
+            logger.info("Creating Stripe Customer", user_id=user_id, email=email)
+            
+            customer = stripe.Customer.create(
+                email=email,
+                metadata={
+                    "user_id": user_id,
+                    "luna_hub_version": "1.0.0"
+                }
+            )
+            
+            logger.info("Stripe Customer created successfully",
+                       customer_id=customer.id,
+                       user_id=user_id)
+            
+            return customer.id
+            
+        except stripe.error.StripeError as e:
+            logger.error("Error creating Stripe customer", error=str(e), user_id=user_id)
+            raise StripeError(f"Customer creation error: {str(e)}")
+    
+    @staticmethod
+    def retrieve_subscription(subscription_id: str) -> stripe.Subscription:
+        """
+        Récupère une Subscription Stripe
+        """
+        try:
+            logger.info("Retrieving Stripe Subscription", subscription_id=subscription_id)
+            
+            subscription = stripe.Subscription.retrieve(subscription_id)
+            
+            logger.info("Stripe Subscription retrieved",
+                       subscription_id=subscription_id,
+                       status=subscription.status)
+            
+            return subscription
+            
+        except stripe.error.InvalidRequestError as e:
+            logger.error("Subscription not found", subscription_id=subscription_id, error=str(e))
+            raise StripeError(f"Subscription not found: {subscription_id}")
+            
+        except stripe.error.StripeError as e:
+            logger.error("Error retrieving subscription", 
+                        subscription_id=subscription_id, 
+                        error=str(e))
+            raise StripeError(f"Error retrieving subscription: {str(e)}")
+    
+    @staticmethod
+    def cancel_subscription(subscription_id: str, cancel_immediately: bool = False) -> stripe.Subscription:
+        """
+        Annule une Subscription Stripe
+        """
+        try:
+            logger.info("Canceling Stripe Subscription",
+                       subscription_id=subscription_id,
+                       cancel_immediately=cancel_immediately)
+            
+            if cancel_immediately:
+                # Annulation immédiate
+                subscription = stripe.Subscription.delete(subscription_id)
+            else:
+                # Annulation à la fin de la période
+                subscription = stripe.Subscription.modify(
+                    subscription_id,
+                    cancel_at_period_end=True
+                )
+            
+            logger.info("Stripe Subscription canceled successfully",
+                       subscription_id=subscription_id,
+                       status=subscription.status)
+            
+            return subscription
+            
+        except stripe.error.InvalidRequestError as e:
+            logger.error("Cannot cancel subscription", 
+                        subscription_id=subscription_id, 
+                        error=str(e))
+            raise StripeError(f"Cannot cancel subscription: {str(e)}")
+            
+        except stripe.error.StripeError as e:
+            logger.error("Error canceling subscription",
+                        subscription_id=subscription_id,
+                        error=str(e))
+            raise StripeError(f"Error canceling subscription: {str(e)}")
     
     @staticmethod
     def health_check() -> Dict[str, Any]:

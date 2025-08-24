@@ -15,7 +15,7 @@ from app.models.user_energy import (
     ENERGY_COSTS,
     ENERGY_PACKS
 )
-from app.core.supabase_client import event_store
+from app.core.supabase_client import event_store, sb
 import structlog
 
 # Logger structuré
@@ -48,6 +48,44 @@ class EnergyManager:
     async def _get_user_energy(self, user_id: str) -> Optional[UserEnergyModel]:
         """Méthode interne pour récupérer l'énergie utilisateur (mockable pour tests)"""
         return self._user_energies.get(user_id)
+    
+    async def _is_unlimited_user(self, user_id: str) -> bool:
+        """
+        🌙 Vérifie si un utilisateur a un abonnement Luna Unlimited actif
+        Oracle-compliant : source unique de vérité depuis Supabase
+        """
+        try:
+            user_result = sb.table("users").select(
+                "subscription_type, subscription_status"
+            ).eq("id", user_id).execute()
+            
+            if not user_result.data:
+                return False
+            
+            user_data = user_result.data[0]
+            subscription_type = user_data.get("subscription_type")
+            subscription_status = user_data.get("subscription_status")
+            
+            # Unlimited actif si type=luna_unlimited ET status=active/trialing
+            is_unlimited = (
+                subscription_type == "luna_unlimited" and 
+                subscription_status in ["active", "trialing"]
+            )
+            
+            logger.info("Unlimited status checked",
+                       user_id=user_id,
+                       subscription_type=subscription_type,
+                       subscription_status=subscription_status,
+                       is_unlimited=is_unlimited)
+            
+            return is_unlimited
+            
+        except Exception as e:
+            logger.error("Error checking unlimited status", 
+                        user_id=user_id, 
+                        error=str(e))
+            # En cas d'erreur, on considère que l'utilisateur n'est pas unlimited
+            return False
     
     async def get_user_energy(self, user_id: str) -> UserEnergyModel:
         """Récupère l'énergie d'un utilisateur"""
@@ -82,23 +120,52 @@ class EnergyManager:
         }
     
     async def can_perform_action(self, user_id: str, action_name: str) -> Dict[str, Any]:
-        """Vérifie si un utilisateur peut effectuer une action"""
+        """
+        ✅ Vérifie si un utilisateur peut effectuer une action
+        🌙 Logique Unlimited Oracle-compliant : bypass complet + journalisation
+        """
         if action_name not in ENERGY_COSTS:
             raise EnergyManagerError(f"Unknown action: {action_name}")
             
+        energy_required = ENERGY_COSTS[action_name]
+        
+        # 🔥 ORACLE PRIORITY: Vérification Unlimited en premier (source unique de vérité)
+        is_unlimited = await self._is_unlimited_user(user_id)
+        
+        if is_unlimited:
+            # Utilisateur Unlimited : TOUJOURS autorisé, coût énergétique = 0
+            logger.info("Unlimited user action authorized",
+                       user_id=user_id,
+                       action=action_name,
+                       energy_required=energy_required,
+                       unlimited=True)
+            
+            return {
+                "user_id": user_id,
+                "action": action_name,
+                "energy_required": 0,  # Coût = 0 pour unlimited
+                "current_energy": float('inf'),  # Énergie = infini symbolique
+                "can_perform": True,
+                "deficit": 0.0,
+                "unlimited": True,
+                "subscription_type": "luna_unlimited"
+            }
+        
+        # Utilisateur standard : logique énergie classique
         user_energy = await self._get_user_energy(user_id)
         if user_energy is None:
             user_energy = await self.get_user_energy(user_id)
-            
-        energy_required = ENERGY_COSTS[action_name]
         
-        # 🔥 ORACLE: Unlimited peut TOUJOURS effectuer l'action
-        if user_energy.subscription_type == "unlimited":
-            can_perform = True
-            deficit = 0.0
-        else:
-            can_perform = user_energy.can_perform_action(energy_required)
-            deficit = max(0, energy_required - user_energy.current_energy) if not can_perform else 0
+        can_perform = user_energy.can_perform_action(energy_required)
+        deficit = max(0, energy_required - user_energy.current_energy) if not can_perform else 0
+        
+        logger.info("Standard user action checked",
+                   user_id=user_id,
+                   action=action_name,
+                   energy_required=energy_required,
+                   current_energy=user_energy.current_energy,
+                   can_perform=can_perform,
+                   unlimited=False)
         
         return {
             "user_id": user_id,
@@ -107,6 +174,7 @@ class EnergyManager:
             "current_energy": user_energy.current_energy,
             "can_perform": can_perform,
             "deficit": deficit,
+            "unlimited": False,
             "subscription_type": user_energy.subscription_type
         }
     
@@ -117,37 +185,86 @@ class EnergyManager:
         context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Consomme de l'énergie pour une action
-        Cœur de la logique métier Luna avec gestion Unlimited
+        ⚡ Consomme de l'énergie pour une action
+        🌙 Cœur de la logique métier Luna avec gestion Unlimited Oracle-compliant
         """
         if action_name not in ENERGY_COSTS:
             raise EnergyManagerError(f"Unknown action: {action_name}")
             
+        energy_required = ENERGY_COSTS[action_name]
+        
+        # 🔥 ORACLE PRIORITY: Vérification Unlimited en premier
+        is_unlimited = await self._is_unlimited_user(user_id)
+        
+        if is_unlimited:
+            # 🌙 UTILISATEUR UNLIMITED: Pas de décompte, mais ÉVÉNEMENT OBLIGATOIRE
+            transaction_id = str(uuid.uuid4())
+            
+            # Création événement EnergyActionPerformed pour traçabilité complète
+            try:
+                await event_store.create_event(
+                    user_id=user_id,
+                    event_type="EnergyActionPerformed",
+                    app_source=context.get("app_source") if context else "luna_hub",
+                    event_data={
+                        "transaction_id": transaction_id,
+                        "action": action_name,
+                        "energy_cost": 0,  # Coût = 0 pour unlimited
+                        "energy_before": float('inf'),
+                        "energy_after": float('inf'),
+                        "unlimited": True,
+                        "context": context or {}
+                    },
+                    metadata={
+                        "energy_action": "consume_unlimited",
+                        "action_category": "unlimited",
+                        "original_cost": energy_required
+                    }
+                )
+                
+                logger.info("Unlimited user action performed",
+                           user_id=user_id,
+                           action=action_name,
+                           transaction_id=transaction_id,
+                           unlimited=True,
+                           original_cost=energy_required)
+                
+            except Exception as e:
+                logger.error("Error creating unlimited action event", 
+                            user_id=user_id, 
+                            action=action_name, 
+                            error=str(e))
+                # Ne pas bloquer l'action même si l'événement échoue
+            
+            return {
+                "transaction_id": transaction_id,
+                "energy_consumed": 0,
+                "energy_remaining": float('inf'),
+                "action": action_name,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "unlimited": True,
+                "subscription_type": "luna_unlimited"
+            }
+        
+        # 💎 UTILISATEUR STANDARD: Logique énergie classique
         user_energy = await self._get_user_energy(user_id)
         if user_energy is None:
             user_energy = await self.get_user_energy(user_id)
             
-        energy_required = ENERGY_COSTS[action_name]
         energy_before = user_energy.current_energy
         
-        # 🔥 LOGIQUE ORACLE: Unlimited ne décompte pas mais enregistre TOUJOURS l'événement
-        if user_energy.subscription_type == "unlimited":
-            # Utilisateur Unlimited : pas de décompte d'énergie, mais événement obligatoire
-            energy_consumed = 0.0
-            energy_after = user_energy.current_energy  # Pas de changement
-        else:
-            # Utilisateur standard : vérification + décompte
-            if not user_energy.can_perform_action(energy_required):
-                raise InsufficientEnergyError(
-                    f"Énergie insuffisante. Requis: {energy_required}%, "
-                    f"Disponible: {user_energy.current_energy}%"
-                )
-            
-            # Consommation réelle
-            success = user_energy.consume_energy(energy_required, reason=action_name)
-            
-            if not success:
-                raise EnergyManagerError("Échec de la consommation d'énergie")
+        # Vérification + décompte
+        if not user_energy.can_perform_action(energy_required):
+            raise InsufficientEnergyError(
+                f"Énergie insuffisante. Requis: {energy_required}%, "
+                f"Disponible: {user_energy.current_energy}%"
+            )
+        
+        # Consommation réelle
+        success = user_energy.consume_energy(energy_required, reason=action_name)
+        
+        if not success:
+            raise EnergyManagerError("Échec de la consommation d'énergie")
             
             energy_consumed = energy_required
             energy_after = user_energy.current_energy

@@ -117,6 +117,70 @@ class BillingStatsOutput(BaseModel):
     refund_rate: float
     first_purchase_bonus_applied: int
 
+# ============================================================================
+# MODÈLES SUBSCRIPTION (LUNA UNLIMITED)
+# ============================================================================
+
+class CreateSubscriptionInput(BaseModel):
+    """Requête création Subscription Stripe pour Luna Unlimited"""
+    user_id: str = Field(..., description="UUID utilisateur", min_length=1)
+    plan: Literal["luna_unlimited"] = Field(..., description="Plan d'abonnement")
+    currency: str = Field("eur", description="Devise ISO 3166", pattern=r"^[a-z]{3}$")
+    
+    @validator('user_id')
+    def validate_user_id(cls, v):
+        """Validation UUID format"""
+        import uuid
+        try:
+            uuid.UUID(v)
+            return v
+        except ValueError:
+            raise ValueError("user_id must be a valid UUID")
+
+class CreateSubscriptionOutput(BaseModel):
+    """Réponse création Subscription"""
+    success: bool = True
+    subscription_id: str = Field(..., description="ID Subscription Stripe")
+    client_secret: str = Field(..., description="Client secret pour frontend")
+    status: str = Field(..., description="Statut de l'abonnement")
+    plan: str = Field(..., description="Plan souscrit")
+    price_cents: int = Field(..., description="Prix mensuel en centimes")
+    current_period_end: str = Field(..., description="Fin de la période actuelle")
+
+class SubscriptionStatusOutput(BaseModel):
+    """Statut de l'abonnement utilisateur"""
+    success: bool = True
+    user_id: str
+    has_active_subscription: bool
+    subscription_id: Optional[str] = None
+    plan: Optional[str] = None
+    status: Optional[str] = None
+    current_period_end: Optional[str] = None
+    cancel_at_period_end: Optional[bool] = None
+
+class CancelSubscriptionInput(BaseModel):
+    """Requête annulation d'abonnement"""
+    user_id: str = Field(..., description="UUID utilisateur")
+    subscription_id: str = Field(..., description="ID Subscription Stripe")
+    cancel_immediately: bool = Field(False, description="Annuler immédiatement ou à la fin de la période")
+    
+    @validator('user_id')
+    def validate_user_id(cls, v):
+        import uuid
+        try:
+            uuid.UUID(v)
+            return v
+        except ValueError:
+            raise ValueError("user_id must be a valid UUID")
+
+class CancelSubscriptionOutput(BaseModel):
+    """Réponse annulation d'abonnement"""
+    success: bool = True
+    subscription_id: str
+    status: str
+    canceled_at: str
+    ends_at: Optional[str] = None
+
 # Constantes des packs
 PACK_CATALOG: Dict[PackCode, PackInfo] = {
     "cafe_luna": PackInfo(
@@ -146,6 +210,16 @@ PACK_CATALOG: Dict[PackCode, PackInfo] = {
         savings_vs_cafe=33.0,
         popular=True,
         features=["Économie 33% vs Café", "Utilisateur power", "Fonctionnalités avancées"]
+    ),
+    "luna_unlimited": PackInfo(
+        code="luna_unlimited",
+        name="🌙 Luna Unlimited",
+        description="Accès illimité à toutes les fonctionnalités Phoenix",
+        price_cents=2999,  # 29.99€/mois
+        energy_units=-1,  # -1 = illimité
+        savings_vs_cafe=90.0,
+        popular=True,
+        features=["Énergie illimitée", "Accès prioritaire", "Support premium", "Fonctionnalités exclusives"]
     )
 }
 
@@ -167,3 +241,23 @@ def calculate_first_purchase_bonus(pack_code: PackCode, base_energy: int) -> int
     if pack_code == "cafe_luna":
         return round(base_energy * 0.10)  # +10% pour le café
     return 0
+
+# ============================================================================
+# FONCTIONS HELPER SUBSCRIPTION
+# ============================================================================
+
+def get_subscription_price(plan: Literal["luna_unlimited"]) -> int:
+    """Récupère le prix d'un plan de subscription en centimes"""
+    if plan == "luna_unlimited":
+        return PACK_CATALOG["luna_unlimited"].price_cents
+    raise ValueError(f"Unknown subscription plan: {plan}")
+
+def is_unlimited_plan(plan: str) -> bool:
+    """Vérifie si un plan est de type unlimited"""
+    return plan == "luna_unlimited"
+
+def get_subscription_features(plan: Literal["luna_unlimited"]) -> List[str]:
+    """Récupère les fonctionnalités d'un plan de subscription"""
+    if plan == "luna_unlimited":
+        return PACK_CATALOG["luna_unlimited"].features
+    return []

@@ -13,12 +13,15 @@ from ..models.billing import (
     CreateIntentInput, CreateIntentOutput,
     ConfirmPaymentInput, ConfirmPaymentOutput,
     PurchaseHistoryOutput, PACK_CATALOG,
-    get_pack_info, calculate_first_purchase_bonus
+    get_pack_info, calculate_first_purchase_bonus,
+    # Subscription models
+    CreateSubscriptionInput, CreateSubscriptionOutput,
+    SubscriptionStatusOutput, CancelSubscriptionInput, CancelSubscriptionOutput
 )
 from ..billing.stripe_manager import StripeManager, StripeError
 from ..core.energy_manager import energy_manager
-from ..core.supabase_client import event_store
-from ..core.security_guardian import SecurityGuardian
+from ..core.supabase_client import event_store, sb
+from ..core.security_guardian import SecurityGuardian, ensure_request_is_clean
 
 logger = structlog.get_logger("billing_endpoints")
 
@@ -392,6 +395,378 @@ async def get_purchase_history(
                     error=str(e))
         raise HTTPException(status_code=500, detail="Internal server error")
 
+# ============================================================================
+# ENDPOINTS SUBSCRIPTION (LUNA UNLIMITED)
+# ============================================================================
+
+@router.post("/create-subscription", response_model=CreateSubscriptionOutput)
+async def create_subscription(
+    body: CreateSubscriptionInput,
+    token: str = Depends(get_bearer_token),
+    correlation_id: str = Depends(get_correlation_id),
+    _: None = Depends(ensure_request_is_clean)
+):
+    """
+    🌙 Crée un abonnement Luna Unlimited via Stripe
+    """
+    start_time = time.time()
+    
+    logger.info("Creating Luna Unlimited subscription",
+               user_id=body.user_id,
+               plan=body.plan,
+               correlation_id=correlation_id)
+    
+    try:
+        if body.plan != "luna_unlimited":
+            raise HTTPException(
+                status_code=422,
+                detail="Only luna_unlimited plan is supported"
+            )
+        
+        # Validation sécurisée de l'user_id
+        clean_user_id = SecurityGuardian.validate_user_id(body.user_id)
+        
+        # 1. Récupérer/créer le customer Stripe
+        try:
+            user_result = sb.table("users").select("*").eq("id", clean_user_id).execute()
+            if not user_result.data:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            user = user_result.data[0]
+            stripe_customer_id = user.get("stripe_customer_id")
+            
+            if not stripe_customer_id:
+                # Créer le customer Stripe
+                stripe_customer_id = StripeManager.create_customer(
+                    user_id=clean_user_id,
+                    email=user.get("email", "")
+                )
+                
+                # Sauvegarder le customer_id dans la DB
+                sb.table("users").update({
+                    "stripe_customer_id": stripe_customer_id
+                }).eq("id", clean_user_id).execute()
+                
+                logger.info("Stripe customer created and saved",
+                           user_id=clean_user_id,
+                           customer_id=stripe_customer_id)
+        
+        except Exception as e:
+            logger.error("Error handling Stripe customer", error=str(e), user_id=clean_user_id)
+            raise HTTPException(status_code=500, detail="Customer creation failed")
+        
+        # 2. Créer la subscription Stripe
+        try:
+            subscription_id, status, current_period_end, client_secret = StripeManager.create_subscription(
+                user_id=clean_user_id,
+                customer_id=stripe_customer_id,
+                plan=body.plan
+            )
+        
+        except StripeError as e:
+            logger.error("Stripe subscription creation failed", error=str(e), user_id=clean_user_id)
+            raise HTTPException(status_code=502, detail=f"Subscription service error: {str(e)}")
+        
+        # 3. Créer l'événement BillingSubscriptionCreated
+        try:
+            event_id = await event_store.create_event(
+                user_id=clean_user_id,
+                event_type="BillingSubscriptionCreated",
+                app_source="luna_hub",
+                event_data={
+                    "stripe_subscription_id": subscription_id,
+                    "stripe_customer_id": stripe_customer_id,
+                    "plan": body.plan,
+                    "status": status,
+                    "current_period_end": current_period_end,
+                    "correlation_id": correlation_id
+                },
+                metadata={
+                    "billing_action": "create_subscription",
+                    "subscription_plan": body.plan,
+                    "stripe_environment": "live" if "sk_live" in StripeManager.STRIPE_SECRET_KEY else "test"
+                }
+            )
+            
+            logger.info("BillingSubscriptionCreated event created", 
+                       event_id=event_id, 
+                       subscription_id=subscription_id)
+        
+        except Exception as e:
+            logger.error("Error creating subscription event", error=str(e), subscription_id=subscription_id)
+            # N'interrompons pas le flow, l'abonnement Stripe est créé
+        
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        logger.info("Luna Unlimited subscription created successfully",
+                   subscription_id=subscription_id,
+                   user_id=clean_user_id,
+                   status=status,
+                   duration_ms=duration_ms)
+        
+        # Obtenir le prix pour la réponse
+        from ..models.billing import get_subscription_price
+        price_cents = get_subscription_price("luna_unlimited")
+        
+        return CreateSubscriptionOutput(
+            success=True,
+            subscription_id=subscription_id,
+            client_secret=client_secret or "",
+            status=status,
+            plan=body.plan,
+            price_cents=price_cents,
+            current_period_end=current_period_end
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        logger.error("Unexpected error creating subscription",
+                    user_id=body.user_id,
+                    error=str(e),
+                    duration_ms=duration_ms)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/webhook")
+async def stripe_webhook(request: Request):
+    """
+    🔗 Webhook Stripe pour synchronisation des abonnements
+    """
+    try:
+        payload = await request.body()
+        sig_header = request.headers.get("stripe-signature", "")
+        
+        # Vérification signature Stripe
+        try:
+            event = StripeManager.verify_webhook_signature(payload, sig_header)
+        except StripeError as e:
+            logger.error("Invalid webhook signature", error=str(e))
+            raise HTTPException(status_code=400, detail="Invalid signature")
+        
+        event_type = event["type"]
+        event_data = event["data"]["object"]
+        
+        logger.info("Processing Stripe webhook",
+                   event_type=event_type,
+                   event_id=event["id"])
+        
+        # Traitement des événements subscription
+        if event_type in ["customer.subscription.created", "customer.subscription.updated"]:
+            await _handle_subscription_updated(event_data)
+            
+        elif event_type == "customer.subscription.deleted":
+            await _handle_subscription_deleted(event_data)
+            
+        elif event_type == "invoice.payment_succeeded":
+            await _handle_invoice_payment_succeeded(event_data)
+            
+        elif event_type == "invoice.payment_failed":
+            await _handle_invoice_payment_failed(event_data)
+        
+        return {"received": True}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error processing webhook", error=str(e))
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
+
+# ============================================================================
+# HELPER FUNCTIONS WEBHOOK
+# ============================================================================
+
+async def _handle_subscription_updated(subscription_data: Dict[str, Any]) -> None:
+    """Gère les mises à jour de subscription"""
+    try:
+        # Récupération user_id
+        user_id = None
+        metadata = subscription_data.get("metadata", {})
+        if "user_id" in metadata:
+            user_id = metadata["user_id"]
+        else:
+            # Fallback: recherche par customer_id
+            customer_id = subscription_data.get("customer")
+            if customer_id:
+                user_result = sb.table("users").select("id").eq("stripe_customer_id", customer_id).execute()
+                if user_result.data:
+                    user_id = user_result.data[0]["id"]
+        
+        if not user_id:
+            logger.error("Cannot find user for subscription update",
+                        subscription_id=subscription_data.get("id"),
+                        customer_id=subscription_data.get("customer"))
+            return
+        
+        # Extraction des données subscription
+        subscription_id = subscription_data["id"]
+        status = subscription_data["status"]
+        current_period_end = subscription_data.get("current_period_end")
+        
+        # Mise à jour de l'utilisateur
+        subscription_type = "luna_unlimited" if status in ["active", "trialing"] else None
+        
+        update_data = {
+            "subscription_type": subscription_type,
+            "subscription_status": status,
+            "subscription_ends_at": None
+        }
+        
+        if current_period_end:
+            from datetime import datetime, timezone
+            update_data["subscription_ends_at"] = datetime.fromtimestamp(
+                current_period_end, tz=timezone.utc
+            ).isoformat()
+        
+        sb.table("users").update(update_data).eq("id", user_id).execute()
+        
+        # Création événement
+        await event_store.create_event(
+            user_id=user_id,
+            event_type="BillingSubscriptionUpdated",
+            app_source="stripe_webhook",
+            event_data={
+                "stripe_subscription_id": subscription_id,
+                "status": status,
+                "current_period_end": current_period_end,
+                "subscription_type": subscription_type
+            },
+            metadata={
+                "webhook_event": "subscription_updated",
+                "stripe_event_id": subscription_data.get("id")
+            }
+        )
+        
+        logger.info("Subscription updated successfully",
+                   user_id=user_id,
+                   subscription_id=subscription_id,
+                   status=status,
+                   subscription_type=subscription_type)
+        
+    except Exception as e:
+        logger.error("Error handling subscription update", error=str(e))
+
+async def _handle_subscription_deleted(subscription_data: Dict[str, Any]) -> None:
+    """Gère l'annulation définitive d'une subscription"""
+    try:
+        # Même logique de récupération user_id
+        user_id = None
+        metadata = subscription_data.get("metadata", {})
+        if "user_id" in metadata:
+            user_id = metadata["user_id"]
+        else:
+            customer_id = subscription_data.get("customer")
+            if customer_id:
+                user_result = sb.table("users").select("id").eq("stripe_customer_id", customer_id).execute()
+                if user_result.data:
+                    user_id = user_result.data[0]["id"]
+        
+        if not user_id:
+            return
+        
+        # Retirer le statut unlimited
+        sb.table("users").update({
+            "subscription_type": None,
+            "subscription_status": "canceled",
+            "subscription_ends_at": None
+        }).eq("id", user_id).execute()
+        
+        # Événement de cancellation
+        await event_store.create_event(
+            user_id=user_id,
+            event_type="BillingSubscriptionCanceled",
+            app_source="stripe_webhook",
+            event_data={
+                "stripe_subscription_id": subscription_data["id"],
+                "canceled_at": subscription_data.get("canceled_at")
+            },
+            metadata={
+                "webhook_event": "subscription_deleted"
+            }
+        )
+        
+        logger.info("Subscription canceled",
+                   user_id=user_id,
+                   subscription_id=subscription_data["id"])
+        
+    except Exception as e:
+        logger.error("Error handling subscription deletion", error=str(e))
+
+async def _handle_invoice_payment_succeeded(invoice_data: Dict[str, Any]) -> None:
+    """Gère le paiement réussi d'une facture (renouvellement)"""
+    try:
+        customer_id = invoice_data.get("customer")
+        if not customer_id:
+            return
+            
+        user_result = sb.table("users").select("id").eq("stripe_customer_id", customer_id).execute()
+        if not user_result.data:
+            return
+            
+        user_id = user_result.data[0]["id"]
+        
+        # Événement de paiement réussi
+        await event_store.create_event(
+            user_id=user_id,
+            event_type="BillingInvoicePaid",
+            app_source="stripe_webhook",
+            event_data={
+                "invoice_id": invoice_data["id"],
+                "amount_paid": invoice_data["amount_paid"],
+                "currency": invoice_data["currency"],
+                "subscription_id": invoice_data.get("subscription")
+            },
+            metadata={
+                "webhook_event": "invoice_payment_succeeded",
+                "billing_reason": invoice_data.get("billing_reason")
+            }
+        )
+        
+        logger.info("Invoice payment succeeded",
+                   user_id=user_id,
+                   invoice_id=invoice_data["id"],
+                   amount_paid=invoice_data["amount_paid"])
+        
+    except Exception as e:
+        logger.error("Error handling invoice payment", error=str(e))
+
+async def _handle_invoice_payment_failed(invoice_data: Dict[str, Any]) -> None:
+    """Gère l'échec de paiement d'une facture"""
+    try:
+        customer_id = invoice_data.get("customer")
+        if not customer_id:
+            return
+            
+        user_result = sb.table("users").select("id").eq("stripe_customer_id", customer_id).execute()
+        if not user_result.data:
+            return
+            
+        user_id = user_result.data[0]["id"]
+        
+        # Événement de paiement échoué
+        await event_store.create_event(
+            user_id=user_id,
+            event_type="BillingInvoicePaymentFailed",
+            app_source="stripe_webhook",
+            event_data={
+                "invoice_id": invoice_data["id"],
+                "amount_due": invoice_data["amount_due"],
+                "currency": invoice_data["currency"],
+                "subscription_id": invoice_data.get("subscription")
+            },
+            metadata={
+                "webhook_event": "invoice_payment_failed"
+            }
+        )
+        
+        logger.warning("Invoice payment failed",
+                      user_id=user_id,
+                      invoice_id=invoice_data["id"],
+                      amount_due=invoice_data["amount_due"])
+        
+    except Exception as e:
+        logger.error("Error handling invoice payment failure", error=str(e))
+
 @router.get("/packs")
 async def get_available_packs():
     """
@@ -401,7 +776,7 @@ async def get_available_packs():
         "success": True,
         "packs": [pack_info.dict() for pack_info in PACK_CATALOG.values()],
         "currency": "eur",
-        "unlimited_available": False  # Géré séparément via abonnements
+        "unlimited_available": True  # Maintenant disponible via subscription
     }
 
 @router.get("/stats")
