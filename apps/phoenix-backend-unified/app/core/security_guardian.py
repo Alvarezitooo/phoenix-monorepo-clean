@@ -160,17 +160,47 @@ async def ensure_request_is_clean(request: Request) -> None:
     """
     Dependency to ensure request is clean and safe
     Used in auth endpoints for additional security
+    
+    Oracle-compliant: Allow-list pour endpoints légitimes
     """
     # Basic checks for suspicious patterns in URL and headers
     url_path = str(request.url.path).lower()
     
-    # Check for common attack patterns in URL
+    # Allow-list: Préfixes d'endpoints légitimes (Option C - Architecte)
+    trusted_endpoint_prefixes = [
+        '/billing/',
+        '/auth/',
+        '/luna/',
+        '/monitoring/'
+    ]
+    
+    # Vérification allow-list
+    is_trusted_endpoint = any(
+        url_path.startswith(prefix) for prefix in trusted_endpoint_prefixes
+    )
+    
+    if is_trusted_endpoint:
+        # Log traçabilité pour audit
+        logger.info("Security Guardian: Trusted endpoint allowed",
+                   path=request.url.path,
+                   method=request.method,
+                   security_action="allow_list_bypass",
+                   guardian_status="trusted")
+        return  # Skip pattern checks pour endpoints de confiance
+    
+    # Check for common attack patterns in URL (endpoints non-trusted uniquement)
     suspicious_patterns = [
         '../', './', 'script', 'eval', 'exec', 'union', 'select', 'drop', 'delete'
     ]
     
     for pattern in suspicious_patterns:
         if pattern in url_path:
+            logger.warning("Security Guardian: Suspicious pattern blocked",
+                          path=request.url.path,
+                          method=request.method,
+                          pattern_detected=pattern,
+                          security_action="pattern_block",
+                          guardian_status="blocked")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Suspicious request pattern detected"
