@@ -2,7 +2,7 @@
 🌙 Phoenix Backend Unified - Luna Hub Central
 API centralisée pour tout l'écosystème Phoenix avec gestion énergie Luna
 
-Force Rebuild: 2025-08-25T12:20:00Z - Railway deployment fix
+Force Rebuild: 2025-08-25T21:03:00Z - Test cache-busting system
 """
 
 import os
