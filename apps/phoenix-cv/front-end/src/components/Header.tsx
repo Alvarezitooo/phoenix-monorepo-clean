@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { EnergyGauge, useLuna } from './Luna';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { 
   Zap, 
   BarChart3, 
@@ -11,7 +12,8 @@ import {
   Menu, 
   X,
   Crown,
-  Sparkles
+  Sparkles,
+  CheckCircle
 } from 'lucide-react';
 
 export function Header() {
@@ -19,6 +21,7 @@ export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentEnergy } = useLuna();
+  const { userProfile, isLoadingProfile, isUnlimited } = useUserProfile();
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: BarChart3 },
@@ -90,14 +93,30 @@ export function Header() {
             {/* Luna Energy Gauge */}
             <EnergyGauge currentEnergy={currentEnergy} />
             
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="hidden md:flex items-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-semibold text-white shadow-lg shadow-phoenix-500/25 hover:shadow-phoenix-500/40 transition-all duration-300"
-            >
-              <Crown className="w-5 h-5" />
-              <span>Upgrade to Pro</span>
-            </motion.button>
+            {isLoadingProfile ? (
+              <div className="hidden md:flex items-center space-x-2 px-6 py-3 bg-gray-700 rounded-xl">
+                <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-300 border-t-white"></div>
+                <span className="text-gray-300">Loading...</span>
+              </div>
+            ) : isUnlimited ? (
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="hidden md:flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-semibold text-white shadow-lg shadow-yellow-500/25"
+              >
+                <CheckCircle className="w-5 h-5" />
+                <span>Luna Unlimited</span>
+              </motion.div>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.open('https://phoenix-website-production.up.railway.app', '_blank')}
+                className="hidden md:flex items-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-semibold text-white shadow-lg shadow-phoenix-500/25 hover:shadow-phoenix-500/40 transition-all duration-300"
+              >
+                <Crown className="w-5 h-5" />
+                <span>Upgrade to Pro</span>
+              </motion.button>
+            )}
 
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -146,10 +165,25 @@ export function Header() {
               );
             })}
             
-            <button className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-semibold text-white shadow-lg shadow-phoenix-500/25 mt-4">
-              <Crown className="w-5 h-5" />
-              <span>Upgrade to Pro</span>
-            </button>
+            {isLoadingProfile ? (
+              <div className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gray-700 rounded-xl mt-4">
+                <div className="w-5 h-5 animate-spin rounded-full border-2 border-gray-300 border-t-white"></div>
+                <span className="text-gray-300">Loading...</span>
+              </div>
+            ) : isUnlimited ? (
+              <div className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl font-semibold text-white shadow-lg shadow-yellow-500/25 mt-4">
+                <CheckCircle className="w-5 h-5" />
+                <span>Luna Unlimited</span>
+              </div>
+            ) : (
+              <button 
+                onClick={() => window.open('https://phoenix-website-production.up.railway.app', '_blank')}
+                className="w-full flex items-center justify-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-semibold text-white shadow-lg shadow-phoenix-500/25 mt-4"
+              >
+                <Crown className="w-5 h-5" />
+                <span>Upgrade to Pro</span>
+              </button>
+            )}
           </motion.nav>
         )}
       </div>

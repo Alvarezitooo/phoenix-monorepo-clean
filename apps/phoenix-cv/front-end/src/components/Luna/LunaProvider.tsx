@@ -18,6 +18,7 @@ interface LunaContextType {
   // Conversation
   conversationHistory: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
+  sendMessage: (message: string) => Promise<void>;
   clearHistory: () => void;
   
   // Context-aware features (CV specific)
@@ -184,6 +185,15 @@ export function LunaProvider({ children, initialEnergy = 90 }: LunaProviderProps
     }
   }, [currentContext, userId, currentCVId, updateEnergy]);
 
+  // Simplified sendMessage wrapper
+  const sendMessage = useCallback(async (messageText: string) => {
+    await addMessage({
+      content: messageText,
+      sender: 'user',
+      type: 'text'
+    });
+  }, [addMessage]);
+
   const clearHistory = useCallback(() => {
     setConversationHistory([{
       id: 'welcome-reset',
@@ -221,6 +231,7 @@ export function LunaProvider({ children, initialEnergy = 90 }: LunaProviderProps
     // Conversation
     conversationHistory,
     addMessage,
+    sendMessage,
     clearHistory,
     
     // Context

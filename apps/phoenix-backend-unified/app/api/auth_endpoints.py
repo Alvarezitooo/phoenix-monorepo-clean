@@ -498,7 +498,10 @@ async def get_current_user(
         "email": user["email"],
         "luna_energy": user["luna_energy"],
         "narrative_started": user["capital_narratif_started"],
-        "created_at": user["created_at"]
+        "created_at": user["created_at"],
+        "subscription_type": user.get("subscription_type"),
+        "subscription_status": user.get("subscription_status"),
+        "is_unlimited": user.get("subscription_type") == "luna_unlimited"
     }
 
 # Helper functions

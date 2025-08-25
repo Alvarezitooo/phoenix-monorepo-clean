@@ -6,8 +6,9 @@
 
 import { apiService, ChatStartRequest, ChatMessageRequest, ChatResponse } from './api';
 
-// Configuration API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8002';
+// Configuration API - Luna Hub pour la logique centrale
+const LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || 'https://phoenix-backend-unified-production.up.railway.app';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://phoenix-cv-production.up.railway.app';
 const LUNA_ENABLED = import.meta.env.VITE_LUNA_ENABLED !== 'false';
 const LUNA_DEBUG = import.meta.env.VITE_LUNA_DEBUG === 'true';
 
@@ -52,6 +53,16 @@ interface EnergyCheckResponse {
   maxEnergy: number;
   canPerformAction: boolean;
   energyRequired?: number;
+}
+
+interface UserProfile {
+  id: string;
+  email: string;
+  luna_energy: number;
+  narrative_started: boolean;
+  subscription_type?: string;
+  subscription_status?: string;
+  is_unlimited: boolean;
 }
 
 // Service de gestion des erreurs
@@ -150,7 +161,7 @@ class LunaCVAPIService {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/luna/energy/check`, {
+      const response = await fetch(`${LUNA_HUB_URL}/luna/energy/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -184,7 +195,7 @@ class LunaCVAPIService {
 
     try {
       if (request.action === 'consume') {
-        const response = await fetch(`${API_BASE_URL}/api/luna/energy/consume`, {
+        const response = await fetch(`${LUNA_HUB_URL}/luna/energy/consume`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -218,6 +229,37 @@ class LunaCVAPIService {
   async canPerformAction(userId: string, energyRequired: number): Promise<boolean> {
     const energyCheck = await this.checkEnergy(userId);
     return energyCheck.currentEnergy >= energyRequired;
+  }
+
+  /**
+   * Récupère le profil utilisateur depuis Luna Hub (avec statut subscription)
+   */
+  async getUserProfile(authToken: string): Promise<UserProfile | null> {
+    try {
+      const response = await fetch(`${LUNA_HUB_URL}/auth/me`, {
+        method: 'GET',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      return {
+        id: data.id,
+        email: data.email,
+        luna_energy: data.luna_energy,
+        narrative_started: data.narrative_started,
+        subscription_type: data.subscription_type,
+        subscription_status: data.subscription_status,
+        is_unlimited: data.is_unlimited || false
+      };
+    } catch (error) {
+      lunaLog('Error fetching user profile', error);
+      return null;
+    }
   }
 
   // 🔧 Méthodes utilitaires privées
@@ -287,6 +329,7 @@ class LunaCVAPIService {
     };
   }
 
+
   private extractSuggestions(suggestedActions?: any[]): string[] {
     if (!suggestedActions) return [];
     
@@ -343,7 +386,8 @@ export type {
   LunaCVResponse, 
   EnergyUpdateRequest, 
   EnergyCheckResponse,
-  LunaMessage
+  LunaMessage,
+  UserProfile
 };
 
 // Utilitaires exportés
