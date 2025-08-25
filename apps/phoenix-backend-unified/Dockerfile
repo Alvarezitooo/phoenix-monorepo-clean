@@ -50,4 +50,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 EXPOSE 8000
 
 # Production startup with proper error handling
-CMD ["python", "main.py"]
+CMD ["python", "api_main.py"]
