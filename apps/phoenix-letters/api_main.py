@@ -43,7 +43,9 @@ from domain.services.letter_service import LetterService
 from domain.services.skill_mapping_service import SkillMappingService
 from infrastructure.ai.gemini_service import GeminiService
 from infrastructure.database.mock_letter_repository import MockLetterRepository
-from infrastructure.database.mock_user_repository import MockUserRepository
+from infrastructure.database.luna_hub_user_repository import LunaHubUserRepository
+from infrastructure.clients.luna_client import LunaClient
+import os
 
 # DTOs pour l'API
 from pydantic import BaseModel, Field
@@ -143,10 +145,21 @@ class ServicesContainer:
         # Infrastructure
         self.ai_service = GeminiService()
         self.letter_repository = MockLetterRepository()
-        self.user_repository = MockUserRepository()
         
-        # Ajout de lettres de démo
-        self.letter_repository.add_demo_letters("demo-user")
+        # Luna Hub Configuration
+        luna_hub_url = os.getenv("LUNA_HUB_URL", "https://phoenix-backend-unified-production.up.railway.app")
+        
+        # Token provider pour Luna Client (sera remplacé par vraie auth)
+        def token_provider():
+            # Pour l'instant, on utilise un token statique
+            # TODO: récupérer le vrai token JWT de l'utilisateur connecté
+            return "demo-token"
+        
+        # Initialisation Luna Client et User Repository
+        self.luna_client = LunaClient(token_provider=token_provider)
+        self.user_repository = LunaHubUserRepository(self.luna_client, luna_hub_url)
+        
+        # Note: Plus de lettres de démo - utilisation de vraies données utilisateur
         
         # Domain Services  
         self.letter_service = LetterService(self.letter_repository)
@@ -306,7 +319,7 @@ async def health_check(services_container = Depends(get_services)):
 @app.post("/api/letters/generate", response_model=GenerationResponse)
 async def generate_letter(
     request: GenerateLetterRequest,
-    user_id: str = "demo-user",  # En prod: extraire du JWT
+    user_id: str,  # User ID réel depuis l'auth
     services_container = Depends(get_services)
 ):
     """Génère une nouvelle lettre de motivation"""
@@ -399,7 +412,7 @@ async def get_user_letters(
 @app.get("/api/letters/{letter_id}", response_model=LetterResponse)
 async def get_letter_by_id(
     letter_id: str,
-    user_id: str = "demo-user",
+    user_id: str,
     services_container = Depends(get_services)
 ):
     """Récupère une lettre spécifique par ID"""
@@ -469,7 +482,7 @@ async def get_user_statistics(
 @app.post("/api/skills/analyze-transition", response_model=CareerTransitionResponse)
 async def analyze_career_transition(
     request: AnalyzeCareerTransitionRequest,
-    user_id: str = "demo-user",
+    user_id: str,
     services_container = Depends(get_services)
 ):
     """🎯 GAME CHANGER - Analyse des compétences transversales pour transition de carrière"""
