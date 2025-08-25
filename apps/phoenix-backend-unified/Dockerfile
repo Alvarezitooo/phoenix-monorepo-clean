@@ -26,7 +26,7 @@ RUN pip install --upgrade pip && \
 # Copy version file first to bust cache on every change
 COPY version.txt ./version.txt
 
-# Copy application code with explicit structure - CACHE BUST 2025-08-25-21:01
+# Copy application code with explicit structure - CACHE BUST 2025-08-25-21:04:56
 COPY main.py ./main.py
 COPY app/ ./app/
 

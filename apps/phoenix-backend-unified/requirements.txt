@@ -95,3 +95,4 @@ structlog==25.4.0
 bleach==6.2.0
 # CRITICAL: Add missing psutil dependency for monitoring
 psutil==7.0.0
+# Rebuild trigger: 2025-08-25-21:04:56
