@@ -1,0 +1,42 @@
+{
+  "services": {
+    "luna-hub-backend-unified": {
+      "build": {
+        "builder": "dockerfile",
+        "dockerfilePath": "apps/phoenix-backend-unified/Dockerfile"
+      },
+      "deploy": {
+        "startCommand": null,
+        "healthcheckPath": "/health",
+        "healthcheckTimeout": 300
+      }
+    },
+    "phoenix-cv": {
+      "build": {
+        "builder": "dockerfile", 
+        "dockerfilePath": "apps/phoenix-cv/Dockerfile"
+      },
+      "deploy": {
+        "healthcheckPath": "/health"
+      }
+    },
+    "phoenix-letters": {
+      "build": {
+        "builder": "dockerfile",
+        "dockerfilePath": "apps/phoenix-letters/Dockerfile"
+      },
+      "deploy": {
+        "healthcheckPath": "/health"
+      }
+    },
+    "phoenix-website": {
+      "build": {
+        "builder": "dockerfile",
+        "dockerfilePath": "apps/phoenix-website/Dockerfile"
+      },
+      "deploy": {
+        "healthcheckPath": "/health"
+      }
+    }
+  }
+}
