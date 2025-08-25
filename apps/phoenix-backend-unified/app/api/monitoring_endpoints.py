@@ -50,7 +50,7 @@ async def check_supabase() -> HealthStatus:
     try:
         supabase = get_supabase_client()
         # Simple ping query
-        result = supabase.table("energy_events").select("id").limit(1).execute()
+        result = supabase.table("energy_transactions").select("id").limit(1).execute()
         
         response_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
         

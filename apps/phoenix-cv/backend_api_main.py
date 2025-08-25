@@ -4,6 +4,7 @@ FastAPI backend avec middleware observabilité et corrélation bout-en-bout
 """
 
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -21,7 +22,7 @@ from application.routes.cv_analyze import router as cv_router
 # Configuration environnement
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 PORT = int(os.getenv("PORT", 8002))  # Port distinct pour Phoenix CV
-LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "http://localhost:8003")
+LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://phoenix-backend-unified-production.up.railway.app")
 
 # Configuration des logs structurés
 setup_json_logging("INFO" if ENVIRONMENT == "production" else "DEBUG")
@@ -29,8 +30,48 @@ setup_json_logging("INFO" if ENVIRONMENT == "production" else "DEBUG")
 # Logger principal
 logger = structlog.get_logger("phoenix_cv")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager pour startup/shutdown"""
+    # STARTUP
+    logger.info(
+        "Phoenix CV API starting",
+        environment=ENVIRONMENT,
+        port=PORT,
+        luna_hub_url=LUNA_HUB_URL,
+        service_version="1.0.0"
+    )
+    
+    # Test de connectivité Luna Hub au démarrage
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{LUNA_HUB_URL}/health")
+            luna_status = "connected" if (200 <= response.status_code < 300) else "disconnected"
+    except Exception as e:
+        logger.warning("Luna Hub connection failed at startup", error=str(e))
+        luna_status = "disconnected"
+    
+    logger.info(
+        "Phoenix CV API initialization complete",
+        middleware_status="active",
+        luna_hub_status=luna_status,
+        cors_origins=len(allowed_origins),
+        docs_enabled=(ENVIRONMENT == "development")
+    )
+    
+    yield
+    
+    # SHUTDOWN
+    logger.info(
+        "Phoenix CV API shutting down",
+        environment=ENVIRONMENT,
+        graceful_shutdown=True
+    )
+
 # FastAPI app avec documentation
 app = FastAPI(
+    lifespan=lifespan,
     title="🎯 Phoenix CV API",
     description="""
     # Phoenix CV - API d'Optimisation CV Intelligente
@@ -126,6 +167,11 @@ async def root():
         "luna_hub": LUNA_HUB_URL
     }
 
+@app.get("/health", tags=["health"])
+async def health_check():
+    """Simple health check"""
+    return {"status": "ok", "service": "phoenix-cv", "timestamp": datetime.now().isoformat()}
+
 @app.get("/ready", tags=["health"])
 async def readiness_check():
     """
@@ -215,45 +261,7 @@ async def internal_server_error_handler(request, exc):
         }
     )
 
-# ====== STARTUP & SHUTDOWN EVENTS ======
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialisation Phoenix CV avec logs structurés"""
-    logger.info(
-        "Phoenix CV API starting",
-        environment=ENVIRONMENT,
-        port=PORT,
-        luna_hub_url=LUNA_HUB_URL,
-        service_version="1.0.0"
-    )
-    
-    # Test de connectivité Luna Hub au démarrage
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{LUNA_HUB_URL}/health")
-            luna_status = "connected" if (200 <= response.status_code < 300) else "disconnected"
-    except Exception as e:
-        logger.warning("Luna Hub connection failed at startup", error=str(e))
-        luna_status = "disconnected"
-    
-    logger.info(
-        "Phoenix CV API initialization complete",
-        middleware_status="active",
-        luna_hub_status=luna_status,
-        cors_origins=len(allowed_origins),
-        docs_enabled=(ENVIRONMENT == "development")
-    )
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Arrêt propre Phoenix CV"""
-    logger.info(
-        "Phoenix CV API shutting down",
-        environment=ENVIRONMENT,
-        graceful_shutdown=True
-    )
+# ====== LIFESPAN EVENTS (MIGRATED ABOVE) ======
 
 # ====== MAIN ======
 
