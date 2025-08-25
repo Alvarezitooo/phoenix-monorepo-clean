@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { api } from '../services/api'
-import type { AuthResponse, LoginRequest, RegisterRequest } from '../services/api'
+import { api, AuthResponse, LoginRequest, RegisterRequest } from '../lib/api'
 import { SessionsManagement } from './SessionsManagement'
 
 interface LunaSessionZeroProps {
@@ -72,9 +71,10 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
       }
 
       const response: AuthResponse = await api.login(loginRequest)
-      // La réponse contient déjà l'utilisateur dans response.user
-      setCurrentUser(response.user)
-      onAuthenticated(response.user)
+      const user = await api.getCurrentUser()
+      
+      setCurrentUser(user)
+      onAuthenticated(user)
       setMode('sessions')
     } catch (err: any) {
       console.error('Luna Login Error:', err)
@@ -105,9 +105,10 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
       }
 
       const response: AuthResponse = await api.register(registerRequest)
-      // La réponse contient déjà l'utilisateur dans response.user
-      setCurrentUser(response.user)
-      onAuthenticated(response.user)
+      const user = await api.getCurrentUser()
+      
+      setCurrentUser(user)
+      onAuthenticated(user)
       setMode('sessions')
     } catch (err: any) {
       console.error('Luna Registration Error:', err)
