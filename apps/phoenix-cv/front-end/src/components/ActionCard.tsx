@@ -58,7 +58,7 @@ export function ActionCard({ title, description, icon: Icon, color, path, premiu
           <span className={`text-sm font-medium ${
             isPremiumUnlocked ? 'text-luna-400' : 'text-gray-500'
           }`}>
-            {isPremiumUnlocked ? 'Get Started' : 'Upgrade Required'}
+            {isPremiumUnlocked ? 'Commencer' : 'Upgrade Requis'}
           </span>
           <ArrowRight className={`w-4 h-4 transform group-hover:translate-x-1 transition-transform ${
             isPremiumUnlocked ? 'text-luna-400' : 'text-gray-500'

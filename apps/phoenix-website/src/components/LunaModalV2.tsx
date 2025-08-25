@@ -238,12 +238,16 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
 
   const redirectToCV = () => {
     if (token && cvAppUrl) {
-      // Use fragment to pass token (avoid server logs)
-      const redirectUrl = `${cvAppUrl}#token=${encodeURIComponent(token)}`;
+      // Use fragment to pass token + URL params to trigger welcome banner
+      const redirectUrl = `${cvAppUrl}?welcome=true#token=${encodeURIComponent(token)}`;
+      // Mark user as just registered for Phoenix CV
+      localStorage.setItem('phoenix_just_registered', 'true');
       window.location.href = redirectUrl;
     } else {
-      // Fallback redirect without token
-      window.location.href = cvAppUrl;
+      // Fallback redirect without token but still with welcome
+      const redirectUrl = `${cvAppUrl}?welcome=true`;
+      localStorage.setItem('phoenix_just_registered', 'true');
+      window.location.href = redirectUrl;
     }
   };
 

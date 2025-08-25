@@ -5,36 +5,36 @@ import { Brain, TrendingUp, Users, Target, Sparkles } from 'lucide-react';
 export function AIInsights() {
   const insights = [
     {
-      title: "Your CV Performance",
+      title: "Performance de votre CV",
       value: "89%",
       change: "+12%",
-      description: "ATS compatibility score improved this week",
+      description: "Score de compatibilité ATS amélioré cette semaine",
       icon: TrendingUp,
       color: "from-emerald-500 to-teal-600"
     },
     {
-      title: "Industry Ranking",
+      title: "Classement Industrie",
       value: "#47",
       change: "↑23",
-      description: "Among software engineers in your area",
+      description: "Parmi les développeurs de votre région",
       icon: Users,
       color: "from-purple-500 to-pink-600"
     },
     {
-      title: "Match Potential",
+      title: "Potentiel de Match",
       value: "94%",
       change: "+8%",
-      description: "For your target roles this month",
+      description: "Pour vos postes cibles ce mois-ci",
       icon: Target,
       color: "from-cyan-500 to-blue-600"
     }
   ];
 
   const recommendations = [
-    "Add 3 more technical skills to boost ATS score",
-    "Quantify achievements in your experience section",
-    "Update your summary with industry keywords",
-    "Consider adding certifications section"
+    "Ajoutez 3 compétences techniques pour booster votre score ATS",
+    "Quantifiez vos réalisations dans la section expérience", 
+    "Mettez à jour votre résumé avec des mots-clés industrie",
+    "Considérez ajouter une section certifications"
   ];
 
   return (
@@ -46,8 +46,8 @@ export function AIInsights() {
             <Brain className="w-6 h-6 text-purple-400" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-white">AI Insights</h3>
-            <p className="text-gray-400 text-sm">Powered by advanced analytics</p>
+            <h3 className="text-2xl font-bold text-white">Analyses Luna IA</h3>
+            <p className="text-gray-400 text-sm">Propulsé par l'analyse avancée</p>
           </div>
         </div>
 
@@ -87,8 +87,8 @@ export function AIInsights() {
             <Sparkles className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white">AI Recommendations</h3>
-            <p className="text-gray-400 text-sm">Personalized for you</p>
+            <h3 className="text-xl font-bold text-white">Recommandations Luna</h3>
+            <p className="text-gray-400 text-sm">Personnalisées pour vous</p>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { LunaInteractionPoint, useLuna } from './Luna';
+import { WelcomeBanner } from './WelcomeBanner';
 import { 
   Zap, 
   Target, 
@@ -39,8 +40,8 @@ export function Dashboard() {
 
   const quickActions = [
     {
-      title: 'AI CV Builder',
-      description: 'Create your perfect CV with AI assistance',
+      title: 'Constructeur CV IA',
+      description: 'Créez votre CV parfait avec l\'assistance IA',
       icon: Zap,
       color: 'from-cyan-500 to-blue-600',
       path: '/builder',
@@ -48,23 +49,23 @@ export function Dashboard() {
     },
     {
       title: 'Mirror Match',
-      description: 'Match your CV to specific job requirements',
+      description: 'Adaptez votre CV aux exigences spécifiques d\'emploi',
       icon: Target,
       color: 'from-purple-500 to-pink-600',
       path: '/mirror-match',
       premium: true
     },
     {
-      title: 'Template Gallery',
-      description: 'Browse premium ATS-friendly templates',
+      title: 'Galerie de Modèles',
+      description: 'Parcourez les modèles premium compatibles ATS',
       icon: FileText,
       color: 'from-emerald-500 to-teal-600',
       path: '/templates',
       premium: false
     },
     {
-      title: 'Analytics Hub',
-      description: 'Track your application success rate',
+      title: 'Hub Analytics',
+      description: 'Suivez votre taux de réussite des candidatures',
       icon: BarChart3,
       color: 'from-orange-500 to-red-600',
       path: '/analytics',
@@ -112,6 +113,9 @@ export function Dashboard() {
       animate="visible"
       className="container mx-auto px-6 py-8"
     >
+      {/* Welcome Banner Contextuel */}
+      <WelcomeBanner />
+      
       {/* Hero Section */}
       <motion.div variants={itemVariants} className="text-center mb-12">
         <div className="flex items-center justify-center space-x-4 mb-6">
