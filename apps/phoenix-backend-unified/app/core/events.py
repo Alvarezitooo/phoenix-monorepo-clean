@@ -114,7 +114,7 @@ async def get_user_narrative_events(user_id: str) -> list:
     Get all narrative events for a user to reconstruct their Capital Narratif
     """
     try:
-        result = sb.table("events").select("*").eq("actor_user_id", user_id).order("occurred_at").execute()
+        result = sb.table("events").select("*").eq("user_id", user_id).order("ts").execute()
         return result.data or []
     except Exception as e:
         logger.error(f"Failed to fetch narrative events for user {user_id}: {str(e)}")

@@ -266,11 +266,11 @@ class EnergyManager:
         if not success:
             raise EnergyManagerError("Échec de la consommation d'énergie")
             
-            energy_consumed = energy_required
-            energy_after = user_energy.current_energy
-            
-            # Mettre à jour en base
-            await self._update_user_energy(user_id, user_energy.current_energy)
+        energy_consumed = energy_required  # Toujours égal à energy_required après succès
+        energy_after = user_energy.current_energy
+        
+        # Mettre à jour en base
+        await self._update_user_energy(user_id, user_energy.current_energy)
         
         # 🎯 ORACLE: TOUJOURS enregistrer la transaction ET l'événement (même pour Unlimited)
         transaction = EnergyTransactionModel(
