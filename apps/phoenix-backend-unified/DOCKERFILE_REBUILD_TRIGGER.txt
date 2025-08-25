@@ -1,0 +1,4 @@
+RAILWAY DOCKER CACHE BUST
+NEW ARCHITECTURE: api_main.py (NOT main.py)
+TIMESTAMP: 2025-08-25-21:10:30
+REASON: Railway stuck on old Dockerfile cached layer

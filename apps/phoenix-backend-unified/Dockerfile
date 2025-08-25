@@ -23,11 +23,12 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install structlog==25.4.0 bleach==6.2.0 psutil==7.0.0 email-validator==2.2.0
 
-# Copy version file first to bust cache on every change
+# FORCE DOCKER CACHE BUST - Railway must detect new Dockerfile architecture
 COPY version.txt ./version.txt
+COPY DOCKERFILE_REBUILD_TRIGGER.txt ./DOCKERFILE_REBUILD_TRIGGER.txt
 
-# Copy application code with explicit structure - CACHE BUST 2025-08-25-21:04:56
-COPY main.py ./main.py
+# Copy application code - NEW ARCHITECTURE 2025-08-25-21:10:00  
+COPY api_main.py ./api_main.py
 COPY app/ ./app/
 
 # Verify critical files are copied
