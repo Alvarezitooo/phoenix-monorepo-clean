@@ -1,6 +1,7 @@
 """
 🌙 Phoenix Luna - API Endpoints
 Endpoints sécurisés pour la gestion de l'énergie Luna
+Force rebuild: 2025-08-25 06:20
 """
 
 from typing import Optional, Dict, Any, List
