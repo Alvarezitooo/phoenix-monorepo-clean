@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Flame, 
   Zap, 
@@ -40,7 +40,7 @@ import ActionConfirmation from './components/ActionConfirmation';
 import { LunaPresence } from './components/LunaPresence';
 import { LunaModal } from './components/LunaModalV2';
 import { LunaSessionZero } from './components/LunaSessionZero';
-import { redirectToService } from './services/api';
+import { redirectToService, api, User } from './services/api';
 
 function App() {
   const [lunaEnergy, setLunaEnergy] = useState(85);
@@ -49,8 +49,29 @@ function App() {
   const [showLunaModal, setShowLunaModal] = useState(false);
   const [showSessionZero, setShowSessionZero] = useState(false);
   const [sessionZeroMode, setSessionZeroMode] = useState<'welcome' | 'login' | 'register'>('welcome');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  // Vérifier l'authentification au démarrage
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (api.isAuthenticated()) {
+        try {
+          const user = await api.getCurrentUser();
+          setCurrentUser(user);
+          setLunaEnergy(user.luna_energy || 85);
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          // Token invalide, on le supprime
+          api.logout();
+        }
+      }
+      setIsLoadingAuth(false);
+    };
+
+    checkAuth();
+  }, []);
 
   // Fonctions pour ouvrir le modal Luna avec modes spécifiques
   const handleStartWithLuna = () => {
@@ -72,12 +93,13 @@ function App() {
   const handleRegister = () => openLunaModal('register');
 
   const handleLogout = () => {
+    api.logout();
     setCurrentUser(null);
     setLunaEnergy(85);
     setShowProfileMenu(false);
   };
 
-  const handleAuthenticated = (user: any) => {
+  const handleAuthenticated = (user: User) => {
     setCurrentUser(user);
     setLunaEnergy(user.luna_energy || 100);
     setShowSessionZero(false);
@@ -110,7 +132,13 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {currentUser ? (
+              {isLoadingAuth ? (
+                // Loading state
+                <div className="animate-pulse flex space-x-4">
+                  <div className="h-8 w-20 bg-slate-200 rounded"></div>
+                  <div className="h-8 w-24 bg-slate-200 rounded"></div>
+                </div>
+              ) : currentUser ? (
                 // Utilisateur connecté : Menu Profil + Énergie
                 <>
                   <div className="relative">
@@ -127,6 +155,13 @@ function App() {
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                        <div className="px-4 py-3 border-b border-slate-200">
+                          <p className="text-xs text-slate-500">Profil</p>
+                          <p className="text-sm font-medium text-slate-700">{currentUser.email}</p>
+                          {currentUser.is_unlimited && (
+                            <p className="text-xs text-emerald-600 font-semibold">Luna Unlimited ✨</p>
+                          )}
+                        </div>
                         <button
                           onClick={() => {
                             redirectToService('cv');
@@ -136,6 +171,16 @@ function App() {
                         >
                           <Settings className="w-4 h-4" />
                           <span>Mon Tableau de Bord</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            redirectToService('letters');
+                            setShowProfileMenu(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          <span>Phoenix Letters</span>
                         </button>
                         <button
                           onClick={handleLogout}
@@ -168,7 +213,8 @@ function App() {
                   </button>
                   <LunaEnergyGauge energy={lunaEnergy} hasFirstPurchaseBonus={hasFirstPurchaseBonus} />
                 </>
-              )}
+              )
+              }
             </div>
           </div>
         </div>
@@ -216,9 +262,13 @@ function App() {
             <PhoenixButton 
               variant="secondary" 
               size="large"
-              icon={<Sparkles className="h-5 w-5" />}
+              icon={<Lightbulb className="h-5 w-5" />}
+              onClick={() => {
+                // Scroll vers la section énergie Luna
+                document.getElementById('energie-luna')?.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
-              🌟 Découvrir le modèle révolutionnaire
+              💡 Comment ça marche ?
             </PhoenixButton>
           </div>
 
@@ -228,8 +278,8 @@ function App() {
               <span>🔥 Pionniers de la reconversion intelligente</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Star className="h-4 w-4 text-amber-400 fill-current" />
-              <span>4.9/5 satisfaction Luna</span>
+              <Moon className="h-4 w-4 text-indigo-500" />
+              <span>IA bienveillante et transparente</span>
             </div>
           </div>
         </div>
@@ -330,7 +380,7 @@ function App() {
               description="Luna génère des lettres personnalisées basées sur votre Capital Narratif"
               status="available"
               url="letters.phoenix.ai"
-              stats="12 lettres générées avec Luna"
+              stats="Prêt pour vos premières lettres Luna"
               lunaFeature="Luna connaît votre parcours et adapte chaque lettre à votre évolution"
               energyCost={15}
               serviceKey="letters"
@@ -342,7 +392,7 @@ function App() {
               description="Luna optimise votre CV en analysant votre progression globale"
               status="available"
               url="cv.phoenix.ai"
-              stats="3 analyses approfondies Luna"
+              stats="Analyses CV disponibles avec Luna"
               lunaFeature="Luna intègre vos réussites de Letters pour renforcer votre profil"
               energyCost={25}
               serviceKey="cv"
@@ -370,7 +420,7 @@ function App() {
       </section>
 
       {/* Modèle Énergie Luna Révolutionnaire */}
-      <section className="py-16 px-4">
+      <section id="energie-luna" className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -410,6 +460,7 @@ function App() {
               ]}
               cta="Commencez votre légende (42 places restantes)"
               highlight={true}
+              currentUser={currentUser}
             />
             <PricingCard
               type="energie"
@@ -473,6 +524,7 @@ function App() {
                 }
               ]}
               valueMessage="💫 Votre investissement = Votre capital de réussite"
+              currentUser={currentUser}
             />
           </div>
 
@@ -494,39 +546,59 @@ function App() {
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Mission & Vision Honnête */}
       <section className="py-16 px-4 bg-gradient-to-br from-slate-50 to-indigo-50">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-            {[
-              { icon: FileText, value: "12,847", label: "lettres générées avec Luna" },
-              { icon: BarChart3, value: "3,291", label: "CV optimisés par Luna" },
-              { icon: Target, value: "89%", label: "taux de réponse" },
-              { icon: Star, value: "4.9/5", label: "satisfaction Luna" }
-            ].map((stat, idx) => (
-              <div key={idx} className="text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="p-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full">
-                    <stat.icon className="h-6 w-6 text-white" />
-                  </div>
+          
+          {/* Message honnête de lancement */}
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              🚀 <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                Rejoignez nos premiers pionniers
+              </span>
+            </h2>
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-8 border border-orange-200 max-w-4xl mx-auto">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                  <Heart className="h-6 w-6 text-white" />
                 </div>
-                <div className="text-2xl md:text-3xl font-bold text-orange-600 mb-1">
-                  {stat.value}
+                <h3 className="text-xl font-bold text-orange-700">Notre engagement transparence</h3>
+              </div>
+              <p className="text-orange-700 text-lg leading-relaxed mb-4">
+                Phoenix avec Luna est en plein lancement ! Nous construisons ensemble l'avenir de la reconversion professionnelle. 
+                Pas de fausses statistiques, pas de promesses creuses - juste une IA bienveillante qui grandit avec vous.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4 text-sm text-orange-600">
+                <div className="flex items-center space-x-2">
+                  <Star className="h-4 w-4 fill-current" />
+                  <span>Innovation authentique</span>
                 </div>
-                <div className="text-slate-600 text-sm">
-                  {stat.label}
+                <div className="flex items-center space-x-2">
+                  <Target className="h-4 w-4" />
+                  <span>Résultats mesurables</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Users className="h-4 w-4" />
+                  <span>Communauté bienveillante</span>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
 
+          {/* Vision Luna */}
           <div className="text-center">
-            <blockquote className="text-xl md:text-2xl italic text-slate-700 mb-6">
-              "Luna m'a accompagnée personnellement. Chaque session était un investissement dans ma réussite !"
-            </blockquote>
-            <cite className="text-orange-600 font-semibold">
-              - Sarah, Dev reconvertie avec Luna
-            </cite>
+            <div className="bg-white rounded-2xl p-8 shadow-lg max-w-4xl mx-auto border border-indigo-100">
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <Moon className="h-8 w-8 text-indigo-500" />
+                <h3 className="text-2xl font-bold text-slate-800">La vision Luna</h3>
+              </div>
+              <blockquote className="text-xl md:text-2xl italic text-slate-700 mb-6 leading-relaxed">
+                "Chaque personne mérite une IA qui la comprend vraiment. Pas une machine froide, mais un partenaire bienveillant qui investit dans sa réussite."
+              </blockquote>
+              <cite className="text-indigo-600 font-semibold">
+                - L'équipe Phoenix, créateurs de Luna
+              </cite>
+            </div>
           </div>
         </div>
       </section>

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, Crown, Zap, Moon, Calendar, Coffee, Croissant, Pizza, Gift, MessageCircle, FileText, BarChart3, Target } from 'lucide-react';
 import PhoenixButton from './PhoenixButton';
+import { api } from '../services/api';
 
 interface EnergyOption {
   type: string;
@@ -26,6 +27,8 @@ interface PricingCardProps {
   valueMessage?: string;
   cta?: string;
   highlight?: boolean;
+  onPurchase?: (packageType: string) => void;
+  currentUser?: any;
 }
 
 export default function PricingCard({ 
@@ -38,8 +41,38 @@ export default function PricingCard({
   energyOptions, 
   valueMessage, 
   cta, 
-  highlight 
+  highlight,
+  onPurchase,
+  currentUser
 }: PricingCardProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingOption, setProcessingOption] = useState<string | null>(null);
+
+  const handlePurchase = async (packageType: string) => {
+    if (!currentUser) {
+      alert('Veuillez vous connecter pour effectuer un achat');
+      return;
+    }
+
+    if (isProcessing) return;
+
+    setIsProcessing(true);
+    setProcessingOption(packageType);
+
+    try {
+      const intent = await api.createPaymentIntent(packageType);
+      console.log('Payment intent created:', intent);
+      // Ici on intégrerait Stripe ou autre système de paiement
+      alert(`Paiement pour ${packageType} en cours de développement...`);
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Erreur lors de l\'initialisation du paiement');
+    } finally {
+      setIsProcessing(false);
+      setProcessingOption(null);
+    }
+  };
+  
   return (
     <div className={`relative p-8 rounded-3xl border transition-all duration-300 hover:scale-105 ${
       highlight 
@@ -86,7 +119,10 @@ export default function PricingCard({
       {type === 'energie' && energyOptions && (
         <div className="space-y-4 mb-8">
           {energyOptions.map((option, idx) => (
-            <div key={idx} className={`relative p-4 rounded-xl border transition-all duration-200 hover:scale-105 cursor-pointer ${
+            <div 
+              key={idx} 
+              onClick={() => handlePurchase(option.type)}
+              className={`relative p-4 rounded-xl border transition-all duration-200 hover:scale-105 cursor-pointer ${processingOption === option.type ? 'opacity-75 pointer-events-none' : ''} ${
               option.popular
                 ? 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-indigo-400/30'
                 : option.bestDeal
@@ -169,8 +205,10 @@ export default function PricingCard({
         size="medium"
         icon={type === 'founders' ? <Crown className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         className="w-full"
+        onClick={() => type === 'founders' ? handlePurchase('luna_unlimited') : undefined}
+        disabled={isProcessing}
       >
-        {cta || "Choisir ce pack"}
+        {isProcessing && type === 'founders' ? 'Traitement...' : (cta || "Choisir ce pack")}
       </PhoenixButton>
     </div>
   );

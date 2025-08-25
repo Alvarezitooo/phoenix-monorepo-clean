@@ -4,8 +4,9 @@
  */
 
 import { Letter, User, UserStats, FormData } from '@/types';
+import { authService } from './authService';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://phoenix-letters-production.up.railway.app';
 
 // Types API (matching FastAPI DTOs)
 interface GenerateLetterRequest {
@@ -94,7 +95,7 @@ const mapTone = (tone: 'professional' | 'enthusiastic' | 'creative' | 'casual'):
 
 const mapApiLetterToLetter = (apiLetter: LetterResponse): Omit<Letter, 'settings'> => ({
   id: apiLetter.id,
-  userId: 'demo-user', // TODO: Get from auth
+  userId: authService.getUser()?.id || 'unknown',
   companyName: apiLetter.company_name || '',
   positionTitle: apiLetter.position_title || '',
   experienceLevel: 'intermediate', // TODO: Store in API
@@ -114,12 +115,20 @@ class PhoenixAPIService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+    
+    // Add auth token if available
+    const token = authService.getToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
     const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
       ...options,
+      headers,
     });
 
     if (!response.ok) {
@@ -144,7 +153,8 @@ class PhoenixAPIService {
       use_ai: true, // Always use AI for now
     };
 
-    const response = await this.request<GenerateLetterResponse>('/api/letters/generate?user_id=demo-user', {
+    const userId = authService.getUser()?.id || 'unknown';
+    const response = await this.request<GenerateLetterResponse>(`/api/letters/generate?user_id=${userId}`, {
       method: 'POST',
       body: JSON.stringify(request),
     });
@@ -167,8 +177,9 @@ class PhoenixAPIService {
   /**
    * 📚 Récupère les lettres d'un utilisateur
    */
-  async getUserLetters(userId: string = 'demo-user', limit: number = 20): Promise<Letter[]> {
-    const response = await this.request<LetterResponse[]>(`/api/letters/user/${userId}?limit=${limit}`);
+  async getUserLetters(userId?: string, limit: number = 20): Promise<Letter[]> {
+    const actualUserId = userId || authService.getUser()?.id || 'unknown';
+    const response = await this.request<LetterResponse[]>(`/api/letters/user/${actualUserId}?limit=${limit}`);
     
     return response.map(apiLetter => ({
       ...mapApiLetterToLetter(apiLetter),
@@ -185,8 +196,9 @@ class PhoenixAPIService {
   /**
    * 📄 Récupère une lettre spécifique
    */
-  async getLetterById(letterId: string, userId: string = 'demo-user'): Promise<Letter> {
-    const response = await this.request<LetterResponse>(`/api/letters/${letterId}?user_id=${userId}`);
+  async getLetterById(letterId: string, userId?: string): Promise<Letter> {
+    const actualUserId = userId || authService.getUser()?.id || 'unknown';
+    const response = await this.request<LetterResponse>(`/api/letters/${letterId}?user_id=${actualUserId}`);
     
     return {
       ...mapApiLetterToLetter(response),
@@ -203,8 +215,9 @@ class PhoenixAPIService {
   /**
    * 📊 Récupère les statistiques utilisateur
    */
-  async getUserStatistics(userId: string = 'demo-user'): Promise<UserStats> {
-    const response = await this.request<UserStatisticsResponse>(`/api/user/${userId}/statistics`);
+  async getUserStatistics(userId?: string): Promise<UserStats> {
+    const actualUserId = userId || authService.getUser()?.id || 'unknown';
+    const response = await this.request<UserStatisticsResponse>(`/api/user/${actualUserId}/statistics`);
     
     return {
       totalLetters: response.total_letters,
