@@ -56,7 +56,7 @@ class EnergyManager:
         """
         try:
             user_result = sb.table("users").select(
-                "subscription_type, subscription_status"
+                "subscription_type, is_active"
             ).eq("id", user_id).execute()
             
             if not user_result.data:
@@ -64,12 +64,12 @@ class EnergyManager:
             
             user_data = user_result.data[0]
             subscription_type = user_data.get("subscription_type")
-            subscription_status = user_data.get("subscription_status")
+            is_active = user_data.get("is_active", True)
             
-            # Unlimited actif si type=luna_unlimited ET status=active/trialing
+            # Unlimited actif si type=luna_unlimited ET utilisateur actif
             is_unlimited = (
                 subscription_type == "luna_unlimited" and 
-                subscription_status in ["active", "trialing"]
+                is_active is True
             )
             
             logger.info("Unlimited status checked",
