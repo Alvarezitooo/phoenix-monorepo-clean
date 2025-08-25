@@ -2,7 +2,7 @@
 🌙 Phoenix Backend Unified - Luna Hub Central
 API centralisée pour tout l'écosystème Phoenix avec gestion énergie Luna
 
-Force Rebuild: 2025-08-24T09:35:00Z - Middleware eradication
+Force Rebuild: 2025-08-25T12:20:00Z - Railway deployment fix
 """
 
 import os
@@ -346,11 +346,19 @@ if __name__ == "__main__":
     import uvicorn
     
     print("🌙 Starting Phoenix Luna Hub...")
+    print(f"🌙 Environment: {ENVIRONMENT}")
+    print(f"🌙 Port: {PORT}")
+    print(f"🌙 Python path: {os.getcwd()}")
     
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=PORT,
-        reload=ENVIRONMENT == "development",
-        log_level="info" if ENVIRONMENT == "development" else "warning"
-    )
+    try:
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=PORT,
+            reload=ENVIRONMENT == "development",
+            log_level="info" if ENVIRONMENT == "development" else "warning"
+        )
+    except Exception as e:
+        print(f"❌ Failed to start Luna Hub: {e}")
+        import traceback
+        traceback.print_exc()

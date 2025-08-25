@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { api, AuthResponse, LoginRequest, RegisterRequest } from '../lib/api'
+import { api } from '../services/api'
+import type { AuthResponse, LoginRequest, RegisterRequest } from '../services/api'
 import { SessionsManagement } from './SessionsManagement'
 
 interface LunaSessionZeroProps {
@@ -71,13 +72,21 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
       }
 
       const response: AuthResponse = await api.login(loginRequest)
-      const user = await api.getCurrentUser()
-      
-      setCurrentUser(user)
-      onAuthenticated(user)
+      // La réponse contient déjà l'utilisateur dans response.user
+      setCurrentUser(response.user)
+      onAuthenticated(response.user)
       setMode('sessions')
     } catch (err: any) {
-      setError(err.message || 'Login failed')
+      console.error('Luna Login Error:', err)
+      let errorMessage = 'Login failed'
+      
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        errorMessage = 'Unable to connect to Luna Hub. Please check your connection or try again later.'
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -96,13 +105,21 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
       }
 
       const response: AuthResponse = await api.register(registerRequest)
-      const user = await api.getCurrentUser()
-      
-      setCurrentUser(user)
-      onAuthenticated(user)
+      // La réponse contient déjà l'utilisateur dans response.user
+      setCurrentUser(response.user)
+      onAuthenticated(response.user)
       setMode('sessions')
     } catch (err: any) {
-      setError(err.message || 'Registration failed')
+      console.error('Luna Registration Error:', err)
+      let errorMessage = 'Registration failed'
+      
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        errorMessage = 'Unable to connect to Luna Hub. Please check your connection or try again later.'
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
