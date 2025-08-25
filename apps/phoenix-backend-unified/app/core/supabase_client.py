@@ -158,7 +158,7 @@ class SupabaseEventStore:
             return True
         
         try:
-            result = self.client.table("user_energy").upsert(
+            result = self.client.table("users_energy").upsert(
                 user_energy_data,
                 on_conflict="user_id"
             ).execute()
@@ -210,7 +210,7 @@ class SupabaseEventStore:
             return None
         
         try:
-            result = self.client.table("user_energy").select("*").eq("user_id", clean_user_id).execute()
+            result = self.client.table("users_energy").select("*").eq("user_id", clean_user_id).execute()
             
             if result.data:
                 logger.info("User energy retrieved", user_id=clean_user_id)
