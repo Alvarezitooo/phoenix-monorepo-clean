@@ -1,5 +1,5 @@
 // API Service pour Phoenix CV
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://phoenix-cv-production.up.railway.app';
 
 // Types pour les requêtes/réponses - Correspondant aux DTOs backend
 export interface MirrorMatchRequest {
