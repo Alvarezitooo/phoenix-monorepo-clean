@@ -134,7 +134,7 @@ class EnergyManager:
         
         if is_unlimited:
             # Utilisateur Unlimited : TOUJOURS autorisé, coût énergétique = 0
-            logger.info("Unlimited user action authorized",
+            logger.info("Unlimited user action authorized - cache bust 2025-08-25",
                        user_id=user_id,
                        action=action_name,
                        energy_required=energy_required,
