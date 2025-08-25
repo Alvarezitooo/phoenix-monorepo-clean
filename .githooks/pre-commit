@@ -1,0 +1,20 @@
+#!/bin/bash
+# 🔧 Auto cache-bust pour Railway
+# Se déclenche automatiquement avant chaque commit
+
+TIMESTAMP=$(date +"%Y-%m-%d-%H:%M:%S")
+
+# Mettre à jour le fichier version
+echo "$TIMESTAMP" > apps/phoenix-backend-unified/version.txt
+
+# Mettre à jour le Dockerfile
+sed -i.bak "s/CACHE BUST.*$/CACHE BUST $TIMESTAMP/" apps/phoenix-backend-unified/Dockerfile
+
+# Ajouter les fichiers modifiés
+git add apps/phoenix-backend-unified/version.txt
+git add apps/phoenix-backend-unified/Dockerfile
+
+# Nettoyage
+rm -f apps/phoenix-backend-unified/Dockerfile.bak
+
+echo "🚀 Cache-bust automatique appliqué: $TIMESTAMP"
