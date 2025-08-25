@@ -11,6 +11,7 @@ interface LunaSessionZeroProps {
   isOpen: boolean
   onClose: () => void
   onAuthenticated: (user: any) => void
+  initialMode?: AuthMode // Permet de démarrer directement en login ou register
 }
 
 type AuthMode = 'welcome' | 'login' | 'register' | 'sessions'
@@ -24,9 +25,10 @@ interface AuthForm {
 export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
   isOpen,
   onClose,
-  onAuthenticated
+  onAuthenticated,
+  initialMode = 'welcome'
 }) => {
-  const [mode, setMode] = useState<AuthMode>('welcome')
+  const [mode, setMode] = useState<AuthMode>(initialMode)
   const [form, setForm] = useState<AuthForm>({ email: '', password: '', name: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,12 +38,15 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
     if (isOpen) {
       // Check if user is already authenticated
       checkAuthentication()
+      // Reset to initial mode when modal opens
+      setMode(initialMode)
     }
-  }, [isOpen])
+  }, [isOpen, initialMode])
 
   const checkAuthentication = async () => {
     if (!api.isAuthenticated()) {
-      setMode('welcome')
+      // Garde le mode initial si non connecté
+      setMode(initialMode)
       return
     }
 

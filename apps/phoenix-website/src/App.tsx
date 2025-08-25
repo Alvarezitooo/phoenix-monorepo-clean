@@ -23,7 +23,11 @@ import {
   Heart,
   Sparkles,
   Brain,
-  Lightbulb
+  Lightbulb,
+  ChevronDown,
+  User,
+  LogOut,
+  Settings
 } from 'lucide-react';
 import LunaEnergyGauge from './components/LunaEnergyGauge';
 import PhoenixButton from './components/PhoenixButton';
@@ -44,17 +48,33 @@ function App() {
   const [hasFirstPurchaseBonus, setHasFirstPurchaseBonus] = useState(true);
   const [showLunaModal, setShowLunaModal] = useState(false);
   const [showSessionZero, setShowSessionZero] = useState(false);
+  const [sessionZeroMode, setSessionZeroMode] = useState<'welcome' | 'login' | 'register'>('welcome');
   const [currentUser, setCurrentUser] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Fonction pour démarrer avec Luna
+  // Fonctions pour ouvrir le modal Luna avec modes spécifiques
   const handleStartWithLuna = () => {
     if (currentUser) {
       setLunaEnergy(prev => Math.min(100, prev + 15));
       // Petite pause pour l'animation puis redirection
       setTimeout(() => redirectToService('letters'), 500);
     } else {
-      setShowSessionZero(true);
+      openLunaModal('welcome');
     }
+  };
+
+  const openLunaModal = (mode: 'welcome' | 'login' | 'register') => {
+    setSessionZeroMode(mode);
+    setShowSessionZero(true);
+  };
+
+  const handleLogin = () => openLunaModal('login');
+  const handleRegister = () => openLunaModal('register');
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setLunaEnergy(85);
+    setShowProfileMenu(false);
   };
 
   const handleAuthenticated = (user: any) => {
@@ -90,15 +110,65 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {currentUser && (
-                <button
-                  onClick={() => setShowSessionZero(true)}
-                  className="text-sm text-slate-600 hover:text-slate-800 flex items-center space-x-2"
-                >
-                  <span>👤 {currentUser.email}</span>
-                </button>
+              {currentUser ? (
+                // Utilisateur connecté : Menu Profil + Énergie
+                <>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowProfileMenu(!showProfileMenu)}
+                      className="text-sm text-slate-600 hover:text-slate-800 flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>{currentUser.email}</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    
+                    {showProfileMenu && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
+                        <button
+                          onClick={() => {
+                            redirectToService('cv');
+                            setShowProfileMenu(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
+                        >
+                          <Settings className="w-4 h-4" />
+                          <span>Mon Tableau de Bord</span>
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Se Déconnecter</span>
+                        </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <LunaEnergyGauge energy={lunaEnergy} hasFirstPurchaseBonus={hasFirstPurchaseBonus} />
+                </>
+              ) : (
+                // Visiteur : Portes d'entrée traditionnelles + Énergie 
+                <>
+                  <button
+                    onClick={handleLogin} // Modal Luna pour Login
+                    className="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-100 transition-all duration-200"
+                  >
+                    Connexion
+                  </button>
+                  <button
+                    onClick={handleRegister} // Modal Luna pour Inscription
+                    className="text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 px-4 py-2 rounded-lg shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all duration-200 flex items-center space-x-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Inscription</span>
+                  </button>
+                  <LunaEnergyGauge energy={lunaEnergy} hasFirstPurchaseBonus={hasFirstPurchaseBonus} />
+                </>
               )}
-              <LunaEnergyGauge energy={lunaEnergy} hasFirstPurchaseBonus={hasFirstPurchaseBonus} />
             </div>
           </div>
         </div>
@@ -522,7 +592,7 @@ function App() {
       />
 
       {/* Luna Presence + Modal */}
-      <LunaPresence onClick={() => setShowLunaModal(true)} />
+      <LunaPresence onClick={() => openLunaModal('welcome')} />
       <LunaModal isOpen={showLunaModal} onClose={() => setShowLunaModal(false)} />
       
       {/* Luna Session Zero */}
@@ -530,6 +600,7 @@ function App() {
         isOpen={showSessionZero} 
         onClose={() => setShowSessionZero(false)}
         onAuthenticated={handleAuthenticated}
+        initialMode={sessionZeroMode}
       />
     </div>
   );
