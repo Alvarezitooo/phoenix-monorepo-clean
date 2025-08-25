@@ -210,8 +210,8 @@ class EnergyManager:
                         "transaction_id": transaction_id,
                         "action": action_name,
                         "energy_cost": 0,  # Coût = 0 pour unlimited
-                        "energy_before": float('inf'),
-                        "energy_after": float('inf'),
+                        "energy_before": 999.0,
+                        "energy_after": 999.0,
                         "unlimited": True,
                         "context": context or {}
                     },
@@ -239,7 +239,7 @@ class EnergyManager:
             return {
                 "transaction_id": transaction_id,
                 "energy_consumed": 0,
-                "energy_remaining": float('inf'),
+                "energy_remaining": 999.0,
                 "action": action_name,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "unlimited": True,
@@ -367,7 +367,7 @@ class EnergyManager:
         # Vérification pour abonnement unlimited
         if pack_type == EnergyPackType.LUNA_UNLIMITED:
             user_energy.subscription_type = "unlimited"
-            user_energy.max_energy = float('inf')
+            user_energy.max_energy = 999.0
             user_energy.current_energy = 100.0  # Reset à 100% pour unlimited
         else:
             energy_to_add = pack_config["energy_amount"]
@@ -506,7 +506,7 @@ class EnergyManager:
         """Calcule le pourcentage d'énergie"""
         if maximum == 0:
             return 0.0
-        if maximum == float('inf'):
+        if maximum >= 999.0:
             return 100.0
         return round((current / maximum) * 100, 2)
     
