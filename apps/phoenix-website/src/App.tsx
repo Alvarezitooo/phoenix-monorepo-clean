@@ -40,7 +40,8 @@ import ActionConfirmation from './components/ActionConfirmation';
 import { LunaPresence } from './components/LunaPresence';
 import { LunaModal } from './components/LunaModalV2';
 import { LunaSessionZero } from './components/LunaSessionZero';
-import { redirectToService, api, User } from './services/api';
+import { redirectToService, api } from './services/api';
+import type { User } from './services/api';
 
 function App() {
   const [lunaEnergy, setLunaEnergy] = useState(85);

@@ -249,3 +249,8 @@ export const getServices = (): PhoenixServices => {
 export const isServiceAvailable = (service: keyof PhoenixServices): boolean => {
   return PHOENIX_SERVICES[service]?.available ?? false;
 };
+
+// Export des types pour utilisation dans les composants
+export type { User, AuthResponse, LoginRequest, RegisterRequest };
+
+// L'interface User est déjà exportée plus haut dans le fichier
