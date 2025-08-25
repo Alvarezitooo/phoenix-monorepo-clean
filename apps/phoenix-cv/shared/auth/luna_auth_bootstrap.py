@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Luna Hub configuration
-LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://phoenix-backend-unified-production.up.railway.app")
+LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://luna-hub-backend-unified-production.up.railway.app")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "default-secret-key")
 JWT_ALGORITHM = "HS256"
 

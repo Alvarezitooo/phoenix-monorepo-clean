@@ -147,7 +147,7 @@ class ServicesContainer:
         self.letter_repository = MockLetterRepository()
         
         # Luna Hub Configuration
-        luna_hub_url = os.getenv("LUNA_HUB_URL", "https://phoenix-backend-unified-production.up.railway.app")
+        luna_hub_url = os.getenv("LUNA_HUB_URL", "https://luna-hub-backend-unified-production.up.railway.app")
         
         # Token provider pour Luna Client (sera remplacé par vraie auth)
         def token_provider():

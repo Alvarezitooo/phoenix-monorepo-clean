@@ -22,7 +22,7 @@ from application.routes.cv_analyze import router as cv_router
 # Configuration environnement
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 PORT = int(os.getenv("PORT", 8002))  # Port distinct pour Phoenix CV
-LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://phoenix-backend-unified-production.up.railway.app")
+LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://luna-hub-backend-unified-production.up.railway.app")
 
 # Configuration des logs structurés
 setup_json_logging("INFO" if ENVIRONMENT == "production" else "DEBUG")

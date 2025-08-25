@@ -7,7 +7,7 @@
 import { apiService, ChatStartRequest, ChatMessageRequest, ChatResponse } from './api';
 
 // Configuration API - Luna Hub pour la logique centrale
-const LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || 'https://phoenix-backend-unified-production.up.railway.app';
+const LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || 'https://luna-hub-backend-unified-production.up.railway.app';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://phoenix-cv-production.up.railway.app';
 const LUNA_ENABLED = import.meta.env.VITE_LUNA_ENABLED !== 'false';
 const LUNA_DEBUG = import.meta.env.VITE_LUNA_DEBUG === 'true';

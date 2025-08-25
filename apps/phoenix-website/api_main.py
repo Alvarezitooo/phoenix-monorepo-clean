@@ -29,7 +29,7 @@ app.add_middleware(
 PHOENIX_SERVICES = {
     "letters": "https://phoenix-letters-production.up.railway.app",
     "cv": "https://phoenix-cv-production.up.railway.app", 
-    "luna-hub": "https://luna-hub-production.up.railway.app"
+    "luna-hub": "https://luna-hub-backend-unified-production.up.railway.app"
 }
 
 # Health check endpoint (required by Railway)

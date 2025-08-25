@@ -57,7 +57,7 @@ const PHOENIX_SERVICES: PhoenixServices = {
   },
   'luna-hub': {
     name: "Luna Hub",
-    url: "https://phoenix-backend-unified-production.up.railway.app", 
+    url: "https://luna-hub-backend-unified-production.up.railway.app", 
     available: true
   }
 };

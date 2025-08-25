@@ -20,7 +20,7 @@ interface AuthResponse {
 }
 
 class AuthService {
-  private readonly LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || 'https://phoenix-backend-unified-production.up.railway.app';
+  private readonly LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || 'https://luna-hub-backend-unified-production.up.railway.app';
   private readonly TOKEN_KEY = 'phoenix_auth_token';
   private readonly USER_KEY = 'phoenix_auth_user';
 
