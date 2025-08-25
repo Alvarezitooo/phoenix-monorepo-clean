@@ -6,7 +6,7 @@
 import { Message } from '@/components/Luna/types';
 
 // Configuration API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://phoenix-letters-production.up.railway.app';
 const LUNA_ENABLED = import.meta.env.VITE_LUNA_ENABLED === 'true';
 const LUNA_DEBUG = import.meta.env.VITE_LUNA_DEBUG === 'true';
 

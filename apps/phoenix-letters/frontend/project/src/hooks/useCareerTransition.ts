@@ -7,7 +7,7 @@ const generateId = () => crypto.randomUUID ? crypto.randomUUID() : Date.now().to
 
 // Service API intégré à notre backend Phoenix Letters
 class CareerTransitionAPIService {
-  private baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+  private baseURL = import.meta.env.VITE_API_URL || 'https://phoenix-letters-production.up.railway.app';
 
   async analyzeTransition(previousRole: string, targetRole: string, previousIndustry?: string, targetIndustry?: string): Promise<CareerTransition> {
     try {

@@ -144,7 +144,7 @@ class EnergyManager:
                 "user_id": user_id,
                 "action": action_name,
                 "energy_required": 0,  # Coût = 0 pour unlimited
-                "current_energy": float('inf'),  # Énergie = infini symbolique
+                "current_energy": 999.0,  # Énergie = très élevée (JSON compliant)
                 "can_perform": True,
                 "deficit": 0.0,
                 "unlimited": True,

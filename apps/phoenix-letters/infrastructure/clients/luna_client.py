@@ -14,7 +14,7 @@ import structlog
 logger = structlog.get_logger("luna_client")
 
 # Configuration
-LUNA_BASE_URL = os.getenv("LUNA_HUB_URL", "http://localhost:8003")
+LUNA_BASE_URL = os.getenv("LUNA_HUB_URL", "https://phoenix-backend-unified-production.up.railway.app")
 LUNA_TIMEOUT_S = float(os.getenv("LUNA_TIMEOUT_S", "8"))
 LUNA_RETRIES = int(os.getenv("LUNA_RETRIES", "2"))
 
