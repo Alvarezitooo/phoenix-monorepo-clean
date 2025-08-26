@@ -3,7 +3,7 @@
  * Gestion billing et énergie avec types TypeScript
  */
 
-const LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || "https://phoenix-backend-unified-production.up.railway.app";
+const LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || "https://luna-hub-backend-unified-production.up.railway.app";
 
 // Types pour les requêtes/réponses
 export interface CreateIntentRequest {

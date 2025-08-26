@@ -27,7 +27,8 @@ import {
   ChevronDown,
   User,
   LogOut,
-  Settings
+  Settings,
+  BookOpen
 } from 'lucide-react';
 import LunaEnergyGauge from './components/LunaEnergyGauge';
 import PhoenixButton from './components/PhoenixButton';
@@ -42,6 +43,7 @@ import { LunaModal } from './components/LunaModalV2';
 import { LunaSessionZero } from './components/LunaSessionZero';
 import { redirectToService, api } from './services/api';
 import type { User } from './services/api';
+import JournalPage from './components/journal/JournalPage';
 
 function App() {
   const [lunaEnergy, setLunaEnergy] = useState(85);
@@ -53,6 +55,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showJournal, setShowJournal] = useState(false);
 
   // Vérifier l'authentification au démarrage
   useEffect(() => {
@@ -107,6 +110,16 @@ function App() {
     // Redirect to Letters after authentication
     setTimeout(() => redirectToService('letters'), 500);
   };
+
+  // Si le journal est ouvert, afficher seulement le journal
+  if (showJournal && currentUser) {
+    return (
+      <JournalPage 
+        userId={currentUser.id} 
+        onClose={() => setShowJournal(false)} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-indigo-50 text-slate-900 overflow-x-hidden">
@@ -163,6 +176,16 @@ function App() {
                             <p className="text-xs text-emerald-600 font-semibold">Luna Unlimited ✨</p>
                           )}
                         </div>
+                        <button
+                          onClick={() => {
+                            setShowJournal(true);
+                            setShowProfileMenu(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 flex items-center space-x-2"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          <span>📖 Mon Journal Narratif</span>
+                        </button>
                         <button
                           onClick={() => {
                             redirectToService('cv');

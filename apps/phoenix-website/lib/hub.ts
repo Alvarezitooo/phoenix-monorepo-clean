@@ -1,0 +1,1 @@
+export const HUB = process.env.NEXT_PUBLIC_LUNA_HUB_URL || "https://luna-hub-backend-unified-production.up.railway.app";
