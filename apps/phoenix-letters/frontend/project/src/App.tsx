@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Header } from '@/components/layout/Header';
 import { Dashboard } from '@/pages/Dashboard';
 import { Generate } from '@/pages/Generate';
+import { Journal } from '@/pages/Journal';
 import { useStore } from '@/store/useStore';
 import { LunaProvider, FloatingLuna } from '@/components/Luna';
 import { authService, User as AuthUser } from '@/services/authService';
@@ -69,6 +70,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/journal" element={<Journal />} />
                   <Route path="/generate" element={<Generate />} />
                   <Route path="/letters" element={
                     <div className="p-6">

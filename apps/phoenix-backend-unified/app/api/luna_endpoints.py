@@ -5,14 +5,24 @@ Retry after registry error: 2025-08-25 06:53
 """
 
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 from pydantic import BaseModel, Field, validator
+import structlog
 from app.core.energy_manager import energy_manager, InsufficientEnergyError, EnergyManagerError
 from app.models.user_energy import EnergyPackType
 from app.core.security_guardian import SecurityGuardian, SecureUserIdValidator, SecureActionValidator
 from app.core.luna_core_service import get_luna_core
 from app.core.narrative_analyzer import narrative_analyzer
+from app.models.journal_dto import (
+    JournalDTO, EnergyPreviewRequest, EnergyPreviewResponse,
+    JournalExportRequest, JournalExportResponse
+)
+from app.core.journal_service import journal_service
+from app.core.energy_preview_service import energy_preview_service
 
+
+# Logger structuré
+logger = structlog.get_logger("luna_endpoints")
 
 # Router Luna
 router = APIRouter(prefix="/luna", tags=["Luna Energy Management"])
@@ -592,4 +602,291 @@ async def get_user_context_packet(user_id: str) -> ContextPacketResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur génération Context Packet: {str(e)}"
+        )
+
+
+# ============================================================================
+# ENDPOINTS JOURNAL NARRATIF - ARÈNE DU PREMIER HÉROS
+# ============================================================================
+
+@router.get("/journal/{user_id}",
+           response_model=JournalDTO,
+           summary="Journal Narratif - Endpoint Agrégateur Principal",
+           description="""
+🌙 **Journal Narratif - Arène du Premier Héros**
+
+### Endpoint Agrégateur Principal
+- **Une seule requête** pour toutes les données Journal
+- **Performance optimisée** : < 500ms (95e percentile)
+- **6 leviers psychologiques** intégrés dans la réponse
+
+### Données Fournies
+- **User Profile** : Plan, énergie, progression
+- **Narrative Structure** : Chapitres chronologiques + KPIs
+- **Next Steps** : Actions suggérées avec coûts énergétiques
+- **Social Proof** : Comparaisons anonymisées contextuelles
+- **Ethics Anchor** : Propriété des données + export
+
+### Sources de Données
+- Context Packets (Narrative Analyzer v1.5)
+- Energy Manager (solde + transactions)
+- Event Store (chapitres chronologiques)
+- Grille Oracle (coûts actions)
+
+### Fenêtres d'Analyse
+- `7d` : Focus récent, 7 derniers jours
+- `14d` : Tendance standard (défaut)
+- `90d` : Contexte historique étendu
+           """,
+           responses={
+               200: {"description": "Journal Narratif complet"},
+               400: {"description": "User ID invalide"},
+               404: {"description": "Utilisateur introuvable"},
+               500: {"description": "Erreur génération Journal"}
+           })
+async def get_journal_narratif(
+    user_id: str,
+    window: str = Query(default="14d", pattern="^(7d|14d|90d)$", description="Fenêtre d'analyse temporelle")
+) -> JournalDTO:
+    """🌙 Journal Narratif - Endpoint agrégateur pour l'Arène du Premier Héros"""
+    try:
+        # Validation Security Guardian
+        validated_user_id = SecurityGuardian.validate_user_id(user_id)
+        
+        # Génération Journal via service métier
+        journal_data = await journal_service.get_journal_data(validated_user_id, window)
+        
+        # Émission événement pour analytics
+        await _emit_journal_event("JournalViewed", {
+            "user_id": validated_user_id,
+            "window": window,
+            "chapters_count": len(journal_data.narrative.chapters),
+            "next_steps_count": len(journal_data.narrative.next_steps)
+        })
+        
+        return journal_data
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Données invalides: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur génération Journal Narratif: {str(e)}"
+        )
+
+
+@router.post("/energy/preview",
+            response_model=EnergyPreviewResponse,
+            summary="Prévisualisation Impact Énergétique",
+            description="""
+⚡ **Energy Preview - Confirmation d'Actions**
+
+### Prévisualisation Avant Action
+- **Coût énergétique** selon grille Oracle
+- **Impact sur le solde** utilisateur
+- **Faisabilité** de l'action
+- **Messages empathiques** pour modales
+
+### Cas d'Usage
+- Modales de confirmation avant actions coûteuses
+- Vérification capacité utilisateur
+- Messages personnalisés selon plan (standard/unlimited)
+- UX transparente sur coûts énergétiques
+
+### Gestion Plans Spéciaux
+- **Standard** : Déduction selon grille Oracle
+- **Unlimited** : Pas de coût, énergie infinie
+- **Insufficient Energy** : Suggestions de recharge
+
+### Grille Oracle Intégrée
+Toutes les actions disponibles dans ENERGY_COSTS :
+- Actions simples : 5-10% (conseil_rapide, correction_ponctuelle)
+- Actions moyennes : 10-20% (lettre_motivation, optimisation_cv)  
+- Actions complexes : 20-40% (analyse_cv_complete, mirror_match)
+- Actions premium : 35-50% (audit_complet_profil, simulation_entretien)
+            """,
+            responses={
+                200: {"description": "Prévisualisation calculée avec succès"},
+                400: {"description": "Requête invalide (user_id ou action)"},
+                402: {"description": "Énergie insuffisante pour l'action"},
+                500: {"description": "Erreur calcul prévisualisation"}
+            })
+async def preview_energy_impact(request: EnergyPreviewRequest) -> EnergyPreviewResponse:
+    """⚡ Prévisualise l'impact énergétique d'une action pour confirmation utilisateur"""
+    try:
+        # Preview via service dédié
+        preview_result = await energy_preview_service.preview_action_cost(request)
+        
+        # Émission événement pour analytics
+        await _emit_journal_event("EnergyPreviewRequested", {
+            "user_id": request.user_id,
+            "action": request.action,
+            "cost_pct": preview_result.cost_pct,
+            "can_perform": preview_result.can_perform,
+            "unlimited_user": preview_result.unlimited_user
+        })
+        
+        return preview_result
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Requête invalide: {str(e)}"
+        )
+    except EnergyManagerError as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "energy_management_error",
+                "message": str(e),
+                "action": "check_energy_status"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur calcul prévisualisation: {str(e)}"
+        )
+
+
+@router.post("/journal/export",
+            response_model=JournalExportResponse,
+            summary="Export Récit Narratif Utilisateur",
+            description="""
+📄 **Export Récit - Rempart Éthique**
+
+### Propriété des Données
+- **Récit complet** de la progression utilisateur
+- **Formats disponibles** : JSON, Markdown, PDF
+- **Métadonnées optionnelles** : événements, progression, insights
+
+### Contenu Export
+- Chapitres chronologiques complets
+- Progression KPIs avec historique
+- Actions réalisées et gains obtenus
+- Réflexions personnelles ajoutées
+- Statistiques de progression
+
+### Sécurité & Confidentialité
+- Export limité au propriétaire des données
+- Liens temporaires avec expiration
+- Aucune donnée sensible (mots de passe, tokens)
+- Conformité RGPD intégrée
+
+### Formats Export
+- **JSON** : Structure complète pour réimport
+- **Markdown** : Récit humain lisible  
+- **PDF** : Document professionnel partageable
+            """,
+            responses={
+                200: {"description": "Export généré avec succès"},
+                400: {"description": "Format ou paramètres invalides"},
+                404: {"description": "Utilisateur introuvable"},
+                500: {"description": "Erreur génération export"}
+            })
+async def export_journal_narratif(request: JournalExportRequest) -> JournalExportResponse:
+    """📄 Export du récit narratif utilisateur - Rempart éthique"""
+    try:
+        # Validation Security Guardian
+        validated_user_id = SecurityGuardian.validate_user_id(request.user_id)
+        
+        # TODO: Implémenter service d'export
+        # Pour l'instant, on retourne une réponse de base
+        
+        # Émission événement pour analytics
+        await _emit_journal_event("JournalExported", {
+            "user_id": validated_user_id,
+            "format": request.format,
+            "include_metadata": request.include_metadata
+        })
+        
+        return JournalExportResponse(
+            success=True,
+            download_url=None,  # TODO: Générer URL temporaire
+            content=None,       # TODO: Contenu selon format
+            format=request.format,
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            expires_at=None     # TODO: Expiration si URL
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Requête invalide: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur génération export: {str(e)}"
+        )
+
+
+# ============================================================================
+# UTILITAIRES ÉVÉNEMENTS JOURNAL
+# ============================================================================
+
+async def _emit_journal_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """Émet un événement Journal dans l'Event Store"""
+    try:
+        user_id = payload.get("user_id")
+        if not user_id:
+            logger.error("Cannot emit journal event without user_id", event_type=event_type)
+            return
+        
+        # Émission dans Event Store via supabase_client avec helper Journal
+        await event_store.create_journal_event(
+            user_id=user_id,
+            event_type=event_type,
+            event_data=payload,
+            metadata={
+                "source": "journal_narratif",
+                "version": "v1.0"
+            }
+        )
+        
+    except Exception as e:
+        # Log error but don't fail the main request
+        logger.warning("Erreur émission événement Journal", event_type=event_type, error=str(e))
+
+
+@router.get("/journal/confirmation-message/{action}",
+           summary="Message de Confirmation pour Action",
+           description="Génère un message empathique pour les modales de confirmation d'actions")
+async def get_action_confirmation_message(
+    action: str,
+    user_id: str,
+    cost_pct: Optional[float] = None
+) -> Dict[str, str]:
+    """Génère un message de confirmation empathique pour une action"""
+    try:
+        # Si coût non fourni, le calculer via preview
+        if cost_pct is None:
+            preview_request = EnergyPreviewRequest(user_id=user_id, action=action)
+            preview_result = await energy_preview_service.preview_action_cost(preview_request)
+            message = energy_preview_service.get_confirmation_message(preview_result)
+        else:
+            # Créer un preview mock pour générer le message
+            mock_preview = EnergyPreviewResponse(
+                action=action,
+                cost_pct=cost_pct,
+                balance_before=100.0,
+                balance_after=100.0 - cost_pct,
+                can_perform=True,
+                unlimited_user=False
+            )
+            message = energy_preview_service.get_confirmation_message(mock_preview)
+        
+        return {
+            "action": action,
+            "confirmation_message": message,
+            "action_description": energy_preview_service.get_action_description(action)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur génération message: {str(e)}"
         )

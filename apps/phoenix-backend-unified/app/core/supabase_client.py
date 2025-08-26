@@ -47,6 +47,25 @@ class SupabaseEventStore:
             logger.error("Failed to initialize Supabase client", error=str(e))
             self.client = None
     
+    async def create_journal_event(
+        self,
+        user_id: str,
+        event_type: str,
+        event_data: Dict[str, Any],
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        🌙 Journal Narratif: Crée un événement spécifique au Journal
+        Optimisé pour le suivi des interactions utilisateur avec le récit
+        """
+        return await self.create_event(
+            user_id=user_id,
+            event_type=f"journal_{event_type}",
+            app_source="journal_narratif",
+            event_data=event_data,
+            metadata=metadata
+        )
+
     async def create_event(
         self, 
         user_id: str, 

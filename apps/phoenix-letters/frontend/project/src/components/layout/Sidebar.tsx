@@ -10,7 +10,8 @@ import {
   Sparkles,
   Target,
   Zap,
-  TrendingUp as TrendingUpIcon
+  TrendingUp as TrendingUpIcon,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Mon Journal', href: '/journal', icon: BookOpen, isNew: true },
   { name: 'Generate Letter', href: '/generate', icon: FileText },
   { name: 'My Letters', href: '/letters', icon: FileText },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
@@ -132,7 +134,16 @@ export function Sidebar() {
                   sidebarCollapsed ? "mx-auto" : "mr-3"
                 )}
               />
-              {!sidebarCollapsed && item.name}
+              {!sidebarCollapsed && (
+                <div className="flex items-center">
+                  <span>{item.name}</span>
+                  {item.isNew && (
+                    <Badge className="ml-2 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
+                      NEW
+                    </Badge>
+                  )}
+                </div>
+              )}
             </motion.a>
           ))}
 

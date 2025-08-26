@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 import httpx
 
 # Application  
-from main import app
+from api_main import app
 
 
 @pytest.fixture(scope="session")

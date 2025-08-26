@@ -9,7 +9,7 @@ from unittest.mock import patch, Mock
 def test_imports_basic():
     """✅ Test imports de base"""
     # Test import FastAPI app
-    from main import app
+    from api_main import app
     assert app is not None
     
     # Test import models
@@ -46,7 +46,7 @@ def test_pack_catalog_integrity():
 def test_api_endpoints_available():
     """✅ Test endpoints API disponibles"""
     from fastapi.testclient import TestClient
-    from main import app
+    from api_main import app
     
     client = TestClient(app)
     
