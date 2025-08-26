@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, validator
 from app.core.energy_manager import energy_manager, InsufficientEnergyError, EnergyManagerError
 from app.models.user_energy import EnergyPackType
 from app.core.security_guardian import SecurityGuardian, SecureUserIdValidator, SecureActionValidator
+from app.core.luna_core_service import luna_core
 
 
 # Router Luna
@@ -125,6 +126,38 @@ class EnergyAnalyticsResponse(BaseModel):
     success: bool
     user_id: str
     analytics: Dict[str, Any]
+
+
+class LunaChatRequest(BaseModel):
+    user_id: str = Field(..., description="ID de l'utilisateur", min_length=1, max_length=50)
+    message: str = Field(..., description="Message utilisateur", min_length=1, max_length=2000)
+    app_context: str = Field(default="website", description="Contexte app: cv, letters, website")
+    user_name: Optional[str] = Field(None, description="Prénom utilisateur", max_length=50)
+    
+    @validator('user_id')
+    def validate_user_id(cls, v):
+        return SecurityGuardian.validate_user_id(v)
+    
+    @validator('message')
+    def validate_message(cls, v):
+        if not v.strip():
+            raise ValueError("Message ne peut pas être vide")
+        return v.strip()
+    
+    @validator('app_context')
+    def validate_app_context(cls, v):
+        allowed_contexts = ["cv", "letters", "website"]
+        if v not in allowed_contexts:
+            raise ValueError(f"Contexte doit être: {', '.join(allowed_contexts)}")
+        return v
+
+
+class LunaChatResponse(BaseModel):
+    success: bool
+    message: str
+    context: str
+    energy_consumed: float
+    type: str = "text"
 
 
 # ============================================================================
@@ -406,3 +439,92 @@ async def get_energy_costs() -> Dict[str, Any]:
         },
         "currency": "EUR"
     }
+
+
+@router.post("/chat/send-message", 
+             response_model=LunaChatResponse,
+             summary="Envoi de message à Luna avec personnalité unifiée",
+             description="""
+🌙 **Conversation avec Luna - Personnalité IA Centralisée**
+
+### Oracle Luna Core v1.0
+- **Prompt Unifié** : Personnalité Luna cohérente sur tous les apps
+- **Capital Narratif** : Luna se souvient de l'historique utilisateur
+- **Contexte Dynamique** : S'adapte selon l'app (CV, Letters, Website)
+- **Transparence Énergie** : Coûts communiqués selon grille Oracle
+
+### Contexts Supportés
+- `cv` : Expert optimisation CV et stratégie carrière
+- `letters` : Spécialiste lettres de motivation percutantes  
+- `website` : Guide stratégique global Phoenix
+
+### Consommation Énergie
+Action standard : 5 points d'énergie ⚡ (conversation de base)
+             """,
+             responses={
+                 400: {"description": "Message invalide ou contexte incorrect"},
+                 402: {"description": "Énergie insuffisante pour la conversation"},
+                 500: {"description": "Erreur génération réponse Luna"}
+             })
+async def luna_chat_message(
+    request: LunaChatRequest
+) -> LunaChatResponse:
+    """🌙 Conversation avec Luna - Personnalité unifiée avec Capital Narratif"""
+    try:
+        user_id = await get_current_user_id(request.user_id)
+        
+        # Vérification énergie avant génération
+        can_perform = await energy_manager.can_perform_action(user_id, "conseil_rapide")
+        if not can_perform["can_perform"]:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "error": "insufficient_energy",
+                    "message": f"Énergie insuffisante. Il vous faut {can_perform['deficit']} points supplémentaires.",
+                    "current_energy": can_perform["current_energy"],
+                    "required": can_perform["energy_required"]
+                }
+            )
+        
+        # Consommation énergie AVANT génération
+        await energy_manager.consume(
+            user_id=user_id,
+            action_name="conseil_rapide",
+            context={
+                "app_context": request.app_context,
+                "feature": "luna_chat",
+                "message_length": len(request.message)
+            }
+        )
+        
+        # Génération réponse Luna Core
+        response = await luna_core.generate_response(
+            user_id=user_id,
+            message=request.message,
+            app_context=request.app_context,
+            user_name=request.user_name
+        )
+        
+        return LunaChatResponse(
+            success=response["success"],
+            message=response["message"],
+            context=response["context"],
+            energy_consumed=response["energy_consumed"],
+            type=response["type"]
+        )
+    
+    except InsufficientEnergyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "insufficient_energy", 
+                "message": str(e),
+                "action": "recharge_energy"
+            }
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur conversation Luna: {str(e)}"
+        )

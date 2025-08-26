@@ -7,6 +7,7 @@ import asyncio
 import time
 from typing import Dict, Any, Optional
 import logging
+import httpx
 
 import google.generativeai as genai
 
@@ -26,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 class GeminiService(IAIService):
     """
-    Service IA utilisant Google Gemini
-    Implémentation concrète de l'interface IAIService
+    Service IA utilisant Luna Core Hub ou Google Gemini en fallback
+    Implémentation concrète de l'interface IAIService avec intégration Luna
     """
     
     def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-1.5-flash"):
@@ -35,6 +36,10 @@ class GeminiService(IAIService):
         self.model_name = model_name
         self.model = None
         self._is_configured = False
+        
+        # Configuration Luna Hub
+        self.luna_hub_url = config.app.luna_hub_url or "http://localhost:8000"
+        self.use_luna_core = True  # Utiliser Luna Core par défaut
         
         if self.api_key:
             self._configure_client()
@@ -52,7 +57,7 @@ class GeminiService(IAIService):
     
     async def generate_letter_content(self, request: GenerationRequest) -> GenerationResponse:
         """
-        Génère une lettre de motivation avec Gemini
+        Génère une lettre de motivation avec Luna Core Hub ou Gemini en fallback
         
         Args:
             request: Paramètres de génération
@@ -60,12 +65,25 @@ class GeminiService(IAIService):
         Returns:
             GenerationResponse: Lettre générée avec métadonnées
         """
-        if not self.is_available():
-            raise AIServiceError("Service Gemini non disponible", self.model_name, is_temporary=True)
-        
-        logger.info(f"Génération lettre Gemini pour {request.company_name}")
+        logger.info(f"Génération lettre pour {request.company_name}")
         
         start_time = time.time()
+        
+        # Tentative d'utilisation de Luna Core Hub
+        if self.use_luna_core:
+            try:
+                luna_response = await self._generate_with_luna_core(request)
+                if luna_response:
+                    generation_time = time.time() - start_time
+                    logger.info(f"✅ Lettre générée par Luna Core en {generation_time:.2f}s")
+                    return luna_response
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Luna Core indisponible, fallback Gemini: {e}")
+        
+        # Fallback vers Gemini local
+        if not self.is_available():
+            raise AIServiceError("Service Gemini non disponible", self.model_name, is_temporary=True)
         
         try:
             # Construction du prompt
@@ -99,7 +117,7 @@ class GeminiService(IAIService):
                 suggestions=quality_metrics.get("suggestions", [])
             )
             
-            logger.info(f"✅ Lettre générée en {generation_time:.2f}s - Qualité: {result.estimated_quality}")
+            logger.info(f"✅ Lettre générée (Gemini fallback) en {generation_time:.2f}s - Qualité: {result.estimated_quality}")
             return result
             
         except Exception as e:
@@ -504,3 +522,102 @@ Retourne la lettre améliorée complète, sans commentaires."""
             "details": {"raw_response": response_text},
             "suggestions": ["Analyse détaillée non disponible"]
         }
+    
+    async def _generate_with_luna_core(self, request: GenerationRequest) -> Optional[GenerationResponse]:
+        """Génère une lettre avec Luna Core Hub"""
+        
+        try:
+            # Construction du message pour Luna
+            message = f"""Je veux écrire une lettre de motivation pour :
+- Entreprise : {request.company_name}
+- Poste : {request.position_title}
+- Description du poste : {request.job_description or "Non spécifiée"}
+- Mon niveau : {request.experience_level.value if hasattr(request.experience_level, 'value') else str(request.experience_level)}
+- Ton souhaité : {request.desired_tone.value if hasattr(request.desired_tone, 'value') else str(request.desired_tone)}
+- Maximum {request.max_words} mots
+
+Peux-tu m'aider à créer une lettre de motivation percutante ?"""
+            
+            # Appel à Luna Hub
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.luna_hub_url}/luna/chat/send-message",
+                    json={
+                        "user_id": "letters_service",  # TODO: utiliser vraie user_id
+                        "message": message,
+                        "app_context": "letters",
+                        "user_name": None
+                    },
+                    headers={"Content-Type": "application/json"},
+                    timeout=60
+                )
+                
+                if response.status_code == 200:
+                    luna_data = response.json()
+                    if luna_data.get("success"):
+                        content = luna_data.get("message", "")
+                        
+                        # Extraction de la lettre du contenu Luna (Luna peut donner conseils + lettre)
+                        cleaned_content = self._extract_letter_from_luna_response(content)
+                        
+                        return GenerationResponse(
+                            content=cleaned_content,
+                            model_used="luna_core_v1",
+                            generation_time_seconds=0.0,  # Sera calculé par l'appelant
+                            token_count=self._estimate_token_count(cleaned_content),
+                            confidence_score=0.9,  # Luna Core a une haute confiance
+                            estimated_quality="high",
+                            detected_issues=[],
+                            suggestions=[]
+                        )
+                else:
+                    logger.warning(f"Luna Hub responded with status {response.status_code}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Erreur appel Luna Hub: {e}")
+            return None
+    
+    def _extract_letter_from_luna_response(self, luna_response: str) -> str:
+        """Extrait le contenu de la lettre de la réponse Luna"""
+        
+        # Luna peut retourner des conseils + la lettre
+        # On cherche les patterns typiques de début de lettre
+        lines = luna_response.split('\n')
+        letter_start = -1
+        
+        for i, line in enumerate(lines):
+            line_lower = line.lower().strip()
+            # Détection début de lettre formelle
+            if (line_lower.startswith('objet:') or 
+                line_lower.startswith('madame,') or 
+                line_lower.startswith('monsieur,') or
+                line_lower.startswith('madame, monsieur,') or
+                'candidature' in line_lower and len(line) > 30):
+                letter_start = i
+                break
+        
+        if letter_start >= 0:
+            # Prendre tout à partir du début de la lettre
+            letter_content = '\n'.join(lines[letter_start:]).strip()
+        else:
+            # Pas de pattern détecté, prendre le contenu complet en nettoyant
+            letter_content = luna_response.strip()
+        
+        # Nettoyage final
+        # Supprimer les préfixes de Luna si présents
+        prefixes_to_remove = [
+            "Voici une lettre de motivation",
+            "Voici la lettre de motivation",
+            "Je vous propose cette lettre",
+            "Voici une proposition de lettre"
+        ]
+        
+        for prefix in prefixes_to_remove:
+            if letter_content.startswith(prefix):
+                letter_content = letter_content[len(prefix):].strip()
+                if letter_content.startswith(':'):
+                    letter_content = letter_content[1:].strip()
+                break
+        
+        return letter_content

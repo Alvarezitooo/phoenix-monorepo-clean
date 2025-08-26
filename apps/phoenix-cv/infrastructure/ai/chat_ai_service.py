@@ -7,6 +7,7 @@ import google.generativeai as genai
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import json
+import requests
 
 from domain.entities.chat_conversation import ChatConversation, ChatMessage, MessageType, ConversationContext
 from domain.entities.cv_document import CVDocument
@@ -15,17 +16,22 @@ from shared.config.settings import config
 
 
 class ChatAIService:
-    """Service d'IA conversationnelle pour Phoenix CV"""
+    """Service d'IA conversationnelle pour Phoenix CV - Intégré avec Luna Core"""
     
     def __init__(self):
-        """Initialise le service avec Gemini AI"""
+        """Initialise le service avec Luna Hub integration"""
         
+        # Configuration du Hub pour Luna Core
+        self.luna_hub_url = config.app.luna_hub_url or "http://localhost:8000"
+        self.use_luna_core = True  # Utiliser Luna Core par défaut
+        
+        # Fallback vers Gemini local si Luna Hub indisponible
         if not config.ai.google_api_key:
             raise AIServiceError("Clé API Gemini manquante")
         
         genai.configure(api_key=config.ai.google_api_key)
         
-        # Modèle optimisé pour conversations
+        # Modèle de fallback
         self.model = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
             generation_config={
@@ -35,7 +41,7 @@ class ChatAIService:
             }
         )
         
-        # Personnalités disponibles
+        # Personnalités disponibles (fallback uniquement)
         self.personalities = {
             "professional": {
                 "tone": "professionnel et expert",
@@ -59,10 +65,37 @@ class ChatAIService:
                                  user_message: str,
                                  cv_data: Optional[CVDocument] = None,
                                  context_data: Dict[str, Any] = None) -> ChatMessage:
-        """Génère une réponse IA pour la conversation"""
+        """Génère une réponse IA pour la conversation avec Luna Core"""
         
         try:
-            # Construction du contexte complet
+            # Tentative d'utilisation de Luna Core Hub
+            if self.use_luna_core:
+                try:
+                    luna_response = await self._call_luna_hub(
+                        user_id=conversation.user_id,
+                        message=user_message,
+                        app_context="cv",
+                        user_name=conversation.user_profile.get("name") if conversation.user_profile else None
+                    )
+                    
+                    if luna_response["success"]:
+                        # Création du message avec réponse Luna
+                        ai_message = ChatMessage(
+                            message_type=MessageType.AI_RESPONSE,
+                            content=luna_response["message"],
+                            user_id=conversation.user_id,
+                            cv_id=conversation.current_cv_id,
+                            sources=[],
+                            suggestions=[],  # TODO: Luna pourrait retourner des suggestions
+                            related_data={"luna_core": True, "energy_consumed": luna_response.get("energy_consumed", 5)}
+                        )
+                        return ai_message
+                    
+                except Exception as e:
+                    # Log l'erreur mais continue avec fallback
+                    print(f"⚠️ Luna Hub indisponible, fallback Gemini local: {e}")
+            
+            # Fallback vers Gemini local avec ancien système
             prompt = self._build_conversation_prompt(
                 conversation, user_message, cv_data, context_data
             )
@@ -177,6 +210,36 @@ class ChatAIService:
         ])
         
         return "\n".join(prompt_parts)
+    
+    async def _call_luna_hub(self, user_id: str, message: str, app_context: str = "cv", user_name: str = None) -> Dict[str, Any]:
+        """Appelle le Luna Hub pour utiliser Luna Core"""
+        
+        payload = {
+            "user_id": user_id,
+            "message": message,
+            "app_context": app_context
+        }
+        
+        if user_name:
+            payload["user_name"] = user_name
+        
+        # Utilisation de requests synchrone dans un contexte async
+        import asyncio
+        import httpx
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.luna_hub_url}/luna/chat/send-message",
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                error_detail = response.json().get("detail", "Unknown error")
+                raise AIServiceError(f"Luna Hub error: {error_detail}")
     
     async def _call_gemini_api(self, prompt: str) -> str:
         """Appel API Gemini avec gestion d'erreurs"""
