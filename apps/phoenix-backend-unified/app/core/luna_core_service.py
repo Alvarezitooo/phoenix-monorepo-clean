@@ -10,6 +10,7 @@ from datetime import datetime
 import google.generativeai as genai
 from app.core.supabase_client import event_store
 from app.models.user_energy import ENERGY_COSTS
+from app.core.narrative_analyzer import narrative_analyzer, ContextPacket
 import structlog
 
 logger = structlog.get_logger("luna_core")
@@ -106,33 +107,31 @@ Tu dois TOUJOURS informer l'utilisateur du coût AVANT l'action :
         }
         return contexts.get(app_context, contexts["website"])
 
-    async def _get_user_narrative(self, user_id: str, limit: int = 5) -> str:
-        """Récupère le Capital Narratif récent de l'utilisateur"""
+    async def _get_user_context_packet(self, user_id: str) -> str:
+        """Récupère le Context Packet structuré de l'utilisateur"""
         try:
-            events = await event_store.get_user_events(user_id, limit=limit)
-            if not events:
-                return "[CAPITAL NARRATIF] : Nouvel utilisateur - Pas d'historique disponible."
+            # Génération du Context Packet via Narrative Analyzer
+            context_packet = await narrative_analyzer.generate_context_packet(user_id)
             
-            narrative_parts = ["[CAPITAL NARRATIF] : Historique récent de l'utilisateur :"]
+            # Formatage pour injection dans le prompt Luna
+            context_json = json.dumps(context_packet.to_dict(), indent=2, ensure_ascii=False)
             
-            for event in events[-3:]:  # 3 événements les plus récents
-                event_type = event.get("type", "unknown")
-                timestamp = event.get("created_at", "")
-                payload = event.get("payload", {})
-                
-                if event_type in ["login_succeeded", "session_created"]:
-                    continue  # Skip auth events
-                    
-                narrative_parts.append(f"- {event_type} le {timestamp[:10]}")
-                
-            if len(narrative_parts) == 1:
-                return "[CAPITAL NARRATIF] : Utilisateur actif mais peu d'actions métier récentes."
-                
-            return "\n".join(narrative_parts)
+            return f"""[CONTEXTE NARRATIF STRUCTURÉ]
+Données analytiques utilisateur générées par le Narrative Analyzer v1.5 :
+
+{context_json}
+
+INSTRUCTIONS D'USAGE CONTEXTE :
+- Si user.plan == "unlimited" → Mentionne énergie illimitée 🌙
+- Si usage.last_activity_hours > 48 → Ton accueillant "Content de te revoir"
+- Si progress.ats_delta_pct_14d > 0 → Félicite les progrès
+- Si last_emotion_or_doubt présent → Aborde subtilement le doute
+- Si usage.session_count_7d > 5 → Utilisateur motivé, propose actions avancées
+- Adapte TES suggestions selon progress.letters_target (secteur ciblé)"""
             
         except Exception as e:
-            logger.error("Error retrieving user narrative", user_id=user_id, error=str(e))
-            return "[CAPITAL NARRATIF] : Erreur lors du chargement de l'historique."
+            logger.error("Error generating context packet", user_id=user_id, error=str(e))
+            return "[CONTEXTE NARRATIF] : Nouvel utilisateur - Analyse en cours de génération."
 
     async def generate_response(
         self, 
@@ -151,17 +150,17 @@ Tu dois TOUJOURS informer l'utilisateur du coût AVANT l'action :
             user_name: Prénom utilisateur (optionnel)
         """
         try:
-            # 1. Construction du prompt unifié
+            # 1. Construction du prompt unifié avec Context Packet v1.5
             core_prompt = self._build_luna_core_prompt()
             context_prompt = self._get_context_prompt(app_context)
-            narrative = await self._get_user_narrative(user_id)
+            context_packet = await self._get_user_context_packet(user_id)
             
-            # 2. Assemblage dynamique
+            # 2. Assemblage dynamique avec Context Packet v1.5
             full_prompt = f"""{core_prompt}
 
 {context_prompt}
 
-{narrative}
+{context_packet}
 
 # [CONVERSATION ACTUELLE]
 {"Utilisateur " + user_name + ": " if user_name else "Utilisateur: "}{message}

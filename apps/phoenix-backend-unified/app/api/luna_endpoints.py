@@ -11,6 +11,7 @@ from app.core.energy_manager import energy_manager, InsufficientEnergyError, Ene
 from app.models.user_energy import EnergyPackType
 from app.core.security_guardian import SecurityGuardian, SecureUserIdValidator, SecureActionValidator
 from app.core.luna_core_service import get_luna_core
+from app.core.narrative_analyzer import narrative_analyzer
 
 
 # Router Luna
@@ -158,6 +159,14 @@ class LunaChatResponse(BaseModel):
     context: str
     energy_consumed: float
     type: str = "text"
+
+
+class ContextPacketResponse(BaseModel):
+    success: bool
+    user_id: str
+    context_packet: Dict[str, Any]
+    generated_at: str
+    confidence: float
 
 
 # ============================================================================
@@ -528,4 +537,59 @@ async def luna_chat_message(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur conversation Luna: {str(e)}"
+        )
+
+
+@router.get("/narrative/context-packet/{user_id}",
+           response_model=ContextPacketResponse,
+           summary="Génère Context Packet pour analyse narrative",
+           description="""
+🧠 **Context Packet - Narrative Analyzer v1.5**
+
+### Intelligence Narrative Structurée
+- **Context Packet** : Données analytiques structurées vs historique brut
+- **Multi-dimensional** : Meta utilisateur + Usage + Progrès + Émotions
+- **Confidence Score** : Fiabilité de l'analyse (0.0-1.0)
+- **Sessionization** : Détection patterns comportementaux
+
+### Sources de Données
+- Event Store (source unique de vérité)
+- Fenêtres temporelles : 7d/14d/90d
+- Energy Manager (plan, balance)
+- Heuristiques émotionnelles
+
+### Usage
+Endpoint de debugging pour comprendre ce que voit Luna dans son "cerveau".
+Injecté automatiquement dans Luna Core v1.1 prompt.
+           """,
+           responses={
+               400: {"description": "User ID invalide"},
+               500: {"description": "Erreur génération Context Packet"}
+           })
+async def get_user_context_packet(user_id: str) -> ContextPacketResponse:
+    """🧠 Génère le Context Packet d'analyse narrative pour un utilisateur"""
+    try:
+        # Validation Security Guardian
+        validated_user_id = SecurityGuardian.validate_user_id(user_id)
+        
+        # Génération Context Packet
+        context_packet = await narrative_analyzer.generate_context_packet(validated_user_id)
+        
+        return ContextPacketResponse(
+            success=True,
+            user_id=validated_user_id,
+            context_packet=context_packet.to_dict(),
+            generated_at=context_packet.generated_at,
+            confidence=context_packet.confidence
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User ID invalide: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur génération Context Packet: {str(e)}"
         )
