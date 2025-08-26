@@ -14,7 +14,8 @@ import {
   X,
   Crown,
   Sparkles,
-  CheckCircle
+  CheckCircle,
+  BookOpen
 } from 'lucide-react';
 
 export function Header() {
@@ -30,6 +31,7 @@ export function Header() {
     { path: '/mirror-match', label: 'Mirror Match', icon: Target },
     { path: '/templates', label: 'Templates', icon: Palette },
     { path: '/analytics', label: 'Analytics Hub', icon: BarChart3 },
+    { path: '/journal', label: '📖 Journal Narratif', icon: BookOpen },
   ];
 
   return (

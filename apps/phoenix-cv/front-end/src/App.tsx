@@ -13,6 +13,7 @@ import { ParticleBackground } from './components/ParticleBackground';
 import { MultiFormatPreview } from './components/MultiFormatPreview';
 import { SalarySuggestions } from './components/SalarySuggestions';
 import { LinkedInIntegration } from './components/LinkedInIntegration';
+import JournalPage from './components/journal/JournalPage';
 import './index.css';
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ function App() {
                 <Route path="/preview" element={<MultiFormatPreview />} />
                 <Route path="/salary" element={<SalarySuggestions />} />
                 <Route path="/linkedin" element={<LinkedInIntegration />} />
+                <Route path="/journal" element={<JournalPage />} />
               </Routes>
             </main>
           </div>
