@@ -99,7 +99,7 @@ export interface JournalExportResponse {
 class JournalAPI {
   private getBaseURL(): string {
     // Use environment variable or fallback to Railway production URL
-    return import.meta.env.VITE_LUNA_HUB_URL || 'https://phoenix-backend-unified-production.up.railway.app';
+    return import.meta.env.VITE_LUNA_HUB_URL || 'https://luna-hub-backend-unified-production.up.railway.app';
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
