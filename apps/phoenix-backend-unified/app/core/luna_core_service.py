@@ -200,5 +200,12 @@ Génère une réponse personnalisée Luna qui :
                 "message": "🌙 J'ai rencontré un problème technique. Réessaie dans quelques instants !"
             }
 
-# Instance globale
-luna_core = LunaCore()
+# Instance globale (lazy initialization)
+luna_core = None
+
+def get_luna_core():
+    """Récupère l'instance Luna Core avec lazy initialization"""
+    global luna_core
+    if luna_core is None:
+        luna_core = LunaCore()
+    return luna_core

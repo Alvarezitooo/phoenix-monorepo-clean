@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, validator
 from app.core.energy_manager import energy_manager, InsufficientEnergyError, EnergyManagerError
 from app.models.user_energy import EnergyPackType
 from app.core.security_guardian import SecurityGuardian, SecureUserIdValidator, SecureActionValidator
-from app.core.luna_core_service import luna_core
+from app.core.luna_core_service import get_luna_core
 
 
 # Router Luna
@@ -498,7 +498,8 @@ async def luna_chat_message(
         )
         
         # Génération réponse Luna Core
-        response = await luna_core.generate_response(
+        luna = get_luna_core()
+        response = await luna.generate_response(
             user_id=user_id,
             message=request.message,
             app_context=request.app_context,
