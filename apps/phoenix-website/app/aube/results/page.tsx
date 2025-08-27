@@ -8,9 +8,34 @@ export default function AubeResultsPage(){
   const [data,setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const userId = '11111111-1111-1111-1111-111111111111';
+  const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(()=>{
+    // Récupérer l'utilisateur authentifié
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setError('Veuillez vous connecter pour accéder aux recommandations');
+      setLoading(false);
+      return;
+    }
+
+    let currentUserId: string;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      currentUserId = payload.sub;
+      
+      if (!currentUserId) {
+        setError('Token invalide - Veuillez vous reconnecter');
+        setLoading(false);
+        return;
+      }
+      setUserId(currentUserId);
+    } catch (error) {
+      setError('Token malformé - Veuillez vous reconnecter');
+      setLoading(false);
+      return;
+    }
+
     const fetchRecommendations = async()=>{
       try {
         setLoading(true);
@@ -18,10 +43,9 @@ export default function AubeResultsPage(){
           method:'POST', 
           headers:{
             'Content-Type':'application/json',
-            'Authorization':'Bearer dev'
+            'Authorization': `Bearer ${token}`
           }, 
           body: JSON.stringify({
-            user_id: userId,
             k: 5,
             features: {
               appetences: {
@@ -86,6 +110,11 @@ export default function AubeResultsPage(){
         <p className="text-sm text-gray-600 mt-1">
           Recommandations basées sur tes appétences et contraintes
         </p>
+        {userId && (
+          <p className="text-xs text-gray-500 mt-1">
+            Utilisateur: {userId.slice(0, 8)}...
+          </p>
+        )}
       </header>
       
       {data ? (
