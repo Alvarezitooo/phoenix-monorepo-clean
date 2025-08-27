@@ -4,6 +4,19 @@ import { Letter, GenerationProgress } from '@/types';
 import { apiService } from '@/services/api';
 import { useLuna } from '@/components/Luna';
 
+// Fonction utilitaire pour récupérer l'utilisateur authentifié
+const getUserId = (): string | null => {
+  const token = localStorage.getItem('access_token');
+  if (!token) return null;
+  
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * 🔥 Hook de génération connecté à l'API FastAPI
  * Remplace la simulation par des vraies requêtes API
@@ -126,7 +139,7 @@ Générée en mode autonome par Phoenix Letters`;
 
     const fallbackLetter: Letter = {
       id: `fallback_${Date.now()}`,
-      userId: 'demo-user',
+      userId: getUserId() || 'anonymous',
       companyName: formData.companyName,
       positionTitle: formData.positionTitle,
       experienceLevel: formData.experienceLevel,

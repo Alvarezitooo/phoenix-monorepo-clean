@@ -121,7 +121,10 @@ class LunaCVAPIService {
     try {
       // S'assurer qu'on a une conversation
       if (!this.conversationId) {
-        await this.initializeConversation(request.userId || 'demo-user');
+        if (!request.userId) {
+          throw new Error('Authentification requise pour utiliser Luna');
+        }
+        await this.initializeConversation(request.userId);
       }
 
       const response = await apiService.sendMessage({

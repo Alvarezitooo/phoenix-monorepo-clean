@@ -63,14 +63,7 @@ def verify_jwt_token(token: str) -> Optional[Dict[str, Any]]:
     Returns:
         Decoded token payload or None if invalid
     """
-    # DEV mode: Allow "dev" token for testing
-    if token == "dev":
-        return {
-            "sub": "11111111-1111-1111-1111-111111111111",
-            "email": "dev@phoenix.ai",
-            "id": "11111111-1111-1111-1111-111111111111",
-            "dev": True
-        }
+    # Fallback for malformed tokens in production - return None gracefully
     
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])

@@ -82,34 +82,36 @@ const JournalPage: React.FC<JournalPageProps> = ({ userId, onClose }) => {
 
   useEffect(() => {
     const fetchJournal = async () => {
-      // Récupérer l'utilisateur connecté
-      let currentUserId = userId;
-      
-      if (!currentUserId) {
-        // Essayer de récupérer depuis le localStorage
-        try {
-          const token = localStorage.getItem('access_token');
-          if (token) {
-            // TODO: Décoder le token JWT pour récupérer l'user_id réel
-            // Pour l'instant, utiliser un user_id de test
-            currentUserId = "11111111-1111-1111-1111-111111111111";
-          } else {
-            setError('Utilisateur non connecté - Veuillez vous connecter');
-            setLoading(false);
-            return;
-          }
-        } catch (err) {
-          setError('Erreur authentification');
+      // Récupérer l'utilisateur authentifié réel
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError('Veuillez vous connecter pour accéder à votre journal');
+        setLoading(false);
+        return;
+      }
+
+      let currentUserId: string;
+      try {
+        // Décoder le token JWT pour récupérer l'user_id réel
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        currentUserId = payload.sub;
+        
+        if (!currentUserId) {
+          setError('Token invalide - Veuillez vous reconnecter');
           setLoading(false);
           return;
         }
+      } catch (err) {
+        setError('Token malformé - Veuillez vous reconnecter');
+        setLoading(false);
+        return;
       }
 
       try {
         setLoading(true);
         const response = await fetch(`https://luna-hub-backend-unified-production.up.railway.app/luna/journal/${currentUserId}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token') || 'dev'}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });

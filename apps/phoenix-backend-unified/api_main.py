@@ -41,9 +41,10 @@ app = FastAPI(
 )
 
 # CORS Configuration - Production ready
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
+    allow_origins=allowed_origins if allowed_origins != ["*"] else [
         "https://phoenix-website-production.up.railway.app",
         "https://phoenix-letters-production.up.railway.app", 
         "https://phoenix-cv-production.up.railway.app",

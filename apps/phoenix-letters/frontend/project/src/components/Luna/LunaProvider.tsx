@@ -39,15 +39,31 @@ export function LunaProvider({
   // Context awareness for Phoenix Letters pages
   const [currentContext, setCurrentContext] = useState<LunaContextType['currentContext']>('dashboard');
 
-  // User ID (in real app, this would come from auth)
-  const userId = 'demo-user';
+  // Récupérer l'utilisateur authentifié réel
+  const getUserId = (): string | null => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.sub;
+    } catch {
+      return null;
+    }
+  };
+  
+  const userId = getUserId();
 
   // Load energy on mount
   useEffect(() => {
-    loadEnergyFromBackend();
-  }, []);
+    if (userId) {
+      loadEnergyFromBackend();
+    }
+  }, [userId]);
 
   const loadEnergyFromBackend = async () => {
+    if (!userId) return;
+    
     setIsLoadingEnergy(true);
     try {
       const energyData = await lunaAPI.checkEnergy(userId);

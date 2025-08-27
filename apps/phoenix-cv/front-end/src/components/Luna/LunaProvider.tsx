@@ -72,15 +72,31 @@ export function LunaProvider({ children, initialEnergy = 90 }: LunaProviderProps
   // CV specific state
   const [currentCVId, setCurrentCVId] = useState<string>();
 
-  // User ID (in real app, this would come from auth)
-  const userId = 'demo-cv-user';
+  // Récupérer l'utilisateur authentifié réel
+  const getUserId = (): string | null => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.sub;
+    } catch {
+      return null;
+    }
+  };
+  
+  const userId = getUserId();
 
   // Load energy on mount
   useEffect(() => {
-    loadEnergyFromBackend();
-  }, []);
+    if (userId) {
+      loadEnergyFromBackend();
+    }
+  }, [userId]);
 
   const loadEnergyFromBackend = async () => {
+    if (!userId) return;
+    
     setIsLoadingEnergy(true);
     try {
       const energyData = await lunaCVAPI.checkEnergy(userId);
@@ -98,6 +114,11 @@ export function LunaProvider({ children, initialEnergy = 90 }: LunaProviderProps
 
   // Energy management with backend integration
   const updateEnergy = useCallback(async (amount: number, action: 'consume' | 'refund' | 'purchase' = 'consume') => {
+    if (!userId) {
+      console.error('No authenticated user for energy update');
+      return null;
+    }
+    
     try {
       const result = await lunaCVAPI.updateEnergy({
         userId,
@@ -126,7 +147,7 @@ export function LunaProvider({ children, initialEnergy = 90 }: LunaProviderProps
     setConversationHistory(prev => [...prev, newMessage]);
 
     // If it's a user message, get Luna's response from backend
-    if (message.sender === 'user') {
+    if (message.sender === 'user' && userId) {
       try {
         // Check energy before making API call
         const energyRequired = getEnergyRequiredForContext(currentContext);

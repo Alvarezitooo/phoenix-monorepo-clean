@@ -1,0 +1,427 @@
+# Phoenix Aube — Implementation v0.1 → v1.1 Pack (Hub + Front + Tests)
+# 👉 Tout ce qu’il faut pour exécuter les 7 étapes dans l’ordre (Claude‑ready)
+# NB: Remplacer les stubs par vos adapters réels (Supabase, Gemini SDK…).
+# Principe: Hub Roi • Zéro logique front • API contrat • Event‑sourcing • Sécurité par défaut
+
+──────────────────────────────────────────────────────────────────────────────
+1) EVENT STORE — SUPABASE ADAPTER (remplace InMemory en prod)
+──────────────────────────────────────────────────────────────────────────────
+# File: apps/phoenix-backend-unified/core/event_store_supabase.py
+from __future__ import annotations
+import os
+from dataclasses import dataclass
+from typing import Any, Dict, List
+from datetime import datetime, timedelta
+
+try:
+    from supabase import create_client, Client  # pip install supabase
+except Exception:  # pragma: no cover
+    Client = object
+    def create_client(*a, **kw):
+        raise RuntimeError("Supabase SDK not installed")
+
+@dataclass
+class Event:
+    type: str
+    user_id: str
+    ts: str
+    data: Dict[str, Any]
+
+class SupabaseEventStore:
+    def __init__(self, url: str | None = None, key: str | None = None, table: str = "events"):
+        self.url = url or os.getenv("SUPABASE_URL")
+        self.key = key or os.getenv("SUPABASE_ANON_KEY")
+        if not self.url or not self.key:
+            raise RuntimeError("SUPABASE_URL / SUPABASE_ANON_KEY manquants")
+        self.client: Client = create_client(self.url, self.key)
+        self.table = table
+
+    def insert_event(self, evt: Dict[str, Any]) -> Event:
+        # PII masking minimal — à renforcer selon vos champs
+        data = evt.get("data", {})
+        masked = _mask_pii_dict(data)
+        payload = {
+            "type": evt["type"],
+            "user_id": evt["user_id"],
+            "ts": evt.get("ts") or datetime.utcnow().isoformat() + "Z",
+            "data": masked,
+        }
+        self.client.table(self.table).insert(payload).execute()
+        return Event(**payload)
+
+    def fetch_user_events(self, user_id: str, window: str = "14d") -> List[Event]:
+        now = datetime.utcnow()
+        delta = timedelta(days=int(window.replace("d",""))) if window.endswith("d") else timedelta(days=14)
+        since = (now - delta).isoformat() + "Z"
+        res = self.client.table(self.table).select("type,user_id,ts,data").eq("user_id", user_id).gte("ts", since).order("ts").execute()
+        rows = res.data or []
+        return [Event(**r) for r in rows]
+
+def _mask_pii_dict(d: Dict[str, Any]) -> Dict[str, Any]:
+    MASK_KEYS = {"email", "phone", "address", "name"}
+    out = {}
+    for k, v in d.items():
+        if k in MASK_KEYS and isinstance(v, str):
+            out[k] = v[:2] + "***"  # masque simple
+        else:
+            out[k] = v
+    return out
+
+──────────────────────────────────────────────────────────────────────────────
+2) ÉNERGIE — LECTURE GRID + HOOKS can/consume + ÉVÉNEMENTS
+──────────────────────────────────────────────────────────────────────────────
+# File: apps/phoenix-backend-unified/core/energy_manager.py (upgrade)
+from __future__ import annotations
+from dataclasses import dataclass
+import yaml, os
+
+@dataclass
+class EnergyStatus:
+    plan: str = "standard"  # or "unlimited"
+    balance_pct: float = 100.0
+    last_purchase: str | None = None
+
+class EnergyGrid:
+    def __init__(self, path: str | None = None):
+        path = path or os.getenv("ENERGY_GRID_FILE", "apps/phoenix-backend-unified/config/energy_grid.yaml")
+        with open(path, "r", encoding="utf-8") as f:
+            self.grid = yaml.safe_load(f)
+    def cost(self, tier: str, action: str, default: float = 0.0) -> float:
+        return float(self.grid.get(tier, {}).get(action, default))
+
+class EnergyManager:
+    def __init__(self, grid: EnergyGrid | None = None):
+        self._status_by_user: dict[str, EnergyStatus] = {}
+        self.grid = grid or EnergyGrid()
+    def get_status(self, user_id: str) -> EnergyStatus:
+        return self._status_by_user.setdefault(user_id, EnergyStatus())
+    def can_perform(self, user_id: str, action: str, tier: str = "simple") -> bool:
+        st = self.get_status(user_id)
+        cost = self.grid.cost(tier, action, 0.0)
+        return st.plan == "unlimited" or st.balance_pct >= cost
+    def consume(self, user_id: str, action: str, tier: str = "simple") -> EnergyStatus:
+        st = self.get_status(user_id)
+        cost = self.grid.cost(tier, action, 0.0)
+        if st.plan != "unlimited":
+            st.balance_pct = max(0.0, st.balance_pct - cost)
+        return st
+
+# File: apps/phoenix-backend-unified/core/energy_events.py
+from typing import Dict, Any
+
+def emit_energy_event(repo, user_id: str, action: str, tier: str, cost: float):
+    return repo.insert_event({
+        "type": "EnergyConsumed",
+        "user_id": user_id,
+        "data": {"action": action, "tier": tier, "cost_pct": cost},
+    })
+
+──────────────────────────────────────────────────────────────────────────────
+3) ENDPOINTS v1.1 — /match/recommend & /futureproof/score (stubs complets)
+──────────────────────────────────────────────────────────────────────────────
+# File: apps/phoenix-backend-unified/core/aube_matching_service.py
+from __future__ import annotations
+from typing import List, Dict, Any
+
+class AubeMatchingService:
+    def __init__(self, repo):
+        self.repo = repo
+    def recommend(self, user_id: str, features: Dict[str, Any], k: int = 5) -> Dict[str, Any]:
+        recos = _rank_jobs_stub(features, k)
+        self.repo.insert_event({"type": "AubeRecommendationsGenerated", "user_id": user_id, "data": {"job_codes": [r["job_code"] for r in recos]}})
+        return {"recommendations": recos}
+
+def _rank_jobs_stub(features: Dict[str, Any], k: int) -> List[Dict[str, Any]]:
+    appet = (features or {}).get("appetences", {})
+    prefers_people = (appet.get("people", 0) >= appet.get("data", 0))
+    base = [
+        {
+            "job_code": "UXD", "label": "UX Designer",
+            "reasons": [
+                {"feature": "valeurs", "phrase": "Autonomie + impact → métiers à ownership"},
+                {"feature": "taches_like", "phrase": "Ateliers usagers → UX terrain"},
+            ],
+            "counter_example": {"risk": "reporting_pur", "phrase": "Si tu évites le reporting pur… Alternative : UX Research junior"},
+            "futureproof": {"score_0_1": 0.76, "drivers": [
+                {"factor": "taches_routinisables", "direction": "down", "phrase": "Tâches routinisables ↓"},
+                {"factor": "interaction_humaine", "direction": "up", "phrase": "Interaction humaine ↑"},
+            ]},
+            "timeline": [
+                {"year": 2026, "change": "↑ design ops outillé IA", "signal": "adoption", "confidence": 2},
+                {"year": 2028, "change": "↑ co‑création homme‑IA", "signal": "pratiques établies", "confidence": 3},
+            ],
+            "ia_plan": [
+                {"skill": "Prompting avancé", "micro_action": "Créer 3 gabarits", "effort_min_per_day": 20, "resource_hint": "kb://ia/prompting", "benefit_phrase": "Vitesse + Qualité", "difficulty": 1},
+            ],
+        },
+        {
+            "job_code": "PO", "label": "Product Owner",
+            "reasons": [{"feature": "valeurs", "phrase": "Autonomie + impact → ownership"}],
+            "futureproof": {"score_0_1": 0.68, "drivers": [{"factor": "coordination", "direction": "up", "phrase": "Coordination humaine ↑"}]},
+            "timeline": [], "ia_plan": []
+        },
+    ]
+    if not prefers_people:
+        base.insert(0, {
+            "job_code": "DA","label":"Data Analyst (light)",
+            "reasons":[{"feature":"taches_like","phrase":"Analyse & optimisation → Data light"}],
+            "futureproof": {"score_0_1": 0.55, "drivers": [{"factor":"automatisation", "direction":"down", "phrase":"Automatisation ↑ sur tâches routinières"}]},
+            "timeline": [{"year": 2027, "change":"↑ auto‑BI", "signal":"outillage", "confidence":1}],
+            "ia_plan": [{"skill":"Automatisation simple","micro_action":"1 workflow no‑code","effort_min_per_day":25,"resource_hint":"kb://automation/no-code","benefit_phrase":"Moins de tâches répétitives","difficulty":1}]
+        })
+    return base[:k]
+
+# File: apps/phoenix-backend-unified/core/aube_futureproof_service.py
+from __future__ import annotations
+from typing import Dict, Any
+
+def compute_futureproof_stub(job_code: str) -> Dict[str, Any]:
+    mapping = {
+        "UXD": {"score_0_1": 0.76, "drivers": [
+            {"factor": "taches_routinisables", "direction": "down", "phrase": "Tâches routinisables ↓"},
+            {"factor": "interaction_humaine", "direction": "up", "phrase": "Interaction humaine ↑"},
+        ]},
+        "PO": {"score_0_1": 0.68, "drivers": [{"factor": "coordination", "direction": "up", "phrase": "Coordination humaine ↑"}]},
+    }
+    return mapping.get(job_code, {"score_0_1": 0.5, "drivers": [{"factor":"incertitude","direction":"down","phrase":"Données insuffisantes"}]})
+
+class AubeFutureProofService:
+    def __init__(self, repo):
+        self.repo = repo
+    def score(self, user_id: str, job_code: str) -> Dict[str, Any]:
+        fp = compute_futureproof_stub(job_code)
+        out = {"score_0_1": fp["score_0_1"], "drivers": fp["drivers"]}
+        self.repo.insert_event({"type": "AubeFutureProofScored", "user_id": user_id, "data": {"job_code": job_code, "score": out["score_0_1"]}})
+        return out
+
+# File: apps/phoenix-backend-unified/api/routes/aube.py (extend)
+from fastapi import APIRouter, Depends, HTTPException
+from apps.phoenix_backend_unified.api.deps import security_guardian, get_events_repo, get_energy_manager
+from apps.phoenix_backend_unified.core.aube_matching_service import AubeMatchingService
+from apps.phoenix_backend_unified.core.aube_futureproof_service import AubeFutureProofService
+from apps.phoenix_backend_unified.core.energy_events import emit_energy_event
+
+router = APIRouter(prefix="/aube", tags=["aube"])
+
+@router.post("/assessment/start")
+async def aube_assessment_start(payload: dict, _: dict = Depends(security_guardian), events=Depends(get_events_repo), energy=Depends(get_energy_manager)):
+    user_id = payload.get("user_id")
+    if not user_id: raise HTTPException(status_code=400, detail="user_id required")
+    if not energy.can_perform(user_id, action="assessment.start", tier="simple"):
+        raise HTTPException(status_code=402, detail="Insufficient energy")
+    events.insert_event({"type": "AubeAssessmentStarted", "user_id": user_id, "data": {"mode": "UL"}})
+    return {"assessment_id": "dev-aid", "user_id": user_id, "status": "in_progress"}
+
+@router.post("/match/recommend")
+async def aube_recommend(payload: dict, _: dict = Depends(security_guardian), events=Depends(get_events_repo), energy=Depends(get_energy_manager)):
+    user_id = payload.get("user_id"); k = int(payload.get("k", 5)); features = payload.get("features", {})
+    if not user_id: raise HTTPException(status_code=400, detail="user_id required")
+    if not energy.can_perform(user_id, action="match.recommend", tier="medium"):
+        raise HTTPException(status_code=402, detail="Insufficient energy")
+    svc = AubeMatchingService(events)
+    out = svc.recommend(user_id, features, k)
+    emit_energy_event(events, user_id, "match.recommend", "medium", 12)
+    energy.consume(user_id, action="match.recommend", tier="medium")
+    return out
+
+@router.post("/futureproof/score")
+async def aube_futureproof(payload: dict, _: dict = Depends(security_guardian), events=Depends(get_events_repo), energy=Depends(get_energy_manager)):
+    user_id = payload.get("user_id"); job_code = payload.get("job_code")
+    if not user_id or not job_code: raise HTTPException(status_code=400, detail="user_id & job_code required")
+    if not energy.can_perform(user_id, action="futureproof.score", tier="medium"):
+        raise HTTPException(status_code=402, detail="Insufficient energy")
+    svc = AubeFutureProofService(events)
+    out = svc.score(user_id, job_code)
+    emit_energy_event(events, user_id, "futureproof.score", "medium", 15)
+    energy.consume(user_id, action="futureproof.score", tier="medium")
+    return out
+
+──────────────────────────────────────────────────────────────────────────────
+4) PLAYBOOK PERSONA → INJECTION PROMPT (Luna Core + Contexte + Playbook)
+──────────────────────────────────────────────────────────────────────────────
+# File: apps/phoenix-backend-unified/core/persona_orchestrator.py
+from __future__ import annotations
+from typing import Dict, Any
+
+class PersonaOrchestrator:
+    def build_profile(self, signals: Dict[str, Any]) -> Dict[str, Any]:
+        # Profil léger, éphémère (TTL géré ailleurs). Aucune étiquette clinique.
+        mood = signals.get("mood","neutral")
+        reading = "B1" if mood=="tired" else "B2"
+        tone = "doux" if mood=="tired" else "focus"
+        return {
+            "persona_weights": {"burnout": 0.6 if mood=="tired" else 0.2},
+            "mode": tone,
+            "reading_level": reading,
+            "escalation_policy": "UL->Court" if mood!="tired" else "UL_only",
+            "ttl_days": 7,
+        }
+
+# File: apps/phoenix-backend-unified/core/llm_gateway.py (upgrade assembly)
+from __future__ import annotations
+import os, json
+from abc import ABC, abstractmethod
+from typing import Any, Dict
+
+class LLMGateway(ABC):
+    @abstractmethod
+    def generate(self, *, system: str, user: str, context: Dict[str, Any]) -> str: ...
+
+class GeminiProvider(LLMGateway):
+    def __init__(self, model: str = "gemini-pro") -> None:
+        self.model = model
+        # TODO: SDK officiel via env GEMINI_API_KEY
+    def _read(self, path: str) -> str:
+        with open(path, "r", encoding="utf-8") as f: return f.read()
+    def assemble_prompt(self, narrative_json: str, persona_profile: Dict[str,Any]) -> Dict[str,str]:
+        system_core = self._read("apps/phoenix-backend-unified/config/llm_prompts/luna_core_system.txt")
+        # playbook simple (j2 simplifiée inline)
+        playbook = f"[TONE]={persona_profile.get('mode')} | [READING_LEVEL]={persona_profile.get('reading_level')}"
+        context = f"[CONTEXT_NARRATIF]\n{narrative_json}\n[PERSONA_PROFILE]\n{json.dumps(persona_profile)}"
+        return {"system": system_core + "\n" + playbook, "context": context}
+    def generate(self, *, system: str, user: str, context: Dict[str, Any]) -> str:
+        # Stub DEV — renvoie l’assemblage (pour vérif wiring)
+        return f"[Luna/Gemini STUB]\nSYSTEM=\n{system}\nCTX_KEYS={list(context.keys())}\nUSER={user}"
+
+──────────────────────────────────────────────────────────────────────────────
+5) TESTS E2E — start → recommend → futureproof → journal
+──────────────────────────────────────────────────────────────────────────────
+# File: apps/phoenix-backend-unified/tests/test_aube_e2e.py
+from fastapi.testclient import TestClient
+from apps.phoenix_backend_unified.main import app
+
+client = TestClient(app)
+AUTH = {"Authorization": "Bearer testtoken"}
+USER = "11111111-1111-1111-1111-111111111111"
+
+def test_flow_e2e():
+    r = client.post("/aube/assessment/start", headers=AUTH, json={"user_id": USER})
+    assert r.status_code == 200 or r.status_code == 201
+    r = client.post("/aube/match/recommend", headers=AUTH, json={"user_id": USER, "k": 5, "features": {"appetences": {"people": 1, "data": 0}}})
+    assert r.status_code == 200
+    recos = r.json()["recommendations"]
+    assert len(recos) >= 1
+    job = recos[0]["job_code"]
+    r = client.post("/aube/futureproof/score", headers=AUTH, json={"user_id": USER, "job_code": job})
+    assert r.status_code == 200
+    assert "score_0_1" in r.json()
+    r = client.get(f"/luna/journal/{USER}", headers=AUTH)
+    assert r.status_code == 200
+    j = r.json()
+    assert j["narrative"]["chapters"]
+
+──────────────────────────────────────────────────────────────────────────────
+6) SÉCURITÉ — JWT strict, CORS prod, logs/metrics
+──────────────────────────────────────────────────────────────────────────────
+# File: apps/phoenix-backend-unified/core/security.py
+import os
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import jwt  # pip install PyJWT
+
+bearer = HTTPBearer(auto_error=False)
+
+def verify_jwt(creds: HTTPAuthorizationCredentials = Depends(bearer)):
+    if os.getenv("HUB_ENV","dev") == "dev":
+        return {"dev": True}
+    if creds is None: raise HTTPException(status_code=401, detail="Missing token")
+    token = creds.credentials
+    try:
+        decoded = jwt.decode(token, os.getenv("JWT_PUBLIC_KEY","secret"), algorithms=["HS256","RS256"], options={"verify_aud": False})
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+    return decoded
+
+# File: apps/phoenix-backend-unified/api/deps.py (switch guardian)
+from apps.phoenix_backend_unified.core.security import verify_jwt as security_guardian
+
+# File: apps/phoenix-backend-unified/main.py (CORS prod)
+# allow_origins = os.getenv("CORS_ALLOWED_ORIGINS","*").split(",")
+
+# File: apps/phoenix-backend-unified/core/observability.py
+import time, logging
+logger = logging.getLogger("phoenix")
+
+class RequestTimer:
+    def __enter__(self): self.t = time.perf_counter(); return self
+    def __exit__(self, exc_type, exc, tb): self.dt = int((time.perf_counter()-self.t)*1000)
+
+──────────────────────────────────────────────────────────────────────────────
+7) FRONT WIRING — appels Hub, pas de logique métier
+──────────────────────────────────────────────────────────────────────────────
+# File: apps/phoenix-website/lib/hub.ts
+export const HUB = process.env.NEXT_PUBLIC_LUNA_HUB_URL || "http://localhost:8003";
+
+# File: apps/phoenix-website/app/aube/start/page.tsx (upgrade)
+'use client';
+import { useState } from 'react';
+import { HUB } from '@/lib/hub';
+import WhyPopover from '@/components/aube/WhyPopover';
+import DisclaimerFooter from '@/components/aube/DisclaimerFooter';
+
+export default function AubeStartPage(){
+  const [userId, setUserId] = useState('11111111-1111-1111-1111-111111111111');
+  const [status, setStatus] = useState<string>('ready');
+  const start = async ()=>{
+    setStatus('loading');
+    const r = await fetch(`${HUB}/aube/assessment/start`, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer dev'}, body: JSON.stringify({user_id:userId})});
+    setStatus(r.ok? 'started':'error');
+  };
+  return (
+    <main className="max-w-3xl mx-auto p-6 space-y-6">
+      <header className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">On commence léger 🌙</h1>
+        <WhyPopover />
+      </header>
+      <section className="p-4 rounded-2xl border bg-white space-y-3">
+        <p className="text-sm">Mini‑exercices pour y voir clair. Tu peux passer quand tu veux ✅</p>
+        <div className="flex gap-2">
+          <input className="border rounded px-2 py-1 text-sm" value={userId} onChange={e=>setUserId(e.target.value)} />
+          <button onClick={start} className="px-3 py-1 rounded-xl border">Démarrer</button>
+          <span className="text-xs opacity-70">{status}</span>
+        </div>
+      </section>
+      <DisclaimerFooter />
+    </main>
+  );
+}
+
+# File: apps/phoenix-website/app/aube/results/page.tsx (upgrade)
+'use client';
+import { useEffect, useState } from 'react';
+import { HUB } from '@/lib/hub';
+import TopJobsList from '@/components/aube/TopJobsList';
+import DisclaimerFooter from '@/components/aube/DisclaimerFooter';
+
+export default function AubeResultsPage(){
+  const [data,setData] = useState<any>(null);
+  const userId = '11111111-1111-1111-1111-111111111111';
+  useEffect(()=>{
+    const run = async()=>{
+      const r = await fetch(`${HUB}/aube/match/recommend`, {method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer dev'}, body: JSON.stringify({user_id:userId,k:5,features:{appetences:{people:1,data:0}}})});
+      const j = await r.json(); setData(j);
+    }; run();
+  },[]);
+  return (
+    <main className="max-w-3xl mx-auto p-6 space-y-6">
+      <h1 className="text-xl font-semibold">Tes pistes alignées</h1>
+      {data ? <TopJobsList data={data} /> : <p className="text-sm">Chargement…</p>}
+      <DisclaimerFooter />
+    </main>
+  );
+}
+
+──────────────────────────────────────────────────────────────────────────────
+CI HINTS (ajouts)
+──────────────────────────────────────────────────────────────────────────────
+# .github/workflows/ci.yml — veiller à installer supabase & PyJWT si tests actifs
+#   - run: pip install supabase PyJWT pyyaml fastapi uvicorn pytest
+
+──────────────────────────────────────────────────────────────────────────────
+NOTES D’INTÉGRATION
+──────────────────────────────────────────────────────────────────────────────
+• Remplacer `InMemoryEventStore` dans `api/deps.py` par `SupabaseEventStore` en prod.  
+• Renseigner `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `HUB_ENV=prod`, `JWT_PUBLIC_KEY`, `CORS_ALLOWED_ORIGINS`.  
+• Garder 0% énergie pour exploration; 12% `match.recommend`, 15% `futureproof.score` (configurable via YAML).  
+• Front: aucune logique métier; ne fait qu’appeler le Hub et afficher.  
+• Tests e2e fournis: start → recommend → futureproof → journal.

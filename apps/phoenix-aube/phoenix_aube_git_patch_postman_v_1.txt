@@ -1,0 +1,518 @@
+# Patch: phoenix-aube_v1.diff
+# Usage:
+#   git checkout -b feature/aube
+#   git apply --whitespace=fix phoenix-aube_v1.diff
+#   # ou: git am < phoenix-aube_v1.diff (si e-mail patch)
+#   # puis: uvicorn apps.phoenix_backend_unified.main:app --reload --port 8003
+#   # et:   NEXT_PUBLIC_LUNA_HUB_URL=http://localhost:8003 pnpm dev
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/main.py
++from fastapi import FastAPI
++from fastapi.middleware.cors import CORSMiddleware
++
++from apps.phoenix_backend_unified.api.routes import journal as journal_routes
++from apps.phoenix_backend_unified.api.routes import aube as aube_routes
++
++app = FastAPI(title="Phoenix Luna Hub", version="1.0.0-aube")
++
++app.add_middleware(
++    CORSMiddleware,
++    allow_origins=["*"],  # TODO: restreindre en prod
++    allow_credentials=True,
++    allow_methods=["*"],
++    allow_headers=["Authorization", "Content-Type"],
++)
++
++app.include_router(journal_routes.router)
++app.include_router(aube_routes.router)
++
++@app.get("/monitoring/health", tags=["monitoring"])  # minimal health
++async def health():
++    return {"status": "ok", "app": app.title, "version": app.version}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/api/deps.py
++from fastapi import Depends, HTTPException
++from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
++from typing import Optional
++
++from apps.phoenix_backend_unified.core.event_store import InMemoryEventStore
++from apps.phoenix_backend_unified.core.energy_manager import EnergyManager
++from apps.phoenix_backend_unified.core.llm_gateway import LLMGateway, GeminiProvider
++
++_security = HTTPBearer(auto_error=False)
++_event_store_singleton = InMemoryEventStore()  # DEV-only; remplacer par adapter DB en prod
++_energy_singleton = EnergyManager()
++_llm_singleton: Optional[LLMGateway] = GeminiProvider()
++
++async def security_guardian(creds: HTTPAuthorizationCredentials = Depends(_security)):
++    if creds is None or not creds.credentials:
++        # DEV permissif; lever 401 en prod
++        # raise HTTPException(status_code=401, detail="Unauthorized")
++        return {"dev": True}
++    return {"sub": "dev-user", "scope": "user"}
++
++async def get_events_repo():
++    return _event_store_singleton
++
++async def get_energy_manager():
++    return _energy_singleton
++
++async def get_llm_gateway():
++    return _llm_singleton
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/core/event_store.py
++from dataclasses import dataclass
++from typing import Any, Dict, List
++from datetime import datetime, timedelta
++
++@dataclass
++class Event:
++    type: str
++    user_id: str
++    ts: str
++    data: Dict[str, Any]
++
++class InMemoryEventStore:
++    """DEV-only event store; remplacer par Supabase/DB adapter en prod."""
++    def __init__(self) -> None:
++        self._events: List[Event] = []
++
++    def insert_event(self, evt: Dict[str, Any]) -> Event:
++        event = Event(
++            type=evt["type"],
++            user_id=evt["user_id"],
++            ts=evt.get("ts") or datetime.utcnow().isoformat() + "Z",
++            data=evt.get("data", {}),
++        )
++        self._events.append(event)
++        return event
++
++    def fetch_user_events(self, user_id: str, window: str = "14d") -> List[Event]:
++        now = datetime.utcnow()
++        delta = timedelta(days=int(window.replace("d", ""))) if window.endswith("d") else timedelta(days=14)
++        since = now - delta
++        return [e for e in self._events if e.user_id == user_id and _parse_iso(e.ts) >= since]
++
++def _parse_iso(s: str) -> datetime:
++    try:
++        return datetime.fromisoformat(s.replace("Z", "+00:00"))
++    except Exception:
++        return datetime.utcnow()
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/core/energy_manager.py
++from dataclasses import dataclass
++
++@dataclass
++class EnergyStatus:
++    plan: str = "standard"  # ou "unlimited"
++    balance_pct: float = 100.0
++    last_purchase: str | None = None
++
++class EnergyManager:
++    """Gestion d'énergie minimal DEV; brancher grille/ledger réel en prod."""
++    def __init__(self):
++        self._status_by_user: dict[str, EnergyStatus] = {}
++
++    def get_status(self, user_id: str) -> EnergyStatus:
++        return self._status_by_user.setdefault(user_id, EnergyStatus())
++
++    def can_perform(self, user_id: str, action: str, cost_pct: float) -> bool:
++        st = self.get_status(user_id)
++        return st.plan == "unlimited" or st.balance_pct >= cost_pct
++
++    def consume(self, user_id: str, action: str, cost_pct: float) -> EnergyStatus:
++        st = self.get_status(user_id)
++        if st.plan == "unlimited":
++            return st
++        st.balance_pct = max(0.0, st.balance_pct - cost_pct)
++        return st
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/core/llm_gateway.py
++from abc import ABC, abstractmethod
++from typing import Any, Dict
++
++class LLMGateway(ABC):
++    @abstractmethod
++    def generate(self, *, system: str, user: str, context: Dict[str, Any]) -> str:
++        ...
++
++class GeminiProvider(LLMGateway):
++    def __init__(self, model: str = "gemini-pro") -> None:
++        self.model = model
++        # TODO: brancher SDK officiel + settings
++
++    def generate(self, *, system: str, user: str, context: Dict[str, Any]) -> str:
++        # Stub DEV
++        return f"[Luna(Gemini stub)]: {user} | ctx={list(context.keys())}"
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/models/journal_dto.py
++from pydantic import BaseModel
++from typing import List, Optional, Literal, Dict, Any
++
++class JournalUser(BaseModel):
++    id: str
++    first_name: str = "Phoenix"
++    plan: Literal["standard", "unlimited"] = "standard"
++
++class JournalEnergy(BaseModel):
++    balance_pct: float
++    last_purchase: Optional[str] = None
++
++class JournalKpiAts(BaseModel):
++    value: float
++    target: float
++    trend: Literal["up","down","flat"]
++    delta_pct_14d: float
++
++class JournalKPIs(BaseModel):
++    ats_mean: JournalKpiAts
++    letters_count: Optional[Dict[str, Any]] = None
++
++class JournalChapter(BaseModel):
++    id: str
++    type: Literal["cv","letter","analysis","other"] = "other"
++    title: str
++    gain: List[str] = []
++    ts: str
++
++class JournalNextStep(BaseModel):
++    action: str
++    cost_pct: float
++    expected_gain: str
++
++class JournalNarrative(BaseModel):
++    chapters: List[JournalChapter] = []
++    kpis: JournalKPIs
++    last_doubt: Optional[str] = None
++    next_steps: List[JournalNextStep] = []
++
++class JournalSocialProof(BaseModel):
++    peers_percentage_recommended_step: float = 0.0
++    recommended_label: Optional[str] = None
++
++class JournalEthics(BaseModel):
++    ownership: bool = True
++    export_available: bool = True
++
++class JournalDTO(BaseModel):
++    user: JournalUser
++    energy: JournalEnergy
++    narrative: JournalNarrative
++    social_proof: Optional[JournalSocialProof] = None
++    ethics: JournalEthics
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/core/narrative_analyzer.py
++from typing import List
++from apps.phoenix_backend_unified.core.event_store import Event
++
++class NarrativeAnalyzer:
++    def __init__(self, events_repo):
++        self.repo = events_repo
++
++    def _kpis(self, events: List[Event]):
++        cv_scores = [e.data.get("ats_score") for e in events if e.type == "CVGenerated" and e.data.get("ats_score") is not None]
++        if not cv_scores:
++            return {"ats_mean": {"value": 0, "target": 85, "trend": "flat", "delta_pct_14d": 0}, "letters_count": {"value": 0}}
++        mean_now = sum(cv_scores[-5:]) / min(5, len(cv_scores))
++        mean_prev = sum(cv_scores[:-5]) / max(1, len(cv_scores[:-5])) if len(cv_scores) > 5 else mean_now
++        delta = 0 if mean_prev == 0 else ((mean_now - mean_prev) / mean_prev) * 100
++        trend = "up" if mean_now > mean_prev else ("down" if mean_now < mean_prev else "flat")
++        return {"ats_mean": {"value": round(mean_now,2), "target": 85, "trend": trend, "delta_pct_14d": round(delta,2)}}
++
++    def _chapters(self, events: List[Event]):
++        chapters = []
++        for e in events[-12:]:
++            title = {
++                "CVGenerated": "CV optimisé",
++                "LetterGenerated": "Lettre rédigée",
++                "EnergyPurchased": "Énergie rechargée",
++                "AubeAssessmentStarted": "Aube — exploration lancée",
++                "AubeRecommendationsGenerated": "Aube — pistes proposées",
++                "AubeFutureProofScored": "Aube — pérennité évaluée",
++            }.get(e.type, e.type)
++            gain = []
++            if e.type == "CVGenerated" and (ats := e.data.get("ats_score")):
++                gain.append(f"ATS {ats}")
++            chapters.append({"id": e.data.get("id", e.ts), "type": "analysis" if e.type.startswith("Aube") else "other", "title": title, "gain": gain, "ts": e.ts})
++        return chapters
++
++    def _next_steps(self, kpis) -> list[dict]:
++        steps = []
++        ats = kpis["ats_mean"]["value"]
++        if ats < 85:
++            steps.append({"action": "optimisation_cv", "cost_pct": 12, "expected_gain": "ATS +3"})
++        steps.append({"action": "mirror_match", "cost_pct": 30, "expected_gain": "Compatibilité +8"})
++        return steps
++
++    def build(self, user, energy, social_proof, events: List[Event]):
++        kpis = self._kpis(events)
++        return {
++            "user": user,
++            "energy": energy,
++            "narrative": {"chapters": self._chapters(events), "kpis": kpis, "last_doubt": None, "next_steps": self._next_steps(kpis)},
++            "social_proof": social_proof,
++            "ethics": {"ownership": True, "export_available": True},
++        }
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/api/routes/journal.py
++from fastapi import APIRouter, Depends
++from apps.phoenix_backend_unified.api.deps import security_guardian, get_energy_manager, get_events_repo
++from apps.phoenix_backend_unified.core.narrative_analyzer import NarrativeAnalyzer
++from apps.phoenix_backend_unified.models.journal_dto import JournalDTO
++
++router = APIRouter(prefix="/luna", tags=["journal"])
++
++@router.get("/journal/{user_id}", response_model=JournalDTO)
++async def get_journal(user_id: str, window: str = "14d",
++                     _: dict = Depends(security_guardian),
++                     energy_manager = Depends(get_energy_manager),
++                     events_repo = Depends(get_events_repo)):
++    status = energy_manager.get_status(user_id)
++    user = {"id": user_id, "first_name": "Phoenix", "plan": status.plan}
++    energy = {"balance_pct": status.balance_pct, "last_purchase": status.last_purchase}
++
++    events = events_repo.fetch_user_events(user_id=user_id, window=window)
++    if not any(e.type.startswith("Aube") for e in events):
++        events_repo.insert_event({"type": "AubeAssessmentStarted", "user_id": user_id, "data": {}})
++        events_repo.insert_event({"type": "AubeRecommendationsGenerated", "user_id": user_id, "data": {"jobs": ["UXD","PO"]}})
++
++    analyzer = NarrativeAnalyzer(events_repo)
++    journal = analyzer.build(
++        user=user,
++        energy=energy,
++        social_proof={"peers_percentage_recommended_step": 0.9, "recommended_label": "LinkedIn Power Moves"},
++        events=events_repo.fetch_user_events(user_id=user_id, window=window),
++    )
++    return JournalDTO(**journal)
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/api/routes/aube.py
++from fastapi import APIRouter, Depends, HTTPException
++from apps.phoenix_backend_unified.api.deps import security_guardian, get_events_repo, get_energy_manager
++
++router = APIRouter(prefix="/aube", tags=["aube"])
++
++@router.post("/assessment/start")
++async def aube_assessment_start(payload: dict,
++                                _: dict = Depends(security_guardian),
++                                events=Depends(get_events_repo),
++                                energy=Depends(get_energy_manager)):
++    user_id = payload.get("user_id")
++    if not user_id:
++        raise HTTPException(status_code=400, detail="user_id required")
++    if not energy.can_perform(user_id, action="assessment.start", cost_pct=0):
++        raise HTTPException(status_code=402, detail="Insufficient energy")
++    events.insert_event({"type": "AubeAssessmentStarted", "user_id": user_id, "data": {"mode": "UL"}})
++    return {"assessment_id": "dev-aid", "user_id": user_id, "status": "in_progress"}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/config/energy_grid.yaml
++simple:
++  assessment.start: 0
++  assessment.submit: 0
++  handover.cv: 0
++  handover.letters: 0
++  handover.rise: 0
++medium:
++  match.recommend: 12
++  futureproof.score: 15
++premium: {}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-backend-unified/config/llm_prompts/luna_core_system.txt
++Tu es Luna, un copilote narratif et bienveillant. Ta mission est d'aider l'utilisateur à transformer son parcours complexe en une histoire claire et puissante. Tu fais partie de l'écosystème Phoenix.
++Ton ton est chaleureux, complice et encourageant. Accessible, pragmatique, phrases courtes, emojis sobres (🎯, ✅, 🚀, 🌙). Jamais mystique.
++Rappels: Suggestions, pas de verdicts. Droit au skip. Propriété & export visibles.
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-website/app/aube/start/page.tsx
++'use client';
++import WhyPopover from '@/components/aube/WhyPopover';
++import DisclaimerFooter from '@/components/aube/DisclaimerFooter';
++
++export default function AubeStartPage(){
++  return (
++    <main className="max-w-3xl mx-auto p-6 space-y-6">
++      <header className="flex items-center justify-between">
++        <h1 className="text-xl font-semibold">On commence léger 🌙</h1>
++        <WhyPopover />
++      </header>
++      {/* TODO: DuoEclair, ValeursTri, etc. → appels Hub */}
++      <section className="p-4 rounded-2xl border bg-white">
++        <p className="text-sm">Mini‑exercices pour y voir clair. Tu peux passer quand tu veux ✅</p>
++      </section>
++      <DisclaimerFooter />
++    </main>
++  );}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-website/app/aube/results/page.tsx
++'use client';
++import TopJobsList from '@/components/aube/TopJobsList';
++import DisclaimerFooter from '@/components/aube/DisclaimerFooter';
++
++const mock = {
++  recommendations: [
++    { job_code:'UXD', label:'UX Designer', reasons:[{feature:'valeurs', phrase:'Autonomie + impact → ownership'},{feature:'taches', phrase:'Ateliers usagers → UX terrain'}], counter_example:{risk:'reporting', phrase:'Si tu évites le reporting pur… Alternative : UX Research junior'}, futureproof:{score_0_1:0.76, drivers:[{factor:'taches_routinisables',direction:'down',phrase:'Tâches routinisables ↓'},{factor:'interaction_humaine',direction:'up',phrase:'Interaction humaine ↑'}]}, timeline:[{year:2026,change:'↑ design ops outillé IA',signal:'adoption',confidence:2}], ia_plan:[{skill:'Prompting', micro_action:'Créer 3 gabarits', effort_min_per_day:20, resource_hint:'kb://ia/prompting', benefit_phrase:'Vitesse + Qualité', difficulty:1}]},
++    { job_code:'PO',  label:'Product Owner', reasons:[{feature:'valeurs', phrase:'Autonomie + impact → ownership'}], futureproof:{score_0_1:0.68, drivers:[{factor:'coordination',direction:'up',phrase:'Coordination humaine ↑'}]}, timeline:[], ia_plan:[]}
++  ]
++};
++
++export default function AubeResultsPage(){
++  return (
++    <main className="max-w-3xl mx-auto p-6 space-y-6">
++      <h1 className="text-xl font-semibold">Tes pistes alignées</h1>
++      <TopJobsList data={mock} />
++      <DisclaimerFooter />
++    </main>
++  );
++}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-website/components/aube/WhyPopover.tsx
++'use client';
++import { useState } from 'react';
++export default function WhyPopover(){
++  const [open,setOpen]=useState(false);
++  return (
++    <div className="relative">
++      <button onClick={()=>setOpen(!open)} className="text-sm underline">Pourquoi ?</button>
++      {open && (
++        <div className="absolute right-0 mt-2 w-80 p-3 text-sm rounded-xl border bg-white shadow">
++          Pour mieux personnaliser tes pistes. Pas de test, pas de diagnostic. Tu peux passer à tout moment. Tes réponses t'appartiennent et restent exportables.
++        </div>
++      )}
++    </div>
++  );
++}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-website/components/aube/DisclaimerFooter.tsx
++export default function DisclaimerFooter(){
++  return (
++    <footer className="text-xs opacity-70 border-t pt-3">
++      Suggestions, pas de verdicts · 0% énergie · Export possible · Besoin d’un pro ? Consulte un spécialiste.
++    </footer>
++  );
++}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: apps/phoenix-website/components/aube/TopJobsList.tsx
++export default function TopJobsList({ data }: { data: any }){
++  return (
++    <section className="space-y-3">
++      {data.recommendations?.map((job: any) => (
++        <article key={job.job_code} className="p-4 rounded-2xl border bg-white">
++          <div className="flex items-center justify-between">
++            <h3 className="font-semibold">{job.label}</h3>
++            {job.futureproof && (
++              <span className="text-sm opacity-80">Pérennité estimée {Number(job.futureproof.score_0_1).toFixed(2)}</span>
++            )}
++          </div>
++          <ul className="text-sm mt-2 list-disc pl-5">
++            {(job.reasons||[]).slice(0,2).map((r:any, i:number)=> <li key={i}>{r.phrase}</li>)}
++          </ul>
++          {job.counter_example?.phrase && (
++            <p className="text-xs mt-2">⚠️ {job.counter_example.phrase}</p>
++          )}
++        </article>
++      ))}
++    </section>
++  );
++}
++
+*** End Patch
+
+*** Begin Patch
+*** Add File: .github/workflows/ci.yml
++name: ci
++on: [push, pull_request]
++jobs:
++  backend:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with: { python-version: '3.11' }
++      - run: pip install -r requirements.txt || true
++      - run: pytest apps/phoenix-backend-unified/tests -q || true
++  frontend:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with: { node-version: '20' }
++      - run: corepack enable && pnpm i --frozen-lockfile || npm i
++      - run: pnpm build || npm run build
++
+*** End Patch
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Postman / Thunder Collection: phoenix-aube.postman_collection.json
+# Importer ce JSON dans Postman/Thunder Client, définir {{hub}} et {{token}}
+{
+  "info": {"name":"Phoenix Aube v1.1", "schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "item": [
+    {
+      "name": "Health",
+      "request": {"method":"GET","url":"{{hub}}/monitoring/health"}
+    },
+    {
+      "name": "Journal",
+      "request": {"method":"GET","url":"{{hub}}/luna/journal/{{user_id}}","header":[{"key":"Authorization","value":"Bearer {{token}}"}]}
+    },
+    {
+      "name": "Aube - Assessment Start",
+      "request": {
+        "method":"POST",
+        "url":"{{hub}}/aube/assessment/start",
+        "header":[{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\n  \"user_id\": \"11111111-1111-1111-1111-111111111111\"\n}"}
+      }
+    }
+  ],
+  "variable": [
+    {"key":"hub","value":"http://localhost:8003"},
+    {"key":"token","value":"dev"},
+    {"key":"user_id","value":"11111111-1111-1111-1111-111111111111"}
+  ]
+}

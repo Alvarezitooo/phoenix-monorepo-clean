@@ -1,0 +1,14 @@
+simple:
+  assessment.start: 0.0
+  micro_exercise: 0.0
+  journal.export: 0.0
+
+medium:
+  match.recommend: 12.0
+  futureproof.score: 15.0
+  persona.profile: 8.0
+
+advanced:
+  full_analysis: 25.0
+  custom_timeline: 20.0
+  detailed_recommendations: 18.0

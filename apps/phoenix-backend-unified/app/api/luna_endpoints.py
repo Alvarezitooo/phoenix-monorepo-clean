@@ -19,6 +19,10 @@ from app.models.journal_dto import (
 )
 from app.core.journal_service import journal_service
 from app.core.energy_preview_service import energy_preview_service
+from core.aube_matching_service import AubeMatchingService
+from core.aube_futureproof_service import AubeFutureProofService
+from core.energy_events import emit_energy_event
+from core.energy_grid import AubeEnergyManager
 
 
 # Logger structuré
@@ -821,6 +825,97 @@ async def export_journal_narratif(request: JournalExportRequest) -> JournalExpor
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur génération export: {str(e)}"
+        )
+
+
+# ============================================================================
+# PHOENIX AUBE V1.1 - ENDPOINTS CONVERSATIONNELS
+# ============================================================================
+
+# Instance singleton du gestionnaire Aube
+_aube_energy_manager = AubeEnergyManager()
+
+@router.post("/aube/assessment/start")
+async def aube_assessment_start(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Démarre une évaluation Aube conversationnelle"""
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id required")
+    
+    if not _aube_energy_manager.can_perform(user_id, action="assessment.start", tier="simple"):
+        raise HTTPException(status_code=402, detail="Insufficient energy")
+    
+    # Création événement via Event Store existant
+    await _emit_journal_event("AubeAssessmentStarted", {
+        "user_id": user_id,
+        "mode": "UL",
+        "version": "v1.1"
+    })
+    
+    return {"assessment_id": "dev-aid", "user_id": user_id, "status": "in_progress"}
+
+
+@router.post("/aube/match/recommend")
+async def aube_recommend(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Génère les recommandations métier Aube avec matching intelligent"""
+    user_id = payload.get("user_id")
+    k = int(payload.get("k", 5))
+    features = payload.get("features", {})
+    
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id required")
+    
+    if not _aube_energy_manager.can_perform(user_id, action="match.recommend", tier="medium"):
+        raise HTTPException(status_code=402, detail="Insufficient energy")
+    
+    # Service de matching avec recommandations explicables
+    try:
+        # Utiliser l'Event Store existant pour le matching service
+        from app.core.supabase_client import event_store
+        matching_service = AubeMatchingService(event_store)
+        recommendations = matching_service.recommend(user_id, features, k)
+        
+        # Émission événement énergie
+        emit_energy_event(event_store, user_id, "match.recommend", "medium", 12)
+        _aube_energy_manager.consume(user_id, action="match.recommend", tier="medium")
+        
+        return recommendations
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur génération recommandations: {str(e)}"
+        )
+
+
+@router.post("/aube/futureproof/score")
+async def aube_futureproof(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Calcule le score de pérennité future-proof pour un métier donné"""
+    user_id = payload.get("user_id")
+    job_code = payload.get("job_code")
+    
+    if not user_id or not job_code:
+        raise HTTPException(status_code=400, detail="user_id & job_code required")
+    
+    if not _aube_energy_manager.can_perform(user_id, action="futureproof.score", tier="medium"):
+        raise HTTPException(status_code=402, detail="Insufficient energy")
+    
+    try:
+        # Service futureproof avec Event Store
+        from app.core.supabase_client import event_store
+        futureproof_service = AubeFutureProofService(event_store)
+        score_result = futureproof_service.score(user_id, job_code)
+        
+        # Émission événement énergie
+        emit_energy_event(event_store, user_id, "futureproof.score", "medium", 15)
+        _aube_energy_manager.consume(user_id, action="futureproof.score", tier="medium")
+        
+        return score_result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur calcul future-proof: {str(e)}"
         )
 
 
