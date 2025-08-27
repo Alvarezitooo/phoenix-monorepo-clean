@@ -85,6 +85,7 @@ class AppSettings:
     # URLs externes
     backend_api_url: Optional[str] = field(default_factory=lambda: os.getenv("BACKEND_API_URL"))
     iris_api_url: Optional[str] = field(default_factory=lambda: os.getenv("IRIS_API_URL"))
+    luna_hub_url: Optional[str] = field(default_factory=lambda: os.getenv("LUNA_HUB_URL"))
     
     @property
     def is_production(self) -> bool:
@@ -124,6 +125,8 @@ class PhoenixLettersConfig:
                 errors.append("Configuration Supabase manquante en production")
             if not self.payment.is_configured:
                 errors.append("Configuration Stripe manquante en production")
+            if not self.app.luna_hub_url:
+                errors.append("LUNA_HUB_URL manquant en production - requis pour GeminiService")
             if self.auth.secret_token == "dev-secret-change-in-prod":
                 errors.append("Secret token de développement en production")
         

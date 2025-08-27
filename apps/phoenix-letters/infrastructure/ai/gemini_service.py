@@ -37,8 +37,11 @@ class GeminiService(IAIService):
         self.model = None
         self._is_configured = False
         
-        # Configuration Luna Hub
-        self.luna_hub_url = config.app.luna_hub_url or "http://localhost:8000"
+        # Configuration Luna Hub - fail-fast si absent
+        if not config.app.luna_hub_url:
+            raise AIServiceError("LUNA_HUB_URL manquant - configure la variable d'environnement pour le service Letters")
+        
+        self.luna_hub_url = config.app.luna_hub_url
         self.use_luna_core = True  # Utiliser Luna Core par défaut
         
         if self.api_key:
