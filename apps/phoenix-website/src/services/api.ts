@@ -62,9 +62,39 @@ const PHOENIX_SERVICES: PhoenixServices = {
   }
 };
 
-// Clé pour le localStorage
+// Clé pour le localStorage - TODO: Migrer vers HTTPOnly cookies
 const AUTH_TOKEN_KEY = 'phoenix_auth_token';
 const AUTH_USER_KEY = 'phoenix_auth_user';
+
+// Token validation et protection basique
+const isTokenValid = (token: string): boolean => {
+  if (!token || token.length < 20) return false;
+  
+  // Validation JWT basique (sans crypto complète pour perf)
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    
+    // Decode payload pour vérifier expiration
+    const payload = JSON.parse(atob(parts[1]));
+    const now = Date.now() / 1000;
+    
+    // Token expiré
+    if (payload.exp && payload.exp < now) {
+      console.warn('Token expired, removing from storage');
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.warn('Invalid token format, removing from storage');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    return false;
+  }
+};
 
 // Instance API avec auth
 class PhoenixAPI {
@@ -74,9 +104,13 @@ class PhoenixAPI {
     this.baseUrl = PHOENIX_SERVICES['luna-hub'].url;
   }
 
-  // Gestion du token
+  // Gestion du token avec validation
   private getToken(): string | null {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (token && isTokenValid(token)) {
+      return token;
+    }
+    return null;
   }
 
   private setToken(token: string): void {

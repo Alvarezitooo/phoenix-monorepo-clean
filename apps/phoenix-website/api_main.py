@@ -3,10 +3,11 @@
 Railway-compatible architecture matching CV and Letters
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import os
 from typing import Optional
 
@@ -16,14 +17,58 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - Configuration sécurisée
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+if ENVIRONMENT == "production":
+    allowed_origins = [
+        "https://phoenix-website-production.up.railway.app",
+        "https://luna-hub-backend-unified-production.up.railway.app"
+    ]
+else:
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "*"  # Dev wildcard
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=False,  # JWT Bearer seulement, pas de cookies cross-domain
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+# Security middleware production
+if ENVIRONMENT == "production":
+    app.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=["phoenix-website-production.up.railway.app", "*.up.railway.app"]
+    )
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    if ENVIRONMENT == "production":
+        # Security headers production
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self' https://luna-hub-backend-unified-production.up.railway.app; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://luna-hub-backend-unified-production.up.railway.app"
+        )
+    
+    return response
 
 # Phoenix ecosystem service URLs
 PHOENIX_SERVICES = {
