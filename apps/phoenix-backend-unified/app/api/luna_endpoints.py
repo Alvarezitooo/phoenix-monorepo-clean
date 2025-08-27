@@ -8,7 +8,6 @@ from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from pydantic import BaseModel, Field, validator
 import structlog
-import uuid
 from app.core.energy_manager import energy_manager, InsufficientEnergyError, EnergyManagerError
 from app.models.user_energy import EnergyPackType
 from app.core.security_guardian import SecurityGuardian, SecureUserIdValidator, SecureActionValidator
@@ -20,18 +19,11 @@ from app.models.journal_dto import (
 )
 from app.core.journal_service import journal_service
 from app.core.energy_preview_service import energy_preview_service
-from app.core.aube_matching_service import AubeMatchingService
-from app.core.aube_futureproof_service import AubeFutureProofService
-from app.core.energy_events import emit_energy_event
-from app.core.energy_grid import AubeEnergyManager
-from .auth_endpoints import get_current_user_dependency
+from app.core.supabase_client import event_store
 
 
 # Logger structuré
 logger = structlog.get_logger("luna_endpoints")
-
-# Dependency d'authentification pour les endpoints Aube
-CurrentUser = get_current_user_dependency()
 
 # Router Luna
 router = APIRouter(prefix="/luna", tags=["Luna Energy Management"])
@@ -830,109 +822,6 @@ async def export_journal_narratif(request: JournalExportRequest) -> JournalExpor
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur génération export: {str(e)}"
-        )
-
-
-# ============================================================================
-# PHOENIX AUBE V1.1 - ENDPOINTS CONVERSATIONNELS
-# ============================================================================
-
-# Instance singleton du gestionnaire Aube
-_aube_energy_manager = AubeEnergyManager()
-
-@router.post("/aube/assessment/start")
-async def aube_assessment_start(
-    payload: Dict[str, Any],
-    current_user = Depends(CurrentUser)
-) -> Dict[str, Any]:
-    """Démarre une évaluation Aube conversationnelle"""
-    # Utiliser l'utilisateur authentifié au lieu du payload
-    user_id = current_user["id"]
-    
-    if not _aube_energy_manager.can_perform(user_id, action="assessment.start", tier="simple"):
-        raise HTTPException(status_code=402, detail="Insufficient energy")
-    
-    # Création événement via Event Store existant
-    await _emit_journal_event("AubeAssessmentStarted", {
-        "user_id": user_id,
-        "mode": "UL",
-        "version": "v1.1"
-    })
-    
-    # Générer un ID unique pour l'assessment
-    assessment_id = str(uuid.uuid4())
-    
-    return {"assessment_id": assessment_id, "user_id": user_id, "status": "in_progress"}
-
-
-@router.post("/aube/match/recommend")
-async def aube_recommend(
-    payload: Dict[str, Any],
-    current_user = Depends(CurrentUser)
-) -> Dict[str, Any]:
-    """Génère les recommandations métier Aube avec matching intelligent"""
-    # Utiliser l'utilisateur authentifié au lieu du payload
-    user_id = current_user["id"]
-    k = int(payload.get("k", 5))
-    features = payload.get("features", {})
-    
-    # user_id est garanti par l'authentification JWT, on peut supprimer cette vérification
-    
-    if not _aube_energy_manager.can_perform(user_id, action="match.recommend", tier="medium"):
-        raise HTTPException(status_code=402, detail="Insufficient energy")
-    
-    # Service de matching avec recommandations explicables
-    try:
-        # Utiliser l'Event Store existant pour le matching service
-        from app.core.supabase_client import event_store
-        matching_service = AubeMatchingService(event_store)
-        recommendations = matching_service.recommend(user_id, features, k)
-        
-        # Émission événement énergie
-        emit_energy_event(event_store, user_id, "match.recommend", "medium", 12)
-        _aube_energy_manager.consume(user_id, action="match.recommend", tier="medium")
-        
-        return recommendations
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erreur génération recommandations: {str(e)}"
-        )
-
-
-@router.post("/aube/futureproof/score")
-async def aube_futureproof(
-    payload: Dict[str, Any],
-    current_user = Depends(CurrentUser)
-) -> Dict[str, Any]:
-    """Calcule le score de pérennité future-proof pour un métier donné"""
-    # Utiliser l'utilisateur authentifié au lieu du payload
-    user_id = current_user["id"]
-    job_code = payload.get("job_code")
-    
-    if not job_code:
-        raise HTTPException(status_code=400, detail="job_code required")
-    
-    if not _aube_energy_manager.can_perform(user_id, action="futureproof.score", tier="medium"):
-        raise HTTPException(status_code=402, detail="Insufficient energy")
-    
-    try:
-        # Service futureproof avec Event Store
-        from app.core.supabase_client import event_store
-        futureproof_service = AubeFutureProofService(event_store)
-        score_result = futureproof_service.score(user_id, job_code)
-        
-        # Émission événement énergie
-        emit_energy_event(event_store, user_id, "futureproof.score", "medium", 15)
-        _aube_energy_manager.consume(user_id, action="futureproof.score", tier="medium")
-        
-        return score_result
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erreur calcul future-proof: {str(e)}"
         )
 
 

@@ -107,8 +107,7 @@ function App() {
     setCurrentUser(user);
     setLunaEnergy(user.luna_energy || 100);
     setShowSessionZero(false);
-    // Redirect to Letters after authentication
-    setTimeout(() => redirectToService('letters'), 500);
+    // Rester sur le website après authentification - pas de redirection auto
   };
 
   // Si le journal est ouvert, afficher seulement le journal
@@ -391,7 +390,7 @@ function App() {
                 <span className="font-semibold text-indigo-700">Luna traverse tout votre parcours</span>
               </div>
               <p className="text-indigo-600">
-                🌟 Luna connecte chaque app pour enrichir votre histoire de réussite. Chaque action dans Letters enrichit votre profil CV, votre évolution Aube influence vos stratégies, et plus vous utilisez l'écosystème, plus Luna devient votre parfait partenaire.
+                🌟 Luna connecte chaque app pour enrichir votre histoire de réussite. Chaque action dans Letters enrichit votre profil CV, et plus vous utilisez l'écosystème, plus Luna devient votre parfait partenaire.
               </p>
             </div>
           </div>
@@ -423,12 +422,12 @@ function App() {
             />
             <AppCard
               icon={<Sunrise className="h-8 w-8" />}
-              title="Phoenix Aube"
+              title="Phoenix Rise"
               subtitle="avec Luna"
-              description="Luna vous guide dans votre reconversion avec ses 3 boucles d'analyse"
+              description="Votre prochaine aventure entrepreneuriale commence ici"
               status="coming-soon"
-              stats="Luna arrive bientôt"
-              lunaFeature="Luna projette votre évolution vers votre nouveau métier"
+              stats="Bientôt disponible"
+              lunaFeature="Luna vous accompagne dans votre lancement"
             />
             <AppCard
               icon={<Rocket className="h-8 w-8" />}
