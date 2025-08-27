@@ -128,6 +128,7 @@ class AppSettings:
     api_base_url: Optional[str] = field(default_factory=lambda: os.getenv("API_BASE_URL"))
     frontend_url: Optional[str] = field(default_factory=lambda: os.getenv("FRONTEND_URL"))
     webhook_base_url: Optional[str] = field(default_factory=lambda: os.getenv("WEBHOOK_BASE_URL"))
+    luna_hub_url: Optional[str] = field(default_factory=lambda: os.getenv("LUNA_HUB_URL"))
     
     # Templates et exports
     default_cv_template: str = "modern"
@@ -176,6 +177,8 @@ class PhoenixCVConfig:
                 errors.append("Configuration Supabase manquante en production")
             if not self.app.api_base_url:
                 errors.append("API_BASE_URL manquant en production")
+            if not self.app.luna_hub_url:
+                errors.append("LUNA_HUB_URL manquant en production - requis pour ChatAIService")
             if self.app.debug:
                 errors.append("Mode debug activé en production")
         

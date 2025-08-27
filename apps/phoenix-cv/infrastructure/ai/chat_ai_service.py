@@ -21,8 +21,11 @@ class ChatAIService:
     def __init__(self):
         """Initialise le service avec Luna Hub integration"""
         
-        # Configuration du Hub pour Luna Core
-        self.luna_hub_url = config.app.luna_hub_url or "http://localhost:8000"
+        # Configuration du Hub pour Luna Core - fail-fast si absent
+        if not config.app.luna_hub_url:
+            raise AIServiceError("LUNA_HUB_URL manquant - configure la variable d'environnement pour le service CV")
+        
+        self.luna_hub_url = config.app.luna_hub_url
         self.use_luna_core = True  # Utiliser Luna Core par défaut
         
         # Fallback vers Gemini local si Luna Hub indisponible
