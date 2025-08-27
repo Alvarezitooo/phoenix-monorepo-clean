@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from supabase import create_client, Client
 from app.core.security_guardian import SecurityGuardian
+from app.core.connection_manager import connection_manager
 import structlog
 from dotenv import load_dotenv
 
@@ -40,7 +41,10 @@ class SupabaseEventStore:
                 self.client = None
                 return
             
+            # Initialiser le client Supabase
             self.client = create_client(supabase_url, supabase_key)
+            self._client_initialized = True
+            
             logger.info("Supabase client initialized successfully")
             
         except Exception as e:
@@ -78,6 +82,8 @@ class SupabaseEventStore:
         🎯 ORACLE: Crée un événement immuable dans l'Event Store
         Source de vérité pour le Capital Narratif
         """
+        # 🔑 Le client est déjà initialisé dans __init__
+        
         # Security Guardian validation
         clean_user_id = SecurityGuardian.validate_user_id(user_id)
         clean_event_type = SecurityGuardian.sanitize_string(event_type, 100)
@@ -110,11 +116,18 @@ class SupabaseEventStore:
             logger.info("Event created (dev mode)", event_data=event_record)
             return event_id
         
+        # 🔄 Exécuter avec connection pooling + retry automatique
+        async def _execute_insert():
+            return self.client.table("events").insert(event_record).execute()
+        
         try:
-            result = self.client.table("events").insert(event_record).execute()
+            result = await connection_manager.execute_with_retry(
+                operation=_execute_insert,
+                operation_name="event_store_insert"
+            )
             
             logger.info(
-                "Event stored in Supabase",
+                "Event stored in Supabase with connection pooling",
                 event_id=event_id,
                 user_id=clean_user_id,
                 event_type=clean_event_type,
@@ -125,11 +138,12 @@ class SupabaseEventStore:
             
         except Exception as e:
             logger.error(
-                "Failed to store event in Supabase",
+                "Failed to store event in Supabase after retries",
                 event_id=event_id,
-                error=str(e)
+                error=str(e),
+                retry_attempts=connection_manager.config.retry_attempts
             )
-            raise Exception(f"Event Store error: {str(e)}")
+            raise Exception(f"Event Store error after retries: {str(e)}")
     
     async def get_user_events(
         self, 
@@ -147,16 +161,28 @@ class SupabaseEventStore:
             return []
         
         try:
-            query = self.client.table("events").select("*").eq("user_id", clean_user_id)
+            # Compatibilité legacy: on accepte les deux champs, en visant actor_user_id comme vérité cible
+            query = (
+                self.client.table("events")
+                .select("*")
+                .or_(f"actor_user_id.eq.{clean_user_id},user_id.eq.{clean_user_id}")
+            )
             
             if event_type:
                 clean_event_type = SecurityGuardian.sanitize_string(event_type, 100)
-                query = query.eq("event_type", clean_event_type)
+                query = query.eq("type", clean_event_type)  # Nouveau schema utilise "type"
             
-            result = query.order("created_at", desc=True).limit(limit).execute()
+            # 🔄 Exécuter avec connection pooling + retry
+            async def _execute_query():
+                return query.order("created_at", desc=True).limit(limit).execute()
+            
+            result = await connection_manager.execute_with_retry(
+                operation=_execute_query,
+                operation_name="event_store_query"
+            )
             
             logger.info(
-                "Events retrieved from Supabase",
+                "Events retrieved from Supabase with connection pooling",
                 user_id=clean_user_id,
                 count=len(result.data),
                 event_type=event_type
@@ -166,11 +192,12 @@ class SupabaseEventStore:
             
         except Exception as e:
             logger.error(
-                "Failed to retrieve events from Supabase",
+                "Failed to retrieve events from Supabase after retries",
                 user_id=clean_user_id,
-                error=str(e)
+                error=str(e),
+                retry_attempts=connection_manager.config.retry_attempts
             )
-            raise Exception(f"Event Store error: {str(e)}")
+            raise Exception(f"Event Store error after retries: {str(e)}")
     
     async def create_user_energy_record(self, user_energy_data: Dict[str, Any]) -> bool:
         """Crée ou met à jour un enregistrement d'énergie utilisateur"""

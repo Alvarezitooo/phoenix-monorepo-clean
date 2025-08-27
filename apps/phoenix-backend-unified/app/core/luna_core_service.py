@@ -11,6 +11,7 @@ import google.generativeai as genai
 from app.core.supabase_client import event_store
 from app.models.user_energy import ENERGY_COSTS
 from app.core.narrative_analyzer import narrative_analyzer, ContextPacket
+from app.core.api_key_manager import api_key_manager, KeyProvider
 import structlog
 
 logger = structlog.get_logger("luna_core")
@@ -22,12 +23,33 @@ class LunaCore:
     """
     
     def __init__(self):
-        """Initialise Luna Core avec Gemini"""
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY manquante")
+        """Initialise Luna Core avec Gemini + rotation automatique des clés"""
+        # Pas d'initialisation immédiate, on charge la clé à la demande
+        self._genai_configured = False
+        logger.info("Luna Core initialized with API key rotation support")
+    
+    async def _ensure_genai_configured(self) -> None:
+        """🔑 Configure Gemini API avec rotation automatique des clés"""
+        if self._genai_configured:
+            return
             
+        # Récupérer la clé avec métadonnées de rotation
+        api_key, key_info = await api_key_manager.get_api_key(KeyProvider.GEMINI)
+        
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY manquante ou révoquée")
+        
+        if not key_info.is_active:
+            raise ValueError(f"Gemini API key révoquée: {key_info.key_id}")
+            
+        # Configurer avec la clé vérifiée
         genai.configure(api_key=api_key)
+        self._genai_configured = True
+        
+        logger.info("Gemini API configured with key rotation",
+                   key_id=key_info.key_id,
+                   key_age_days=(datetime.now().replace(tzinfo=None) - key_info.created_at.replace(tzinfo=None)).days,
+                   rotation_count=key_info.rotation_count)
         self.model = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
             generation_config={
@@ -150,6 +172,9 @@ INSTRUCTIONS D'USAGE CONTEXTE :
             user_name: Prénom utilisateur (optionnel)
         """
         try:
+            # 0. 🔑 S'assurer que Gemini est configuré avec clé API valide
+            await self._ensure_genai_configured()
+            
             # 1. Construction du prompt unifié avec Context Packet v1.5
             core_prompt = self._build_luna_core_prompt()
             context_prompt = self._get_context_prompt(app_context)

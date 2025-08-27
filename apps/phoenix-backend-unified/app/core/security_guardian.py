@@ -51,8 +51,17 @@ class SecurityGuardian:
                 detail=f"Input too long (max {max_length} characters)"
             )
         
-        # Nettoyage HTML/XSS
-        cleaned = bleach.clean(value, tags=[], attributes={}, strip=True)
+        # 🛡️ Nettoyage HTML/XSS avec protection fail-secure
+        try:
+            cleaned = bleach.clean(value, tags=[], attributes={}, strip=True)
+        except Exception as e:
+            logger.error("String sanitization failed - blocking for security",
+                        input_length=len(value),
+                        error=str(e))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Security sanitization failed - input rejected"
+            )
         
         # Détection SQL injection
         for pattern in SecurityGuardian.SQL_INJECTION_PATTERNS:

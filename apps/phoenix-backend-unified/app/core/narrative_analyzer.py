@@ -476,3 +476,15 @@ class NarrativeAnalyzer:
 
 # Instance globale
 narrative_analyzer = NarrativeAnalyzer()
+
+# 🚀 OPTIMISATION HOOK: Import de la version optimisée
+try:
+    from app.core.narrative_analyzer_optimized import narrative_analyzer_optimized
+    
+    # Remplacer l'instance globale par la version optimisée
+    narrative_analyzer = narrative_analyzer_optimized
+    
+    logger.info("🚀 Narrative Analyzer OPTIMIZED activé - Performance améliorée")
+    
+except ImportError:
+    logger.warning("Version optimisée non disponible, utilisation de la version standard")
