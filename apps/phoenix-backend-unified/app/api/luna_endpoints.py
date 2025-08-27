@@ -19,10 +19,10 @@ from app.models.journal_dto import (
 )
 from app.core.journal_service import journal_service
 from app.core.energy_preview_service import energy_preview_service
-from core.aube_matching_service import AubeMatchingService
-from core.aube_futureproof_service import AubeFutureProofService
-from core.energy_events import emit_energy_event
-from core.energy_grid import AubeEnergyManager
+from app.core.aube_matching_service import AubeMatchingService
+from app.core.aube_futureproof_service import AubeFutureProofService
+from app.core.energy_events import emit_energy_event
+from app.core.energy_grid import AubeEnergyManager
 
 
 # Logger structuré
