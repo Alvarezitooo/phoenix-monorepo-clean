@@ -74,7 +74,7 @@ def verify_jwt_token(token: str) -> Optional[Dict[str, Any]]:
             return None
             
         return payload
-    except jwt.InvalidTokenError:
+    except (JWTError, Exception):
         return None
 
 def extract_user_from_token(token: str) -> Optional[Dict[str, Any]]:

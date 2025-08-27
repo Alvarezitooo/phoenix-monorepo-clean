@@ -94,7 +94,7 @@ class JournalService:
         # 1. User Profile
         journal_user = JournalUser(
             id=user_id,
-            first_name=context_packet.user.first_name if hasattr(context_packet.user, 'first_name') else "Utilisateur",
+            first_name="Utilisateur",  # UserMeta n'a pas de first_name
             plan="unlimited" if context_packet.user.plan == "unlimited" else "standard"
         )
         

@@ -87,20 +87,22 @@ class SupabaseEventStore:
         
         event_id = str(uuid.uuid4())
         
+        # Nouveau schéma events: type, occurred_at, actor_user_id, payload, meta
         event_record = {
-            "event_id": event_id,
-            "user_id": clean_user_id,
-            "event_type": clean_event_type,
-            "app_source": clean_app_source,
-            "event_data": clean_event_data,
-            "metadata": {
+            "id": event_id,
+            "type": clean_event_type,  # "type" au lieu de "event_type"
+            "occurred_at": datetime.now(timezone.utc).isoformat(),
+            "actor_user_id": clean_user_id,
+            "payload": {
+                **clean_event_data,
+                "app_source": clean_app_source
+            },
+            "meta": {
                 **clean_metadata,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "luna_version": "1.0.0",
                 "source": "luna_hub"
-            },
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "processed": False
+            }
         }
         
         if self.client is None:
