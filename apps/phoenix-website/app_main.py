@@ -5,7 +5,7 @@ FastAPI + React SPA avec sécurité enterprise
 
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, FileResponse
