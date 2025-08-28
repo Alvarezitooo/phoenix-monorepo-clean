@@ -125,15 +125,16 @@ def setup_letters_routes(main_app: FastAPI):
                 "features": ["letter_generation", "career_transition", "luna_integration"]
             }
         
-    except ImportError as e:
-        logger.warning(f"Could not import Letters routes: {e}")
+    except Exception as e:  # Catch ALL errors, not just ImportError
+        logger.error(f"CRITICAL: Could not setup Letters routes: {e}")
         
         @main_app.get("/api/health")
         def api_fallback():
             return {
                 "service": "phoenix-letters-api", 
-                "status": "unavailable",
-                "error": str(e)
+                "status": "routes_unavailable", 
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
             }
 
 # Configuration des routes

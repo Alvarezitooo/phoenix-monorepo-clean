@@ -43,15 +43,16 @@ def setup_api_routes(main_app: FastAPI):
                 "features": ["mirror_match", "cv_optimization", "ats_analysis"]
             }
         
-    except ImportError as e:
-        logger.warning(f"Could not import API routes: {e}")
+    except Exception as e:  # Catch ALL errors, not just ImportError
+        logger.error(f"CRITICAL: Could not setup CV routes: {e}")
         
         @main_app.get("/api/health")
         def api_fallback():
             return {
                 "service": "phoenix-cv-api", 
-                "status": "unavailable",
-                "error": str(e)
+                "status": "routes_unavailable",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
             }
     
     # Routes internes - simples endpoints
