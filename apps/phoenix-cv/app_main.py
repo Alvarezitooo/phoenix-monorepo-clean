@@ -169,6 +169,50 @@ app.add_middleware(
 # Configuration des routes au lieu du montage d'apps
 setup_api_routes(app)
 
+# ====== HEALTH ENDPOINTS GLOBAUX (AVANT FALLBACK SPA) ======
+
+@app.get("/health")
+async def global_health():
+    """Health check global de l'aggrégateur CV"""
+    return {
+        "service": "phoenix-cv-aggregator",
+        "status": "ok", 
+        "timestamp": datetime.now().isoformat(),
+        "components": {
+            "api_business": "mounted_at_/api", 
+            "internal_routes": "mounted_at_/internal",
+            "frontend_spa": "served" if Path(__file__).parent.joinpath("front-end/dist").exists() else "not_built"
+        },
+        "environment": ENVIRONMENT
+    }
+
+@app.get("/monitoring/health")  
+async def monitoring_health():
+    """Health check détaillé pour monitoring Railway"""
+    
+    # Test des composants
+    api_status = "ok"  # Routes montées localement
+    frontend_dist = Path(__file__).parent / "front-end" / "dist"
+    frontend_status = "ok" if frontend_dist.exists() else "missing"
+    
+    all_healthy = all([
+        api_status == "ok",
+        frontend_status in ["ok", "missing"]  # Frontend optionnel
+    ])
+    
+    return {
+        "status": "healthy" if all_healthy else "degraded", 
+        "timestamp": datetime.now().isoformat(),
+        "checks": {
+            "api_business": api_status,
+            "internal_routes": "ok",
+            "frontend_spa": frontend_status,
+            "cors_configured": True,
+            "environment": ENVIRONMENT
+        },
+        "message": "Phoenix CV Aggregator health check"
+    }
+
 # ====== FRONTEND SPA SERVING ======
 
 frontend_dist = Path(__file__).parent / "front-end" / "dist"
@@ -227,56 +271,6 @@ else:
             "message": "Frontend build not found - API endpoints available"
         }
 
-# ====== HEALTH ENDPOINTS GLOBAUX ======
-
-@app.get("/health")
-async def global_health():
-    """Health check global de l'aggrégateur"""
-    return {
-        "service": "phoenix-cv-aggregator",
-        "status": "ok", 
-        "timestamp": datetime.now().isoformat(),
-        "components": {
-            "api_business": "mounted_at_/api",
-            "api_internal": "mounted_at_/internal", 
-            "frontend_spa": "served" if frontend_dist.exists() else "not_built"
-        },
-        "environment": ENVIRONMENT
-    }
-
-@app.get("/monitoring/health")  
-async def monitoring_health():
-    """Health check détaillé pour monitoring Railway"""
-    
-    # Test de connectivité des sous-apps
-    api_status = "ok"  # api_app est monté localement
-    internal_status = "ok"  # backend_app est monté localement
-    
-    # Vérification frontend
-    frontend_status = "ok" if frontend_dist.exists() else "missing"
-    
-    all_healthy = all([
-        api_status == "ok",
-        internal_status == "ok", 
-        frontend_status in ["ok", "missing"]  # Frontend optionnel
-    ])
-    
-    return {
-        "status": "healthy" if all_healthy else "degraded",
-        "timestamp": datetime.now().isoformat(),
-        "checks": {
-            "api_business": api_status,
-            "api_internal": internal_status,
-            "frontend_spa": frontend_status,
-            "cors_configured": True,
-            "routes_mounted": True
-        },
-        "version": "1.0.0",
-        "uptime_info": {
-            "port": PORT,
-            "environment": ENVIRONMENT
-        }
-    }
 
 # ====== MAIN EXECUTION ======
 

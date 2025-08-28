@@ -140,6 +140,52 @@ def setup_letters_routes(main_app: FastAPI):
 # Configuration des routes
 setup_letters_routes(app)
 
+# ====== HEALTH ENDPOINTS GLOBAUX (AVANT FALLBACK SPA) ======
+
+@app.get("/health")
+async def global_health():
+    """Health check global de l'aggrégateur"""
+    return {
+        "service": "phoenix-letters-aggregator",
+        "status": "ok", 
+        "timestamp": datetime.now().isoformat(),
+        "components": {
+            "api_business": "mounted_at_/api",
+            "frontend_spa": "served" if Path(__file__).parent.joinpath("frontend/project/dist").exists() else "not_built"
+        },
+        "environment": ENVIRONMENT
+    }
+
+@app.get("/monitoring/health")  
+async def monitoring_health():
+    """Health check détaillé pour monitoring Railway"""
+    
+    # Test des composants
+    api_status = "ok"  # Routes montées localement
+    frontend_dist = Path(__file__).parent / "frontend" / "project" / "dist"
+    frontend_status = "ok" if frontend_dist.exists() else "missing"
+    
+    # Vérification Luna Hub (optionnel pour health)
+    luna_status = "unknown"  # Ne pas bloquer le health check
+    
+    all_healthy = all([
+        api_status == "ok",
+        frontend_status in ["ok", "missing"]  # Frontend optionnel
+    ])
+    
+    return {
+        "status": "healthy" if all_healthy else "degraded",
+        "timestamp": datetime.now().isoformat(),
+        "checks": {
+            "api_business": api_status,
+            "frontend_spa": frontend_status,
+            "luna_hub_connection": luna_status,
+            "cors_configured": True,
+            "environment": ENVIRONMENT
+        },
+        "message": "Phoenix Letters Aggregator health check"
+    }
+
 # ====== FRONTEND SPA SERVING ======
 
 frontend_dist = Path(__file__).parent / "frontend" / "project" / "dist"
@@ -197,55 +243,6 @@ else:
             "message": "Frontend build not found - API endpoints available"
         }
 
-# ====== HEALTH ENDPOINTS GLOBAUX ======
-
-@app.get("/health")
-async def global_health():
-    """Health check global de l'aggrégateur"""
-    return {
-        "service": "phoenix-letters-aggregator",
-        "status": "ok", 
-        "timestamp": datetime.now().isoformat(),
-        "components": {
-            "api_business": "mounted_at_/api",
-            "frontend_spa": "served" if frontend_dist.exists() else "not_built"
-        },
-        "environment": ENVIRONMENT
-    }
-
-@app.get("/monitoring/health")  
-async def monitoring_health():
-    """Health check détaillé pour monitoring Railway"""
-    
-    # Test des composants
-    api_status = "ok"  # Routes montées localement
-    frontend_status = "ok" if frontend_dist.exists() else "missing"
-    
-    # Vérification Luna Hub (optionnel pour health)
-    luna_status = "unknown"  # Ne pas bloquer le health check
-    
-    all_healthy = all([
-        api_status == "ok",
-        frontend_status in ["ok", "missing"]  # Frontend optionnel
-    ])
-    
-    return {
-        "status": "healthy" if all_healthy else "degraded",
-        "timestamp": datetime.now().isoformat(),
-        "checks": {
-            "api_business": api_status,
-            "frontend_spa": frontend_status,
-            "luna_hub_connection": luna_status,
-            "cors_configured": True,
-            "routes_mounted": True
-        },
-        "version": "1.0.0",
-        "uptime_info": {
-            "port": PORT,
-            "environment": ENVIRONMENT,
-            "cors_origins": len(allowed_origins)
-        }
-    }
 
 # ====== DIRECTIVES ORACLE COMPLIANCE ======
 
