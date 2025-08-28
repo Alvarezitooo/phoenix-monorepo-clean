@@ -14,9 +14,21 @@ export default function LunaEnergyGauge({ energy, hasFirstPurchaseBonus = false 
   };
 
   const getEnergyMessage = (energy: number) => {
-    if (energy >= 70) return 'Prête pour votre transformation';
-    if (energy >= 40) return 'Encore de belles sessions ensemble';
-    return 'Rechargeons notre énergie';
+    if (energy >= 90) return '🔥 Énergie de titan - Tout est possible !';
+    if (energy >= 70) return '✨ Prête pour votre transformation majeure';
+    if (energy >= 50) return '💫 Belle énergie pour nos explorations';
+    if (energy >= 30) return '🌅 Encore de belles sessions ensemble';
+    if (energy >= 10) return '🌙 Rechargeons notre énergie créative';
+    return '⚡ Pause Luna - Votre prochain pack vous attend';
+  };
+
+  const getEnergyEmoji = (energy: number) => {
+    if (energy >= 90) return '🔥';
+    if (energy >= 70) return '✨'; 
+    if (energy >= 50) return '💫';
+    if (energy >= 30) return '🌅';
+    if (energy >= 10) return '🌙';
+    return '⚡';
   };
 
   return (

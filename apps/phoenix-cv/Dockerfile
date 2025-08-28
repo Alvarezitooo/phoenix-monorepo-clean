@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONPATH=/app \
-    PORT=8002
+    PORT=8080
 
 WORKDIR /app
 
@@ -37,6 +37,7 @@ COPY shared ./shared
 COPY api_main.py ./api_main.py
 COPY main.py ./main.py
 COPY backend_api_main.py ./backend_api_main.py
+COPY app_main.py ./app_main.py
 
 # Build frontend
 WORKDIR /app/front-end
@@ -69,5 +70,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 EXPOSE ${PORT}
 
-# Railway-compatible command - Use Python entry point for consistency
-CMD ["python", "api_main.py"]
+# Railway-compatible command - Use unified entry point for consistency
+CMD ["python", "app_main.py"]

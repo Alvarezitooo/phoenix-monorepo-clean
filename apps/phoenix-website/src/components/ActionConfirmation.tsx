@@ -42,10 +42,29 @@ export default function ActionConfirmation({
 
         <div className="mb-6">
           <p className="text-slate-700 mb-4">
-            "Cette <strong>{actionName}</strong> est l'une de mes spécialités. 
-            Elle utilisera <strong>{energyCost}%</strong> de votre énergie restante. 
-            Commençons cette exploration ensemble ! ✨"
+            "Cette <strong>{actionName}</strong> est l'une de mes spécialités préférées ! ✨
+            <br />
+            <span className="text-indigo-600 font-medium">Investissement énergétique : <strong>{energyCost}%</strong></span>
+            <br />
+            Ensemble, nous allons transformer cette intention en résultat concret."
           </p>
+          
+          {/* Visualisation de l'investissement */}
+          <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-200 rounded-lg p-3 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-indigo-700">Votre investissement Luna</span>
+              <span className="text-lg font-bold text-indigo-600">{energyCost}%</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${energyCost}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-slate-600 mt-2 italic">
+              Cet investissement alimente votre Capital Narratif personnel
+            </p>
+          </div>
 
           <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 border border-indigo-200">
             <div className="flex items-center justify-between text-sm">
