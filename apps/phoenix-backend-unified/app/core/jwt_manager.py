@@ -3,7 +3,7 @@
 Phoenix Backend Unified - Security & Token Handling
 """
 
-from jose import jwt
+from jose import jwt, JWTError
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any

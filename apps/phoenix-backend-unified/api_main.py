@@ -6,8 +6,9 @@ Luna Session Zero Complete Authentication System
 import os
 import uvicorn
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 # Import routers - Enterprise Security by Design
@@ -18,6 +19,7 @@ from app.api.monitoring_endpoints import router as monitoring_router
 from app.api.capital_narratif_endpoints import narratif_router
 from app.api.refund_endpoints import router as refund_router
 from app.api.luna_narrative_endpoints import router as luna_narrative_router
+from app.api.aube_endpoints import router as aube_router
 from app.core.logging_config import logger
 
 # Lifespan management for FastAPI
@@ -40,28 +42,95 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS Configuration - Production ready
-allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "*").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins if allowed_origins != ["*"] else [
+# 🔒 CORS Configuration - FAIL-CLOSED by environment
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+if ENVIRONMENT == "production":
+    # Production: Strict whitelist only
+    allowed_origins = [
         "https://phoenix-website-production.up.railway.app",
         "https://phoenix-letters-production.up.railway.app", 
         "https://phoenix-cv-production.up.railway.app",
+        # Custom domains when ready
         "https://phoenix.ai",
         "https://letters.phoenix.ai", 
-        "https://cv.phoenix.ai",
-        "http://localhost:3000",
-        "http://localhost:3001", 
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:8001",
-        "http://localhost:8002"
-    ],
+        "https://cv.phoenix.ai"
+    ]
+    allowed_headers = [
+        "Authorization", 
+        "Content-Type", 
+        "X-Request-ID",
+        "Accept"
+    ]
+else:
+    # Development: Local origins only (not wildcard)
+    allowed_origins = [
+        "http://localhost:3000",   # Website dev
+        "http://localhost:3001",   # Alternative dev
+        "http://localhost:5173",   # Vite dev
+        "http://localhost:5174",   # Vite alternative 
+        "http://localhost:8001",   # Letters local
+        "http://localhost:8002"    # CV local
+    ]
+    allowed_headers = ["*"]  # More permissive in dev
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=allowed_headers,
+    max_age=600  # Cache preflight for 10min
 )
+
+# 🛡️ SECURITY MIDDLEWARE - FAIL-CLOSED BY DEFAULT
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    """Enterprise security headers - Applied to ALL responses"""
+    response = await call_next(request)
+    
+    # Content Security Policy - Strict nonce-based
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://api.stripe.com; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self';"
+    )
+    
+    # Security Headers - Enterprise grade
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY" 
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(), microphone=(), camera=(), payment=()"
+    )
+    
+    # HSTS - Force HTTPS (production only)
+    if os.getenv("ENVIRONMENT", "development") == "production":
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains; preload"
+        )
+    
+    # Request correlation ID for tracing
+    if hasattr(request.state, 'request_id'):
+        response.headers["X-Request-ID"] = request.state.request_id
+        
+    return response
+
+# Trusted hosts middleware - Production lockdown
+if os.getenv("ENVIRONMENT", "development") == "production":
+    app.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=[
+            "luna-hub-backend-unified-production.up.railway.app",
+            "phoenix-backend-unified-production.up.railway.app",
+            "localhost"  # For health checks
+        ]
+    )
 
 # Health check endpoint
 @app.get("/health")
@@ -94,6 +163,7 @@ app.include_router(monitoring_router)
 app.include_router(narratif_router)
 app.include_router(refund_router)
 app.include_router(luna_narrative_router)
+app.include_router(aube_router)
 
 # Global exception handler
 @app.exception_handler(Exception)

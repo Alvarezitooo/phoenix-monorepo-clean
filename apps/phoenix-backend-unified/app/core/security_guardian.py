@@ -243,10 +243,13 @@ async def ensure_request_is_clean(request: Request) -> None:
         # Re-raise HTTPException (voulues)
         raise
     except Exception as e:
-        # FAIL-OPEN: En cas d'erreur Guardian → laisser passer + log
-        logger.warning("Security Guardian fail-open - unexpected error",
-                      path=request.url.path,
-                      method=request.method,
-                      error=str(e),
-                      guardian_status="fail_open")
-        return  # Laisser passer
+        # 🛡️ FAIL-SECURE: En cas d'erreur Guardian → BLOQUER par sécurité
+        logger.error("Security Guardian fail-secure - blocking request due to validation error",
+                    path=request.url.path,
+                    method=request.method,
+                    error=str(e),
+                    guardian_status="fail_secure_blocked")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Security validation error - request blocked for safety"
+        )

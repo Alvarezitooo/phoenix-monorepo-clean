@@ -57,3 +57,8 @@ class NarrativeStartOut(BaseModel):
     narrative_id: str = Field(..., description="Generated narrative journey ID")
     status: str = Field(default="started", description="Narrative status")
     energy_granted: int = Field(default=100, description="Energy granted for starting the journey")
+
+class LoginRequest(BaseModel):
+    """Login request payload"""
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., min_length=1, max_length=128, description="User password")

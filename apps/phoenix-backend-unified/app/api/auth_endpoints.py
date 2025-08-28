@@ -3,15 +3,16 @@
 Phoenix Backend Unified - Registration & Login
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status, Header, Request
+from fastapi import APIRouter, HTTPException, Depends, status, Header, Request, Response
 from fastapi.responses import JSONResponse
+import os
 from typing import Optional, List
 import uuid
 from datetime import datetime, timezone
 import logging
 
 # Internal imports
-from ..models.auth import UserRegistrationIn, UserRegistrationOut, User
+from ..models.auth import UserRegistrationIn, UserRegistrationOut, User, LoginRequest
 from ..core.jwt_manager import hash_password, verify_password, create_jwt_token, get_bearer_token, extract_user_from_token
 from ..core.refresh_token_manager import refresh_manager
 from ..core.rate_limiter import rate_limiter, RateLimitScope, RateLimitResult
@@ -530,23 +531,34 @@ async def get_user_by_id(user_id: str) -> Optional[dict]:
 
 def get_current_user_dependency():
     """
-    Dependency to get current authenticated user
-    Can be used with Depends() in other endpoints
+    🔐 Dependency to get current authenticated user
+    DUAL AUTH: Authorization header OR HTTPOnly cookie
     """
-    async def _get_current_user(authorization: Optional[str] = Header(None)):
-        if not authorization:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authorization header required"
-            )
+    async def _get_current_user(
+        request: Request,
+        authorization: Optional[str] = Header(None)
+    ):
+        token = None
+        auth_source = None
         
-        token = get_bearer_token(authorization)
+        # 1️⃣ Try Authorization header first (backward compatibility)
+        if authorization:
+            token = get_bearer_token(authorization)
+            auth_source = "header"
+        
+        # 2️⃣ Fallback to HTTPOnly cookie if no header
+        if not token:
+            token = request.cookies.get("phoenix_session")
+            auth_source = "cookie"
+        
+        # 🚨 No authentication found
         if not token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authorization format"
+                detail="Authentication required (header or secure cookie)"
             )
         
+        # Validate token (same validation for both sources)
         user_data = extract_user_from_token(token)
         if not user_data:
             raise HTTPException(
@@ -554,6 +566,7 @@ def get_current_user_dependency():
                 detail="Invalid or expired token"
             )
         
+        # Get user from database
         user = await get_user_by_id(user_data["id"])
         if not user:
             raise HTTPException(
@@ -561,6 +574,111 @@ def get_current_user_dependency():
                 detail="User not found"
             )
         
+        # Add auth metadata for logging/debugging
+        user["_auth_source"] = auth_source
+        
         return user
     
     return _get_current_user
+
+# 🍪 HTTPOnly COOKIES SECURITY ENDPOINTS
+
+@router.post("/secure-session", status_code=status.HTTP_200_OK)
+async def set_secure_session(
+    credentials: LoginRequest,
+    response: Response,
+    _: None = Depends(ensure_request_is_clean)
+):
+    """
+    🔐 Set HTTPOnly secure session - REPLACES localStorage JWT
+    
+    This endpoint:
+    1. Validates credentials (same as /login)
+    2. Sets HTTPOnly cookie with JWT
+    3. Returns user info only (NO JWT in response body)
+    """
+    try:
+        # Reuse existing login logic
+        login_result = await login_user(credentials)
+        
+        # Extract JWT and user from login result
+        access_token = login_result["access_token"]
+        user_data = login_result["user"]
+        
+        # Set HTTPOnly cookie - SECURE by default
+        cookie_secure = os.getenv("ENVIRONMENT", "development") == "production"
+        response.set_cookie(
+            key="phoenix_session",
+            value=access_token,
+            httponly=True,          # 🛡️ Prevents XSS access
+            secure=cookie_secure,   # 🛡️ HTTPS only in production
+            samesite="strict",      # 🛡️ CSRF protection
+            max_age=3600 * 24 * 7,  # 7 days
+            path="/"
+        )
+        
+        # Log security event
+        logger.info(f"Secure session established for user {user_data['id']}")
+        
+        # Return user data ONLY (no JWT in body)
+        return {
+            "success": True,
+            "user": user_data,
+            "session_type": "httponly_secure"
+        }
+        
+    except Exception as e:
+        logger.error(f"Secure session error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
+        )
+
+@router.post("/logout-secure")
+async def logout_secure_session(
+    response: Response,
+    current_user: dict = Depends(get_current_user_dependency())
+):
+    """
+    🔐 Logout secure session - Clears HTTPOnly cookie
+    """
+    try:
+        # Clear the HTTPOnly cookie
+        response.delete_cookie(
+            key="phoenix_session",
+            path="/",
+            secure=os.getenv("ENVIRONMENT", "development") == "production",
+            samesite="strict"
+        )
+        
+        logger.info(f"Secure session cleared for user {current_user.get('id', 'unknown')}")
+        
+        return {
+            "success": True,
+            "message": "Session cleared securely"
+        }
+        
+    except Exception as e:
+        logger.error(f"Secure logout error: {str(e)}")
+        return {
+            "success": True,  # Always succeed logout for security
+            "message": "Session cleared"
+        }
+
+@router.get("/session-status")
+async def check_session_status(
+    request: Request,
+    current_user: dict = Depends(get_current_user_dependency())
+):
+    """
+    🔐 Check current session status - For frontend validation
+    """
+    # Check if cookie exists
+    has_cookie = "phoenix_session" in request.cookies
+    
+    return {
+        "authenticated": True,  # If we reach here, JWT is valid
+        "user": current_user,
+        "session_type": "httponly" if has_cookie else "bearer",
+        "secure": True
+    }
