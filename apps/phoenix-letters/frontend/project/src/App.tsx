@@ -34,12 +34,26 @@ function App() {
           });
         } catch (error) {
           console.error('Auth failed:', error);
-          // Redirect to login if authentication fails
-          authService.redirectToLogin();
+          // MODE DÉMO: Créer utilisateur démo au lieu de rediriger
+          console.log('🎭 MODE DÉMO: Creating demo user');
+          setUser({
+            id: 'demo-user-' + Date.now(),
+            name: 'Utilisateur Démo',
+            email: 'demo@phoenix-letters.com',
+            subscription: 'free',
+            createdAt: new Date(),
+          });
         }
       } else {
-        // Not authenticated, redirect to login
-        authService.redirectToLogin();
+        // MODE DÉMO: Créer utilisateur démo au lieu de rediriger
+        console.log('🎭 MODE DÉMO: No auth, creating demo user');
+        setUser({
+          id: 'demo-user-' + Date.now(),
+          name: 'Utilisateur Démo',
+          email: 'demo@phoenix-letters.com', 
+          subscription: 'free',
+          createdAt: new Date(),
+        });
       }
     };
     
