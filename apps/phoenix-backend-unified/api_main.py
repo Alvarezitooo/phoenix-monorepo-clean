@@ -44,8 +44,14 @@ app = FastAPI(
 
 # 🔒 CORS Configuration - FAIL-CLOSED by environment
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+# Détection production par URL Railway
+is_production = (
+    ENVIRONMENT == "production" or 
+    "railway.app" in os.getenv("RAILWAY_STATIC_URL", "") or
+    "railway.app" in os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+)
 
-if ENVIRONMENT == "production":
+if is_production:
     # Production: Strict whitelist only
     allowed_origins = [
         "https://phoenix-website-production.up.railway.app",
@@ -60,7 +66,9 @@ if ENVIRONMENT == "production":
         "Authorization", 
         "Content-Type", 
         "X-Request-ID",
-        "Accept"
+        "Accept",
+        "Origin",
+        "X-Requested-With"
     ]
 else:
     # Development: Local origins only (not wildcard)
@@ -110,7 +118,7 @@ async def security_headers_middleware(request: Request, call_next):
     )
     
     # HSTS - Force HTTPS (production only)
-    if os.getenv("ENVIRONMENT", "development") == "production":
+    if is_production:
         response.headers["Strict-Transport-Security"] = (
             "max-age=31536000; includeSubDomains; preload"
         )
@@ -121,8 +129,8 @@ async def security_headers_middleware(request: Request, call_next):
         
     return response
 
-# Trusted hosts middleware - Production lockdown
-if os.getenv("ENVIRONMENT", "development") == "production":
+# Trusted hosts middleware - Production lockdown  
+if is_production:
     app.add_middleware(
         TrustedHostMiddleware, 
         allowed_hosts=[
