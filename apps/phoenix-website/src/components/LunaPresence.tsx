@@ -58,7 +58,7 @@ export function LunaPresence({ onClick }: LunaPresenceProps) {
         {/* Tooltip */}
         <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
           <div className="whitespace-nowrap rounded-lg bg-black/80 px-3 py-2 text-sm text-white shadow-lg">
-            Découvrir Luna IA
+            Parler avec Luna 🌙
             <div className="absolute top-full right-4 h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/80"></div>
           </div>
         </div>

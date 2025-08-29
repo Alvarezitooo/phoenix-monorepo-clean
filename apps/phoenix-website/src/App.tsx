@@ -42,7 +42,6 @@ import { LunaPresence } from './components/LunaPresence';
 import { LunaModal } from './components/LunaModalV2';
 import { LunaSessionZero } from './components/LunaSessionZero';
 import LunaChat from './components/LunaChat';
-import LunaChatButton from './components/LunaChatButton';
 import { redirectToService, api } from './services/api';
 import type { User } from './services/api';
 import JournalPage from './components/journal/JournalPage';
@@ -693,7 +692,16 @@ function App() {
       />
 
       {/* Luna Presence + Modal */}
-      <LunaPresence onClick={() => openLunaModal('welcome')} />
+      <LunaPresence onClick={() => {
+        if (!currentUser) {
+          // Si pas connecté, ouvrir la connexion
+          openLunaModal('welcome');
+        } else {
+          // Si connecté, ouvrir Luna Chat
+          setShowLunaChat(true);
+          setIsLunaChatMinimized(false);
+        }
+      }} />
       <LunaModal isOpen={showLunaModal} onClose={() => setShowLunaModal(false)} />
       
       {/* Luna Session Zero */}
@@ -704,22 +712,6 @@ function App() {
         initialMode={sessionZeroMode}
       />
       
-      {/* 🌙 Luna Chat System */}
-      <LunaChatButton 
-        onClick={() => {
-          if (!currentUser) {
-            // Si pas connecté, ouvrir la connexion
-            setSessionZeroMode('welcome');
-            setShowSessionZero(true);
-          } else {
-            // Si connecté, ouvrir le chat
-            setShowLunaChat(true);
-            setIsLunaChatMinimized(false);
-          }
-        }}
-        isAuthenticated={!!currentUser}
-        hasUnreadMessages={false}
-      />
       
       <LunaChat
         isOpen={showLunaChat}
