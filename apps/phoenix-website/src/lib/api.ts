@@ -47,6 +47,30 @@ export interface PurchaseHistory {
   purchases: Purchase[];
 }
 
+// 🌙 Luna Chat Types
+export interface LunaChatRequest {
+  user_id: string;
+  message: string;
+  app_context?: string;
+  user_name?: string;
+}
+
+export interface LunaChatResponse {
+  success: boolean;
+  message: string;
+  context: string;
+  energy_consumed: number;
+  type: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'luna';
+  message: string;
+  timestamp: Date;
+  energy_cost?: number;
+}
+
 export interface Purchase {
   event_id: string;
   date: string;
@@ -336,6 +360,15 @@ export class LunaAPI {
   
   async billingHealthCheck() {
     return this.request('/billing/health', {}, false);
+  }
+  
+  // ====== LUNA CHAT ENDPOINTS ======
+  
+  async sendLunaMessage(request: LunaChatRequest): Promise<LunaChatResponse> {
+    return this.request<LunaChatResponse>('/luna/chat/send-message', {
+      method: 'POST',
+      body: JSON.stringify(request)
+    });
   }
 }
 

@@ -221,7 +221,10 @@ Génère une réponse personnalisée Luna qui :
             logger.error("Luna Core generation error", user_id=user_id, error=str(e))
             return {
                 "success": False,
-                "message": "🌙 J'ai rencontré un problème technique. Réessaie dans quelques instants !"
+                "message": "🌙 J'ai rencontré un problème technique. Réessaie dans quelques instants !",
+                "context": app_context,
+                "energy_consumed": 0,
+                "type": "error"
             }
 
 # Instance globale (lazy initialization)
