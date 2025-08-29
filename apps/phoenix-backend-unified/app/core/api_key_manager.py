@@ -73,7 +73,7 @@ class APIKeyManager:
         """🔍 Récupère la clé depuis les variables d'environnement"""
         env_vars = {
             KeyProvider.SUPABASE: "SUPABASE_SERVICE_KEY",
-            KeyProvider.GEMINI: "GEMINI_API_KEY",
+            KeyProvider.GEMINI: "GOOGLE_API_KEY",
             KeyProvider.STRIPE: "STRIPE_SECRET_KEY", 
             KeyProvider.RAILWAY: "RAILWAY_TOKEN"
         }

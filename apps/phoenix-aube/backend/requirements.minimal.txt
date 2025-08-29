@@ -1,0 +1,5 @@
+# Phoenix Aube Backend - Minimal Requirements
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.6.0
+structlog>=23.2.0

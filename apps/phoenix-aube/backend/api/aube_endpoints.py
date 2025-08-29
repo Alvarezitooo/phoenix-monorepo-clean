@@ -10,12 +10,12 @@ from pydantic import BaseModel, Field
 import structlog
 from datetime import datetime, timezone
 
-from backend.models.aube_models import (
-    AubeSignals, AubeAssessmentRequest, AubeAssessmentResponse,
-    AubeCareerMatch, AubePersonalityProfile, AubeRecommendation
+from models.aube_models import (
+    AubeSignals, AubeRecommendation, AubeAssessmentRequest, AubeAssessmentResponse,
+    AubeCareerMatch, AubePersonalityProfile
 )
-from backend.core.aube_matching_service import AubeMatchingService
-from backend.core.security import validate_user_id, ensure_request_is_clean
+from core.aube_matching_service import AubeMatchingService
+from core.security import validate_user_id, ensure_request_is_clean
 
 # Logger structuré
 logger = structlog.get_logger("aube_endpoints")

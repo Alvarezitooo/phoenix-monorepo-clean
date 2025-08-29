@@ -150,6 +150,48 @@ class AubeAssessmentResult(BaseModel):
         description="Algorithm version, disclaimers, export info"
     )
 
+class AubeAssessmentRequest(BaseModel):
+    """
+    Requête d'évaluation psychologique complète
+    """
+    user_id: str = Field(..., description="ID de l'utilisateur", min_length=1, max_length=50)
+    signals: AubeSignals = Field(..., description="Signaux collectés")
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Contexte utilisateur")
+
+class AubePersonalityProfile(BaseModel):
+    """
+    Profil psychologique généré
+    """
+    people_orientation: int = Field(..., description="Orientation people (0-100)")
+    data_orientation: int = Field(..., description="Orientation data (0-100)")
+    creativity: int = Field(..., description="Niveau créativité (0-100)")
+    leadership: int = Field(..., description="Leadership (0-100)")
+    adaptability: int = Field(..., description="Adaptabilité (0-100)")
+
+class AubeCareerMatch(BaseModel):
+    """
+    Match métier avec score
+    """
+    job_code: str = Field(..., description="Code métier")
+    title: str = Field(..., description="Titre du métier")
+    compatibility: int = Field(..., description="Score compatibilité (0-100)")
+    sector: str = Field(..., description="Secteur")
+    skills: List[str] = Field(..., description="Compétences requises")
+    salary_range: Optional[str] = Field(None, description="Fourchette salaire")
+
+class AubeAssessmentResponse(BaseModel):
+    """
+    Réponse complète de l'assessment
+    """
+    success: bool
+    user_id: str
+    assessment_id: str
+    personality_profile: AubePersonalityProfile
+    career_matches: List[AubeCareerMatch]
+    confidence_score: float
+    completion_time: str
+    generated_at: str
+
 class AubeExportData(BaseModel):
     """
     Structure export GDPR-compliant
