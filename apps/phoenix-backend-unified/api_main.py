@@ -44,12 +44,23 @@ app = FastAPI(
 
 # 🔒 CORS Configuration - FAIL-CLOSED by environment
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-# Détection production par URL Railway
+# Détection production par URL Railway (améliorée)
 is_production = (
     ENVIRONMENT == "production" or 
     "railway.app" in os.getenv("RAILWAY_STATIC_URL", "") or
-    "railway.app" in os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+    "railway.app" in os.getenv("RAILWAY_PUBLIC_DOMAIN", "") or
+    os.getenv("RAILWAY_ENVIRONMENT") == "production" or
+    os.getenv("RAILWAY_PROJECT_ID") is not None  # Fallback: présence Railway
 )
+
+# Debug CORS configuration
+logger.info("CORS Configuration Debug", 
+           environment=ENVIRONMENT,
+           railway_static_url=os.getenv("RAILWAY_STATIC_URL"),
+           railway_public_domain=os.getenv("RAILWAY_PUBLIC_DOMAIN"), 
+           railway_environment=os.getenv("RAILWAY_ENVIRONMENT"),
+           railway_project_id=bool(os.getenv("RAILWAY_PROJECT_ID")),
+           is_production=is_production)
 
 if is_production:
     # Production: Strict whitelist only
