@@ -39,7 +39,6 @@ import LunaAvatar from './components/LunaAvatar';
 import EnergyConsumptionGuide from './components/EnergyConsumptionGuide';
 import ActionConfirmation from './components/ActionConfirmation';
 import { LunaPresence } from './components/LunaPresence';
-import { LunaModal } from './components/LunaModalV2';
 import { LunaSessionZero } from './components/LunaSessionZero';
 import LunaChat from './components/LunaChat';
 import { redirectToService, api } from './services/api';
@@ -50,7 +49,6 @@ function App() {
   const [lunaEnergy, setLunaEnergy] = useState(85);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [hasFirstPurchaseBonus, setHasFirstPurchaseBonus] = useState(true);
-  const [showLunaModal, setShowLunaModal] = useState(false);
   const [showSessionZero, setShowSessionZero] = useState(false);
   const [sessionZeroMode, setSessionZeroMode] = useState<'welcome' | 'login' | 'register'>('welcome');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -702,7 +700,6 @@ function App() {
           setIsLunaChatMinimized(false);
         }
       }} />
-      <LunaModal isOpen={showLunaModal} onClose={() => setShowLunaModal(false)} />
       
       {/* Luna Session Zero */}
       <LunaSessionZero 
