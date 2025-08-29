@@ -141,15 +141,17 @@ async def security_headers_middleware(request: Request, call_next):
     return response
 
 # Trusted hosts middleware - Production lockdown  
-if is_production:
-    app.add_middleware(
-        TrustedHostMiddleware, 
-        allowed_hosts=[
-            "luna-hub-backend-unified-production.up.railway.app",
-            "phoenix-backend-unified-production.up.railway.app",
-            "localhost"  # For health checks
-        ]
-    )
+# Temporarily disabled due to Railway health check issues
+# TODO: Re-enable with proper Railway internal IPs whitelist
+# if is_production:
+#     app.add_middleware(
+#         TrustedHostMiddleware, 
+#         allowed_hosts=[
+#             "luna-hub-backend-unified-production.up.railway.app",
+#             "phoenix-backend-unified-production.up.railway.app", 
+#             "localhost"
+#         ]
+#     )
 
 # Health check endpoint
 @app.get("/health")
