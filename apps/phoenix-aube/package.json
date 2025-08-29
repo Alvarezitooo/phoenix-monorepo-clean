@@ -1,0 +1,21 @@
+{
+  "name": "phoenix-aube",
+  "version": "1.0.0",
+  "description": "Phoenix Aube - Career Discovery Service",
+  "scripts": {
+    "dev": "npm run dev:frontend",
+    "build": "npm run install:backend && npm run build:frontend",
+    "start": "python backend/api_main.py",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "install:backend": "pip install -r backend/requirements.txt",
+    "install:all": "npm run install:backend && cd frontend && npm install"
+  },
+  "keywords": ["phoenix", "career", "assessment", "ai"],
+  "author": "Phoenix Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.11.0"
+  }
+}

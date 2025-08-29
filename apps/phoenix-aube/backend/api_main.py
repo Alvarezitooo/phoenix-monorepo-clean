@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 import structlog
 from datetime import datetime, timezone
@@ -44,7 +45,7 @@ logger = structlog.get_logger("phoenix_aube")
 
 # Configuration environnement
 ENVIRONMENT = os.getenv("RAILWAY_ENVIRONMENT", os.getenv("ENVIRONMENT", "development"))
-PORT = int(os.getenv("PORT", "8001"))
+PORT = int(os.getenv("PORT", "8001"))  # Railway auto-assigns port
 HOST = os.getenv("HOST", "0.0.0.0")
 
 # Détection production automatique
@@ -241,6 +242,16 @@ async def request_logging_middleware(request: Request, call_next):
 # Inclusion du router principal Aube
 app.include_router(aube_router)
 
+# ============================================================================
+# FRONTEND STATIC FILES (Production)
+# ============================================================================
+
+# Servir les fichiers statiques du frontend Next.js en production
+if is_production:
+    frontend_dist_path = Path(__file__).parent.parent / "frontend" / ".next" / "static"
+    if frontend_dist_path.exists():
+        app.mount("/static", StaticFiles(directory=str(frontend_dist_path)), name="static")
+        logger.info("Frontend static files mounted", path=str(frontend_dist_path))
 
 # Health check endpoint (Railway monitoring)
 @app.get("/health")
