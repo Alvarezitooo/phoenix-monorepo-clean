@@ -27,7 +27,7 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
   onClose,
   onAuthenticated,
   initialMode = 'welcome'
-) => {
+}) => {
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [form, setForm] = useState<AuthForm>({ email: '', password: '', name: '' })
   const [loading, setLoading] = useState(false)
