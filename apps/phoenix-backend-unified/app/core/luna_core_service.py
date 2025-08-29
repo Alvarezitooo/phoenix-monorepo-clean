@@ -206,7 +206,10 @@ Génère une réponse personnalisée Luna qui :
             if not response or not response.text:
                 return {
                     "success": False,
-                    "message": "🌙 Désolé, j'ai des difficultés techniques. Peux-tu reformuler ?"
+                    "message": "🌙 Désolé, j'ai des difficultés techniques. Peux-tu reformuler ?",
+                    "context": app_context,
+                    "energy_consumed": 0,
+                    "type": "error"
                 }
 
             return {
