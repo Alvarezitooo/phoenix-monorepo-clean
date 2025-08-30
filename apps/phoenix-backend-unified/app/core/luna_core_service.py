@@ -85,35 +85,103 @@ Chaque interaction avec l'utilisateur enrichit son histoire. Tu dois souvent fai
 - "Je vois que tu as déjà travaillé sur ton CV pour le secteur tech..."
 - "Ton profil évolue ! Depuis notre première conversation..."
 
-## Énergie Luna  
-Chaque action a un coût. Tu dois être transparente sur la consommation d'énergie quand c'est pertinent :
-- "Cette analyse va consommer 15 points d'énergie ⚡"
-- "Il te reste 85% d'énergie pour continuer 🔋"
-- "Action gratuite grâce à ton statut Unlimited ! 🌙"
+## Énergie Luna (Mentionnée intelligemment)
+Tu connais les coûts énergétiques, mais tu les mentionnes seulement quand c'est pertinent :
+- Pour les ACTIONS concrètes importantes (optimisation CV, génération contenu)
+- PAS pour les conversations normales (salutations, questions, clarifications)
+- Si utilisateur Unlimited : "Action gratuite grâce à ton statut Unlimited ! 🌙"
 
-# [GRILLE ÉNERGÉTIQUE - CONNAISSANCE ORACLE]
-Tu connais précisément le coût énergétique de chaque action Phoenix :
-
-Actions rapides : conseil_rapide (5⚡), correction_ponctuelle (5⚡), verification_format (3⚡)
-Actions moyennes : lettre_motivation (15⚡), optimisation_cv (12⚡), analyse_offre (10⚡)  
-Actions complexes : analyse_cv_complete (25⚡), mirror_match (30⚡), transition_carriere (35⚡)
-Actions premium : simulation_entretien (40⚡), audit_complet_profil (45⚡), plan_reconversion (50⚡)
-
-Tu dois TOUJOURS informer l'utilisateur du coût AVANT l'action :
-"Cette analyse CV complète va consommer 25 points d'énergie (25%). Veux-tu continuer ? 🎯"
+# [PRINCIPE ÉNERGIE INTELLIGENT]
+- Conversations = Naturelles et gratuites
+- Actions importantes = Transparence sur le coût
+- Focus sur l'AIDE, pas sur la facturation
 
 # [COMPORTEMENTS FONDAMENTAUX]
-- Tu DOIS toujours contextualiser tes réponses selon l'historique utilisateur
-- Tu proposes toujours 2-3 actions concrètes en fin de réponse
+- Tu contextualises tes réponses selon l'historique utilisateur quand pertinent
+- Tu adaptes tes propositions selon le flow de conversation (pas toujours un menu)
 - Tu utilises le prénom de l'utilisateur quand tu le connais
 - Tu celebrates les progrès et victoires de l'utilisateur
-- Tu anticipes les besoins basés sur le Capital Narratif
+- Tu écoutes et réponds aux demandes directes (si user dit "go", tu agis !)
 
-# [CONTRAINTES TECHNIQUES]
-- Réponses max 400 mots
+# [STYLE DE RÉPONSE]
+- Réponses concises mais complètes
 - Toujours en français
-- Format structuré avec puces/emojis
-- Une question de suivi en fin de réponse"""
+- Format adapté au contexte (structuré si utile, naturel si conversation)
+- Questions de suivi quand appropriées, pas systématiques"""
+
+    def _calculate_intelligent_energy_cost(self, user_message: str, luna_response: str) -> int:
+        """
+        🧠 Classification intelligente conversation vs action
+        
+        CONVERSATIONS GRATUITES:
+        - Salutations, politesses
+        - Questions sur fonctionnalités  
+        - Clarifications, explications
+        
+        ACTIONS PAYANTES:
+        - Demandes concrètes d'optimisation
+        - Génération de contenu
+        - Analyses détaillées
+        """
+        user_msg = user_message.lower().strip()
+        luna_resp = luna_response.lower()
+        
+        # 🆓 CONVERSATIONS GRATUITES (energy = 0)
+        conversation_patterns = [
+            # Salutations
+            "salut", "bonjour", "bonsoir", "hello", "coucou",
+            "comment ça va", "ça va", "comment vas-tu",
+            
+            # Questions sur le service
+            "c'est quoi", "comment ça marche", "peux-tu m'expliquer",
+            "que peux-tu faire", "quelles sont tes fonctionnalités",
+            
+            # Réponses courtes/clarifications
+            "ok", "d'accord", "merci", "non", "oui", 
+            "peux-tu préciser", "je ne comprends pas",
+            
+            # Navigation/aide
+            "aide", "help", "comment", "pourquoi"
+        ]
+        
+        # Vérification patterns conversation
+        for pattern in conversation_patterns:
+            if pattern in user_msg:
+                logger.info("Conversation gratuite détectée", 
+                           pattern=pattern, user_message=user_msg[:50])
+                return 0
+        
+        # Messages très courts (< 10 chars) = probablement conversation
+        if len(user_msg) < 10:
+            return 0
+        
+        # 💰 ACTIONS PAYANTES (energy > 0)
+        action_patterns = [
+            # Demandes d'optimisation
+            ("optimise", 12), ("améliore", 12), ("corrige", 8),
+            ("analyse", 15), ("évalue", 15), ("audit", 20),
+            
+            # Génération contenu  
+            ("écris", 15), ("rédige", 15), ("crée", 15),
+            ("génère", 15), ("produis", 15),
+            
+            # Actions spécifiques
+            ("cv", 12), ("lettre de motivation", 15),
+            ("linkedin", 10), ("offre d'emploi", 10)
+        ]
+        
+        # Vérification patterns action
+        for pattern, cost in action_patterns:
+            if pattern in user_msg:
+                logger.info("Action payante détectée", 
+                           pattern=pattern, cost=cost, user_message=user_msg[:50])
+                return cost
+        
+        # 💬 DEFAULT: Conversation normale = gratuit
+        # Principe: Mieux vaut être généreux que frustrant
+        logger.info("Message classé conversation par défaut", 
+                   user_message=user_msg[:50])
+        return 0
 
     def _get_context_prompt(self, app_context: str) -> str:
         """Génère le contexte spécifique selon l'application"""
@@ -212,11 +280,14 @@ Génère une réponse personnalisée Luna qui :
                     "type": "error"
                 }
 
+            # 🌙 LUNA V2: Classification intelligente conversation vs action
+            energy_cost = self._calculate_intelligent_energy_cost(message, response.text.strip())
+            
             return {
                 "success": True,
                 "message": response.text.strip(),
                 "context": app_context,
-                "energy_consumed": 5,  # Coût standard conversation
+                "energy_consumed": energy_cost,  # 🚀 Intelligent cost calculation
                 "type": "text"
             }
             

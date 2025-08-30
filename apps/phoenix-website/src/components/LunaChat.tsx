@@ -249,12 +249,12 @@ export const LunaChat: React.FC<LunaChatProps> = ({
                         })}
                       </span>
                       
-                      {message.energy_cost && message.energy_cost > 0 && (
+                      {message.energy_cost && message.energy_cost >= 10 && (
                         <div className={`flex items-center gap-1 text-xs ${
                           message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                         }`}>
                           <Zap className="w-3 h-3" />
-                          -{message.energy_cost}
+                          -{message.energy_cost}⚡
                         </div>
                       )}
                     </div>

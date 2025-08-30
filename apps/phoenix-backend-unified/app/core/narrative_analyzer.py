@@ -145,6 +145,52 @@ class NarrativeAnalyzer:
             logger.error("Erreur génération Context Packet", user_id=user_id, error=str(e))
             return self._create_empty_context_packet(user_id)
     
+    async def _detect_user_plan_robust(self, user_id: str, events: List[Dict[str, Any]]) -> str:
+        """
+        🔥 Détection robuste du plan utilisateur
+        Méthodes multiples pour éviter les faux "free"
+        """
+        
+        # MÉTHODE 1: Vérification directe Energy Manager (plus fiable)
+        try:
+            from app.core.energy_manager import energy_manager
+            is_unlimited = await energy_manager._is_unlimited_user(user_id)
+            if is_unlimited:
+                logger.info("Plan Unlimited détecté via Energy Manager", user_id=user_id)
+                return "unlimited"
+        except Exception as e:
+            logger.warning("Energy Manager check failed", user_id=user_id, error=str(e))
+        
+        # MÉTHODE 2: Analyse événements (fallback)
+        plan = "free"
+        for event in events:
+            event_type = event.get("type", "")
+            event_data = event.get("event_data", {}) or event.get("payload", {})
+            
+            # Events subscription/purchase
+            if event_type in ["energy_purchase", "subscription_activated", "EnergyActionPerformed"]:
+                pack_type = event_data.get("pack_type") or event_data.get("subscription_type")
+                if pack_type == "luna_unlimited":
+                    plan = "unlimited"
+                    break
+                elif pack_type in ["petit_dej_luna", "repas_luna"]:
+                    plan = "premium"
+            
+            # Events energy avec unlimited context
+            if event_type == "EnergyActionPerformed":
+                if event_data.get("unlimited") or event_data.get("energy_cost") == 0:
+                    plan = "unlimited"
+                    break
+        
+        # MÉTHODE 3: Heuristique sur usage (très conservatrice)
+        if plan == "free" and len(events) > 50:  # User très actif = probablement premium
+            actions_count = len([e for e in events if "action" in e.get("type", "").lower()])
+            if actions_count > 20:  # Beaucoup d'actions = probablement pas free
+                plan = "premium"  # Conservateur : premium plutôt qu'unlimited
+        
+        logger.info("Plan détecté", user_id=user_id, plan=plan, method="robust_detection")
+        return plan
+
     async def _fetch_user_events(self, user_id: str, windows: TimeWindow) -> List[Dict[str, Any]]:
         """Récupère les événements utilisateur selon les fenêtres temporelles"""
         
@@ -197,17 +243,8 @@ class NarrativeAnalyzer:
             age_days = 0
             last_activity_hours = 999
         
-        # Détection du plan (depuis energy events ou purchase events)
-        plan = "free"
-        for event in events:
-            event_type = event.get("type", "")
-            if event_type in ["energy_purchase", "subscription_activated"]:
-                payload = event.get("payload", {})
-                if payload.get("pack_type") == "luna_unlimited":
-                    plan = "unlimited"
-                    break
-                elif payload.get("pack_type") in ["petit_dej_luna", "repas_luna"]:
-                    plan = "premium"
+        # 🔥 AMÉLIORATION: Détection plan Unlimited plus robuste
+        plan = await self._detect_user_plan_robust(user_id, events)
         
         return UserMeta(
             age_days=age_days,
