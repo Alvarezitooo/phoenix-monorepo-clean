@@ -149,6 +149,13 @@ ENERGY_COSTS = {
     "audit_complet_profil": 45,
     "plan_reconversion": 50,
     "simulation_entretien": 40,
+    
+    # Actions Luna spécifiques
+    "luna_conversation": 0,              # Conversations gratuites
+    "luna_conseil": 5,                   # Conseils rapides Luna
+    "luna_optimisation": 12,             # Optimisations guidées
+    "luna_analyse": 15,                  # Analyses approfondies
+    "luna_strategie": 25,                # Conseils stratégiques
 }
 
 # Configuration des packs d'énergie
