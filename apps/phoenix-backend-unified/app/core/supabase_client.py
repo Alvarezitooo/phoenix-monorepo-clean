@@ -93,19 +93,21 @@ class SupabaseEventStore:
         
         event_id = str(uuid.uuid4())
         
-        # Nouveau schéma events: type, occurred_at, actor_user_id, payload, meta
+        # Schéma events compatible: avec ts_ms requis
+        current_time = datetime.now(timezone.utc)
         event_record = {
             "id": event_id,
-            "type": clean_event_type,  # "type" au lieu de "event_type"
-            "occurred_at": datetime.now(timezone.utc).isoformat(),
+            "type": clean_event_type,
+            "occurred_at": current_time.isoformat(),
             "actor_user_id": clean_user_id,
+            "ts_ms": int(current_time.timestamp() * 1000),  # ✅ AJOUT DU CHAMP MANQUANT
             "payload": {
                 **clean_event_data,
                 "app_source": clean_app_source
             },
             "meta": {
                 **clean_metadata,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": current_time.isoformat(),
                 "luna_version": "1.0.0",
                 "source": "luna_hub"
             }
@@ -149,7 +151,10 @@ class SupabaseEventStore:
         self, 
         user_id: str, 
         limit: int = 100,
-        event_type: Optional[str] = None
+        event_type: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        event_types: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """
         📚 Récupère les événements d'un utilisateur pour reconstruction du Capital Narratif
@@ -166,15 +171,28 @@ class SupabaseEventStore:
                 self.client.table("events")
                 .select("*")
                 .or_(f"actor_user_id.eq.{clean_user_id},user_id.eq.{clean_user_id}")
+                .order("created_at", desc=True)
+                .limit(limit)
             )
             
+            # ✅ FILTRAGE PAR TYPE(S) D'ÉVÉNEMENT
             if event_type:
                 clean_event_type = SecurityGuardian.sanitize_string(event_type, 100)
-                query = query.eq("type", clean_event_type)  # Nouveau schema utilise "type"
+                query = query.eq("type", clean_event_type)
+            elif event_types:
+                # Filtrer par liste de types (pour progress_tracker/vision_tracker)
+                clean_types = [SecurityGuardian.sanitize_string(t, 100) for t in event_types]
+                query = query.in_("type", clean_types)
+            
+            # ✅ FILTRAGE PAR DATE (pour progress_tracker/vision_tracker)
+            if start_date:
+                query = query.gte("created_at", start_date.isoformat())
+            if end_date:
+                query = query.lte("created_at", end_date.isoformat())
             
             # 🔄 Exécuter avec connection pooling + retry
             async def _execute_query():
-                return query.order("created_at", desc=True).limit(limit).execute()
+                return query.execute()
             
             result = await connection_manager.execute_with_retry(
                 operation=_execute_query,

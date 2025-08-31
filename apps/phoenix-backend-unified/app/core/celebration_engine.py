@@ -357,8 +357,32 @@ class CelebrationEngine:
         if top_achievement["improvement"] < 2:
             return False
         
-        # TODO: Vérifier timestamp dernière célébration (éviter spam)
-        # Pour l'instant, on célèbre à chaque achievement significatif
+        # 🚫 ANTI-SPAM: Éviter célébrations trop fréquentes
+        if last_celebration_timestamp:
+            try:
+                from datetime import datetime, timezone, timedelta
+                last_celebration = datetime.fromisoformat(last_celebration_timestamp.replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                time_since_last = now - last_celebration
+                
+                # Cooldown selon niveau achievement
+                improvement = top_achievement["improvement"]
+                if improvement >= 15:  # MEGA achievement
+                    cooldown_minutes = 5  # Cooldown court pour grosses victoires
+                elif improvement >= 8:  # MAJOR achievement  
+                    cooldown_minutes = 15  # Cooldown moyen
+                else:  # MINOR achievement
+                    cooldown_minutes = 30  # Cooldown plus long pour petites victoires
+                
+                if time_since_last < timedelta(minutes=cooldown_minutes):
+                    logger.info("Célébration bloquée - cooldown actif", 
+                               time_since_last_min=time_since_last.total_seconds() / 60,
+                               cooldown_required=cooldown_minutes)
+                    return False
+                    
+            except Exception as e:
+                logger.warning("Erreur parsing timestamp célébration", error=str(e))
+                # En cas d'erreur, on autorise la célébration
         
         return True
     

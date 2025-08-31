@@ -860,8 +860,25 @@ Génère une réponse personnalisée Luna qui :
 - Termine par une question de suivi
 """
 
-            # 5. Génération avec Gemini
-            response = self.model.generate_content(full_prompt)
+            # 5. Génération avec Gemini + FALLBACK
+            try:
+                response = self.model.generate_content(full_prompt)
+                
+                if not response or not response.text:
+                    raise Exception("Empty response from Gemini")
+                    
+            except Exception as gemini_error:
+                logger.error("Gemini API failed, using fallback", error=str(gemini_error))
+                
+                # 🚨 FALLBACK: Réponse intelligente selon le message
+                fallback_response = self._generate_fallback_response(message, sentiment_analysis)
+                
+                # Simuler un objet response
+                class FallbackResponse:
+                    def __init__(self, text):
+                        self.text = text
+                        
+                response = FallbackResponse(fallback_response)
             
             if not response or not response.text:
                 return {
@@ -1020,6 +1037,36 @@ Génère une réponse personnalisée Luna qui :
                 "energy_consumed": 0,
                 "type": "error"
             }
+
+    def _generate_fallback_response(self, message: str, sentiment_analysis) -> str:
+        """
+        🚨 FALLBACK: Génère une réponse d'urgence si Gemini est down
+        """
+        
+        message_lower = message.lower()
+        sentiment = sentiment_analysis.primary_sentiment if sentiment_analysis else "neutre"
+        
+        # Réponses contextuelles selon le type de message
+        if any(word in message_lower for word in ["salut", "bonjour", "hello", "hey"]):
+            return "🌙 Salut ! Je suis Luna, ton copilote carrière. Comment puis-je t'aider aujourd'hui ? (⚡ Maintenance en cours, désolé pour la réponse basique !)"
+            
+        elif any(word in message_lower for word in ["cv", "curriculum"]):
+            return "🎯 Je peux t'aider avec ton CV ! Malheureusement je suis en maintenance technique. Peux-tu réessayer dans quelques minutes ? En attendant, pense à optimiser tes mots-clés ! ✨"
+            
+        elif any(word in message_lower for word in ["lettre", "motivation"]):
+            return "📝 Les lettres de motivation sont ma spécialité ! Je suis temporairement en maintenance. Réessaie bientôt, et on va créer une lettre qui cartonne ! 🚀"
+            
+        elif any(word in message_lower for word in ["conseil", "aide", "suggestion"]):
+            return "💡 Je suis là pour t'accompagner ! Actuellement en maintenance technique. En attendant : reste focus sur tes objectifs et reviens me voir dans quelques minutes ! 💪"
+            
+        elif sentiment == "anxieux":
+            return "🤗 Je sens que c'est un moment important pour toi. Je suis temporairement en maintenance, mais je serai bientôt de retour pour t'épauler comme il faut ! 💙"
+            
+        elif sentiment == "motivé":
+            return "🚀 J'adore ton énergie ! Je suis en maintenance rapide, mais ça va pas m'empêcher de revenir en force pour booster ta carrière ! À très vite ! 🔥"
+            
+        else:
+            return "🌙 Salut ! Je suis Luna, ton copilote carrière. Je suis temporairement en maintenance technique, mais je reviens très vite ! Peux-tu reformuler ta demande dans quelques minutes ? ⚡"
 
 # Instance globale (lazy initialization)
 luna_core = None

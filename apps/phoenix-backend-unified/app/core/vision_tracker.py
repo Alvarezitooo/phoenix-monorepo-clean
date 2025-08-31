@@ -356,6 +356,7 @@ class VisionTracker:
                 transformation_theme=self._select_random_template(phase_templates["transformation_themes"]),
                 core_strengths=self._identify_core_strengths(events),
                 growth_areas=self._identify_growth_areas(events),
+                career_pivots=self._extract_career_pivots(events),  # ✅ AJOUT MANQUANT
                 success_pattern=self._identify_success_pattern(events),
                 next_story_arc=self._predict_next_story_arc(career_phase)
             )
@@ -491,6 +492,15 @@ class VisionTracker:
         """Identifie les zones de développement"""  
         return ["Leadership", "Communication", "Networking"]
     
+    def _extract_career_pivots(self, events: List[Dict]) -> List[Dict[str, Any]]:
+        """✅ Extrait les moments pivots de carrière depuis les événements"""
+        # Analyser events pour identifier changements majeurs
+        pivots = []
+        
+        # Pour l'instant, retourner liste vide pour éviter l'erreur
+        # TODO: Implémenter logique d'extraction des pivots réels
+        return []
+    
     def _identify_success_pattern(self, events: List[Dict]) -> str:
         """Identifie le pattern de réussite"""
         return "Progression par optimisations continues"
@@ -527,6 +537,7 @@ class VisionTracker:
             transformation_theme="L'ascension vers l'expertise",
             core_strengths=["Motivation", "Persévérance"],
             growth_areas=["Leadership", "Networking"],
+            career_pivots=[],  # ✅ AJOUT MANQUANT
             success_pattern="Amélioration continue",
             next_story_arc="Prise de responsabilités accrues"
         )
@@ -551,6 +562,7 @@ class VisionTracker:
             transformation_theme="Croissance professionnelle",
             core_strengths=["Détermination"],
             growth_areas=["Leadership"],
+            career_pivots=[],  # ✅ AJOUT MANQUANT
             success_pattern="Progression constante",
             next_story_arc="Élargissement d'impact"
         )
