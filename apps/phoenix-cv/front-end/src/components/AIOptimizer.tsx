@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiService } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 import { 
   Brain, 
   Target, 
@@ -93,11 +95,54 @@ export function AIOptimizer({ onScoreUpdate }: AIOptimizerProps) {
   }, [appliedSuggestions, currentScore, suggestions, onScoreUpdate]);
 
   const startAnalysis = async () => {
+    if (!user) return;
+    
     setIsAnalyzing(true);
-    // Simulate AI analysis
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setIsAnalyzing(false);
-    setShowAnalysis(true);
+    setApiError(null);
+    
+    try {
+      // Simulation d'un CV ID (dans une vraie app, on récupérerait depuis le contexte CV)
+      const cvId = 'user-cv-' + user.id;
+      
+      const optimizationRequest = {
+        cv_id: cvId,
+        optimization_type: 'comprehensive',
+        target_job_title: 'Développeur Full-Stack',
+        target_industry: 'technology',
+        focus_areas: ['ats_compatibility', 'content_enhancement', 'skills_optimization']
+      };
+
+      const result = await apiService.optimizeCV(optimizationRequest);
+      
+      if (result.success && result.suggestions) {
+        // Convertir les suggestions API vers le format local
+        const apiSuggestions: OptimizationSuggestion[] = result.suggestions.map((suggestion, index) => ({
+          id: `api-${index}`,
+          type: suggestion.impact === 'high' ? 'critical' : suggestion.impact === 'medium' ? 'improvement' : 'enhancement',
+          category: (suggestion.category as any) || 'content',
+          title: suggestion.title || 'Amélioration suggérée',
+          description: typeof suggestion.current === 'string' ? 
+            `Remplacer "${suggestion.current}" par "${suggestion.improved}"` : 
+            suggestion.title || 'Amélioration recommandée',
+          impact: suggestion.impact === 'high' ? 15 : suggestion.impact === 'medium' ? 10 : 5,
+          applied: false
+        }));
+        
+        setSuggestions(apiSuggestions);
+        setShowAnalysis(true);
+      } else {
+        throw new Error(result.error_message || 'Échec de l\'analyse');
+      }
+      
+    } catch (error) {
+      console.error('Erreur analyse AI Optimizer:', error);
+      setApiError(error instanceof Error ? error.message : 'Erreur d\'analyse');
+      
+      // Fallback: utiliser les suggestions par défaut
+      setShowAnalysis(true);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const applySuggestion = (suggestionId: string) => {

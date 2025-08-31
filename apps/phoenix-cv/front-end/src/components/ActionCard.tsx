@@ -18,7 +18,11 @@ export function ActionCard({ title, description, icon: Icon, color, path, premiu
   const isPremiumUnlocked = !premium || isUnlimited;
 
   return (
-    <Link to={isPremiumUnlocked ? path : '/upgrade'}>
+    <Link 
+      to={isPremiumUnlocked ? path : '/upgrade'}
+      aria-label={`${title}${premium && !isUnlimited ? ' (Premium requis)' : ''} - ${description}`}
+      className="block focus:outline-none focus:ring-2 focus:ring-white/20 rounded-2xl"
+    >
       <motion.div
         whileHover={{ scale: 1.02, y: -5 }}
         whileTap={{ scale: 0.98 }}
@@ -27,6 +31,7 @@ export function ActionCard({ title, description, icon: Icon, color, path, premiu
             ? 'bg-white/5 border-white/10 hover:border-white/20' 
             : 'bg-gray-900/30 border-gray-600/30 hover:border-gray-500/50'
         }`}
+        role="article"
       >
         {premium && (
           <div className="absolute top-4 right-4">
@@ -50,7 +55,10 @@ export function ActionCard({ title, description, icon: Icon, color, path, premiu
           {title}
         </h3>
         
-        <p className="text-gray-400 mb-4 text-sm leading-relaxed">
+        <p 
+          className="text-gray-300 mb-4 text-sm leading-relaxed"
+          id={`card-desc-${title.replace(/\s+/g, '-').toLowerCase()}`}
+        >
           {!isPremiumUnlocked ? 'Fonctionnalité Premium - Luna Unlimited requis' : description}
         </p>
         

@@ -80,13 +80,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
 
     try {
       if (!registerEndpoint) {
-        // Fallback simulation for development
-        console.warn("VITE_LUNA_REGISTER_ENDPOINT not configured, simulating success");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setToken("mock-jwt-token-" + Date.now());
-        setStep("motivation");
-        setStatus("idle");
-        return;
+        throw new Error("VITE_LUNA_REGISTER_ENDPOINT not configured");
       }
 
       const response = await fetch(registerEndpoint, {
@@ -130,13 +124,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
 
     try {
       if (!loginEndpoint) {
-        // Fallback simulation for development
-        console.warn("VITE_LUNA_LOGIN_ENDPOINT not configured, simulating success");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setToken("mock-jwt-token-login-" + Date.now());
-        setStep("mission");
-        setStatus("idle");
-        return;
+        throw new Error("VITE_LUNA_LOGIN_ENDPOINT not configured");
       }
 
       const response = await fetch(loginEndpoint, {
@@ -181,12 +169,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
 
     try {
       if (!narrativeEndpoint || !token) {
-        // Fallback simulation
-        console.warn("VITE_LUNA_NARRATIVE_START_ENDPOINT or token not configured, simulating success");
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setStep("gift");
-        setStatus("idle");
-        return;
+        throw new Error("VITE_LUNA_NARRATIVE_START_ENDPOINT or token not configured");
       }
 
       const response = await fetch(narrativeEndpoint, {

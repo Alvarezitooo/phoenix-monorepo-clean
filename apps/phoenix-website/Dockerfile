@@ -33,8 +33,8 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Copy FastAPI backend
-COPY api_main.py ./
+# Copy FastAPI backend (using app_main.py as primary)
+COPY app_main.py ./
 
 # Health check for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
@@ -42,5 +42,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 EXPOSE ${PORT}
 
-# Railway-compatible command (same as CV/Letters)
-CMD ["sh", "-c", "gunicorn api_main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:${PORT} --timeout 120 --keep-alive 30 --max-requests 200 --max-requests-jitter 20 --preload --access-logfile - --error-logfile -"]
+# Railway-compatible command (using app_main.py as primary)
+CMD ["sh", "-c", "gunicorn app_main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:${PORT} --timeout 120 --keep-alive 30 --max-requests 200 --max-requests-jitter 20 --preload --access-logfile - --error-logfile -"]

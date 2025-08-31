@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiService, MirrorMatchRequest } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 import { 
   Target, 
   Upload, 
@@ -33,50 +35,90 @@ interface MatchAnalysis {
 }
 
 export function MirrorMatch() {
+  const { userId } = useAuth();
   const [jobDescription, setJobDescription] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   
-  const [matchAnalysis] = useState<MatchAnalysis>({
-    overallScore: 78,
-    requirements: [
-      {
-        category: 'Technical Skills',
-        items: ['React', 'TypeScript', 'Node.js', 'AWS', 'Docker'],
-        matchPercentage: 85
-      },
-      {
-        category: 'Experience Level',
-        items: ['5+ years', 'Team Leadership', 'Agile/Scrum'],
-        matchPercentage: 70
-      },
-      {
-        category: 'Education',
-        items: ['Computer Science Degree', 'Relevant Certifications'],
-        matchPercentage: 90
-      },
-      {
-        category: 'Soft Skills',
-        items: ['Communication', 'Problem Solving', 'Collaboration'],
-        matchPercentage: 65
-      }
-    ],
-    missingKeywords: ['GraphQL', 'Microservices', 'CI/CD', 'Kubernetes', 'Redis'],
-    suggestions: [
-      'Add GraphQL experience to your skills section',
-      'Highlight microservices architecture experience',
-      'Include CI/CD pipeline management in your achievements',
-      'Mention Kubernetes orchestration projects',
-      'Add Redis caching implementation examples'
-    ]
-  });
+  const [matchAnalysis, setMatchAnalysis] = useState<MatchAnalysis | null>(null);
+  const [error, setError] = useState<string>('');
 
   const startAnalysis = async () => {
+    if (!jobDescription.trim()) {
+      setError('Veuillez saisir une description de poste');
+      return;
+    }
+
+    if (!userId) {
+      setError('Authentification requise pour l\'analyse Mirror Match');
+      return;
+    }
+
     setIsAnalyzing(true);
-    await new Promise(resolve => setTimeout(resolve, 4000));
-    setIsAnalyzing(false);
-    setAnalysisComplete(true);
+    setError('');
+    
+    try {
+      // Appel API réel vers Backend CV
+      const requestData: MirrorMatchRequest = {
+        cv_id: userId, // Utilise userId comme cv_id temporaire
+        job_description: jobDescription,
+        include_salary_insights: true,
+        include_culture_fit: true
+      };
+
+      const response = await apiService.mirrorMatch(requestData);
+      
+      if (response.success && response.detailed_analysis) {
+        // Transforme la réponse API en format MatchAnalysis
+        const analysis: MatchAnalysis = {
+          overallScore: response.overall_compatibility || 0,
+          requirements: parseRequirementsFromAPI(response.detailed_analysis),
+          missingKeywords: extractMissingKeywords(response.detailed_analysis),
+          suggestions: extractSuggestions(response.executive_summary)
+        };
+        
+        setMatchAnalysis(analysis);
+        setAnalysisComplete(true);
+      } else {
+        throw new Error(response.error_message || 'Analyse échouée');
+      }
+    } catch (err) {
+      console.error('Mirror Match analysis failed:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\'analyse');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Fonctions utilitaires pour transformer la réponse API
+  const parseRequirementsFromAPI = (detailedAnalysis: any): JobRequirement[] => {
+    // Logique pour parser les exigences depuis l'API
+    return [
+      {
+        category: 'Compétences Techniques',
+        items: detailedAnalysis.technical_skills || [],
+        matchPercentage: detailedAnalysis.technical_match || 0
+      },
+      {
+        category: 'Expérience',
+        items: detailedAnalysis.experience_items || [],
+        matchPercentage: detailedAnalysis.experience_match || 0
+      },
+      {
+        category: 'Formation',
+        items: detailedAnalysis.education_items || [],
+        matchPercentage: detailedAnalysis.education_match || 0
+      }
+    ];
+  };
+
+  const extractMissingKeywords = (detailedAnalysis: any): string[] => {
+    return detailedAnalysis.missing_keywords || [];
+  };
+
+  const extractSuggestions = (executiveSummary: any): string[] => {
+    return executiveSummary.suggestions || [];
   };
 
   const optimizeCV = () => {
@@ -223,7 +265,7 @@ We are looking for an experienced Senior Software Engineer with 5+ years of expe
         >
           {/* Match Score Card */}
           <AnimatePresence>
-            {analysisComplete && (
+            {analysisComplete && matchAnalysis && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -276,7 +318,7 @@ We are looking for an experienced Senior Software Engineer with 5+ years of expe
 
           {/* Requirements Breakdown */}
           <AnimatePresence>
-            {analysisComplete && (
+            {analysisComplete && matchAnalysis && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -337,7 +379,7 @@ We are looking for an experienced Senior Software Engineer with 5+ years of expe
 
       {/* Missing Keywords Section */}
       <AnimatePresence>
-        {analysisComplete && (
+        {analysisComplete && matchAnalysis && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiService, SalaryBenchmarkResponse } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -30,6 +32,8 @@ interface SalaryData {
   marketTrend: 'up' | 'down' | 'stable';
   confidence: number;
   dataPoints: number;
+  isLoading?: boolean;
+  error?: string;
 }
 
 interface CompanySize {
@@ -46,26 +50,30 @@ interface Skill {
 }
 
 export function SalarySuggestions() {
-  const [selectedLocation, setSelectedLocation] = useState('paris');
-  const [selectedExperience, setSelectedExperience] = useState('senior');
+  const { user } = useAuth();
+  const [selectedLocation, setSelectedLocation] = useState('france');
+  const [selectedExperience, setSelectedExperience] = useState('mid');
   const [selectedPosition, setSelectedPosition] = useState('software-engineer');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   const locations = [
+    { id: 'france', name: 'France', country: 'France', flag: '🇫🇷' },
     { id: 'paris', name: 'Paris', country: 'France', flag: '🇫🇷' },
     { id: 'lyon', name: 'Lyon', country: 'France', flag: '🇫🇷' },
-    { id: 'london', name: 'Londres', country: 'UK', flag: '🇬🇧' },
-    { id: 'berlin', name: 'Berlin', country: 'Allemagne', flag: '🇩🇪' },
-    { id: 'amsterdam', name: 'Amsterdam', country: 'Pays-Bas', flag: '🇳🇱' },
-    { id: 'zurich', name: 'Zurich', country: 'Suisse', flag: '🇨🇭' }
+    { id: 'uk', name: 'Royaume-Uni', country: 'UK', flag: '🇬🇧' },
+    { id: 'germany', name: 'Allemagne', country: 'Allemagne', flag: '🇩🇪' },
+    { id: 'netherlands', name: 'Pays-Bas', country: 'Pays-Bas', flag: '🇳🇱' },
+    { id: 'switzerland', name: 'Suisse', country: 'Suisse', flag: '🇨🇭' }
   ];
 
   const experienceLevels = [
-    { id: 'junior', name: 'Junior', years: '0-2 ans' },
-    { id: 'mid', name: 'Intermédiaire', years: '3-5 ans' },
-    { id: 'senior', name: 'Senior', years: '5-8 ans' },
-    { id: 'lead', name: 'Lead/Principal', years: '8+ ans' }
+    { id: 'junior', name: 'Junior', years: '0-2 ans', apiKey: 'junior_level' },
+    { id: 'mid', name: 'Intermédiaire', years: '3-5 ans', apiKey: 'mid_level' },
+    { id: 'senior', name: 'Senior', years: '5-8 ans', apiKey: 'senior_level' },
+    { id: 'lead', name: 'Lead/Principal', years: '8+ ans', apiKey: 'principal_level' }
   ];
 
   const positions = [
@@ -93,51 +101,159 @@ export function SalarySuggestions() {
     { name: 'Node.js', impact: 13, demand: 'medium', salaryBoost: 6500 }
   ];
 
-  // Mock salary data - in real app, this would come from an API
-  const getSalaryData = (): SalaryData => {
-    const baseData = {
-      'paris': { min: 45000, max: 75000, avg: 60000 },
-      'lyon': { min: 40000, max: 65000, avg: 52500 },
-      'london': { min: 50000, max: 85000, avg: 67500 },
-      'berlin': { min: 48000, max: 78000, avg: 63000 },
-      'amsterdam': { min: 52000, max: 82000, avg: 67000 },
-      'zurich': { min: 80000, max: 120000, avg: 100000 }
-    };
+  // Fonction pour récupérer les vraies données salariales via API
+  const fetchSalaryData = async (): Promise<SalaryData> => {
+    if (!user) {
+      throw new Error('Utilisateur non authentifié');
+    }
 
-    const experienceMultipliers = {
-      'junior': 0.7,
-      'mid': 0.9,
-      'senior': 1.0,
-      'lead': 1.3
-    };
+    try {
+      const selectedPositionName = positions.find(p => p.id === selectedPosition)?.name || 'Développeur Software';
+      const selectedLocationName = locations.find(l => l.id === selectedLocation)?.name || 'France';
+      const selectedExperienceName = experienceLevels.find(e => e.id === selectedExperience)?.name || 'Senior';
+      const selectedExperienceApiKey = experienceLevels.find(e => e.id === selectedExperience)?.apiKey || 'senior_level';
+      
+      // Appel à l'API de benchmark salarial
+      const benchmarkResponse = await apiService.getSalaryBenchmark(
+        selectedPositionName,
+        selectedLocation,
+        selectedExperienceApiKey
+      );
 
-    const base = baseData[selectedLocation as keyof typeof baseData];
-    const multiplier = experienceMultipliers[selectedExperience as keyof typeof experienceMultipliers];
+      if (!benchmarkResponse.success) {
+        throw new Error('Échec de récupération des données benchmark');
+      }
 
-    return {
-      position: positions.find(p => p.id === selectedPosition)?.name || 'Développeur',
-      location: locations.find(l => l.id === selectedLocation)?.name || 'Paris',
-      experience: experienceLevels.find(e => e.id === selectedExperience)?.name || 'Senior',
-      minSalary: Math.round(base.min * multiplier),
-      maxSalary: Math.round(base.max * multiplier),
-      averageSalary: Math.round(base.avg * multiplier),
-      currency: selectedLocation === 'zurich' ? 'CHF' : selectedLocation === 'london' ? '£' : '€',
-      marketTrend: Math.random() > 0.5 ? 'up' : 'stable',
-      confidence: Math.round(85 + Math.random() * 10),
-      dataPoints: Math.round(150 + Math.random() * 200)
-    };
+      const benchmark = benchmarkResponse.benchmark;
+      const salaryRange = benchmark.salary_range;
+
+      // Détermination de la devise basée sur la localisation
+      let currency = '€';
+      if (selectedLocation === 'switzerland') currency = 'CHF';
+      else if (selectedLocation === 'uk') currency = '£';
+
+      // Calcul de la tendance du marché (simulé basé sur la confiance)
+      const marketTrend: 'up' | 'down' | 'stable' = 
+        benchmark.confidence_score > 0.8 ? 'up' :
+        benchmark.confidence_score < 0.6 ? 'down' : 'stable';
+
+      return {
+        position: selectedPositionName,
+        location: selectedLocationName,
+        experience: selectedExperienceName,
+        minSalary: salaryRange.min,
+        maxSalary: salaryRange.max,
+        averageSalary: salaryRange.median,
+        currency,
+        marketTrend,
+        confidence: Math.round(benchmark.confidence_score * 100),
+        dataPoints: benchmark.sample_size,
+        isLoading: false,
+        error: undefined
+      };
+
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données salariales:', error);
+      
+      // Fallback avec données par défaut en cas d'erreur
+      const selectedPositionName = positions.find(p => p.id === selectedPosition)?.name || 'Développeur Software';
+      const selectedLocationName = locations.find(l => l.id === selectedLocation)?.name || 'France';
+      const selectedExperienceName = experienceLevels.find(e => e.id === selectedExperience)?.name || 'Senior';
+      
+      return {
+        position: selectedPositionName,
+        location: selectedLocationName,
+        experience: selectedExperienceName,
+        minSalary: 45000,
+        maxSalary: 75000,
+        averageSalary: 60000,
+        currency: '€',
+        marketTrend: 'stable',
+        confidence: 75,
+        dataPoints: 150,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Erreur de récupération des données'
+      };
+    }
   };
 
-  const [salaryData, setSalaryData] = useState<SalaryData>(getSalaryData());
+  const [salaryData, setSalaryData] = useState<SalaryData>({
+    position: 'Développeur Software',
+    location: 'France', 
+    experience: 'Senior',
+    minSalary: 0,
+    maxSalary: 0,
+    averageSalary: 0,
+    currency: '€',
+    marketTrend: 'stable',
+    confidence: 0,
+    dataPoints: 0,
+    isLoading: true
+  });
 
   useEffect(() => {
-    setIsAnalyzing(true);
-    const timer = setTimeout(() => {
-      setSalaryData(getSalaryData());
-      setIsAnalyzing(false);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [selectedLocation, selectedExperience, selectedPosition]);
+    const loadSalaryData = async () => {
+      if (!user) return;
+      
+      setIsAnalyzing(true);
+      setApiError(null);
+      
+      try {
+        // Petit délai pour UX
+        await new Promise(resolve => setTimeout(resolve, 800));
+        const data = await fetchSalaryData();
+        setSalaryData(data);
+        
+        if (data.error) {
+          setApiError(data.error);
+        }
+      } catch (error) {
+        console.error('Erreur chargement données salariales:', error);
+        setApiError(error instanceof Error ? error.message : 'Erreur de chargement');
+      } finally {
+        setIsAnalyzing(false);
+      }
+    };
+
+    loadSalaryData();
+  }, [selectedLocation, selectedExperience, selectedPosition, user]);
+
+  // Fonction pour optimiser le CV selon le salaire cible
+  const handleOptimizeCV = async () => {
+    if (!user || !salaryData) return;
+
+    setIsOptimizing(true);
+    
+    try {
+      // Simulation d'un CV ID (dans une vraie app, on récupérerait depuis le contexte CV)
+      const cvId = 'user-cv-' + user.id;
+      const targetSalary = salaryData.averageSalary;
+      const selectedPositionName = positions.find(p => p.id === selectedPosition)?.name;
+
+      const optimizationRequest = {
+        cv_id: cvId,
+        optimization_type: 'salary_focused',
+        target_job_title: selectedPositionName,
+        target_industry: 'technology',
+        focus_areas: ['salary_optimization', 'skills_enhancement', 'ats_compatibility']
+      };
+
+      const result = await apiService.optimizeCV(optimizationRequest);
+      
+      if (result.success) {
+        // Succès - on pourrait ouvrir une modal avec les suggestions
+        alert(`CV optimisé avec succès ! Score d'amélioration : ${result.current_score || 'N/A'} → ${result.optimized_score || 'N/A'}`);
+      } else {
+        throw new Error(result.error_message || 'Erreur lors de l\'optimisation');
+      }
+      
+    } catch (error) {
+      console.error('Erreur optimisation CV:', error);
+      alert(`Erreur lors de l'optimisation : ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
 
   const formatSalary = (amount: number, currency: string) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -147,6 +263,25 @@ export function SalarySuggestions() {
       maximumFractionDigits: 0
     }).format(amount);
   };
+
+  // Protection si l'utilisateur n'est pas authentifié
+  if (!user) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent mb-4">
+            Suggestions de Salaire IA
+          </h2>
+          <div className="backdrop-blur-xl bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 max-w-md mx-auto">
+            <p className="text-yellow-300 font-medium">Authentification requise</p>
+            <p className="text-gray-300 text-sm mt-2">
+              Veuillez vous connecter pour accéder à l'analyse salariale.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -249,6 +384,27 @@ export function SalarySuggestions() {
           </div>
         </div>
       </motion.div>
+
+      {/* Error Notification */}
+      {apiError && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="backdrop-blur-xl bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center">
+              <span className="text-red-400 text-sm">!</span>
+            </div>
+            <div>
+              <h4 className="text-red-300 font-medium">Erreur de chargement des données salariales</h4>
+              <p className="text-red-400 text-sm">{apiError}</p>
+              <p className="text-gray-400 text-xs mt-1">Les données affichées sont des estimations de fallback.</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Salary Analysis */}
       <AnimatePresence mode="wait">
@@ -497,10 +653,26 @@ export function SalarySuggestions() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-white font-medium"
+          onClick={handleOptimizeCV}
+          disabled={isOptimizing || isAnalyzing}
+          className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          aria-label="Optimiser le CV selon les données salariales"
         >
-          <Target className="w-5 h-5" />
-          <span>Optimiser mon CV pour ce salaire</span>
+          {isOptimizing ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+              />
+              <span>Optimisation...</span>
+            </>
+          ) : (
+            <>
+              <Target className="w-5 h-5" />
+              <span>Optimiser mon CV pour ce salaire</span>
+            </>
+          )}
         </motion.button>
       </motion.div>
     </div>

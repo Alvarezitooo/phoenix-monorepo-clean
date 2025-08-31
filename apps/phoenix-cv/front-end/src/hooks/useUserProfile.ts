@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { lunaCVAPI, UserProfile } from '../services/lunaAPI';
+import { AuthService } from '../services/authService';
 
 interface UseUserProfileReturn {
   userProfile: UserProfile | null;
@@ -20,9 +21,11 @@ export function useUserProfile(): UseUserProfileReturn {
   const refreshProfile = async () => {
     try {
       setIsLoadingProfile(true);
-      // Récupérer le token depuis localStorage
-      const token = localStorage.getItem('authToken') || localStorage.getItem('access_token');
+      
+      // Utilise le service d'auth centralisé
+      const token = AuthService.getAccessToken();
       if (!token) {
+        setUserProfile(null);
         setIsLoadingProfile(false);
         return;
       }

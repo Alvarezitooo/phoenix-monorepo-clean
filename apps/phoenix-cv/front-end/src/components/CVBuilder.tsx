@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { LunaInteractionPoint, useLuna } from './Luna';
+import { CVProvider, useCV } from '../contexts/CVContext';
 import { 
   FileText, 
   Zap, 
@@ -10,21 +11,37 @@ import {
   Plus,
   Brain,
   Sparkles,
-  BarChart3
+  BarChart3,
+  Save,
+  Upload
 } from 'lucide-react';
 import { CVPreview } from './CVPreview';
 import { CVEditor } from './CVEditor';
 import { AIOptimizer } from './AIOptimizer';
 
-export function CVBuilder() {
-  const [activeTab, setActiveTab] = useState<'edit' | 'preview' | 'optimize'>('edit');
+// Composant interne pour utiliser le contexte CV
+function CVBuilderContent() {
+  const { cvData, exportCV } = useCV();
   const [atsScore, setAtsScore] = useState(87);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const tabs = [
-    { id: 'edit', label: 'Editor', icon: FileText },
-    { id: 'preview', label: 'Preview', icon: Eye },
-    { id: 'optimize', label: 'AI Optimize', icon: Brain },
-  ];
+  const handleExportCV = async () => {
+    setIsExporting(true);
+    try {
+      const data = exportCV();
+      // Ici vous pouvez ajouter la logique d'export (PDF, etc.)
+      console.log('Exporting CV:', data);
+      
+      // Simulation d'export
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // TODO: Implémenter l'export réel vers Backend CV
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -39,7 +56,12 @@ export function CVBuilder() {
               variant="prominent"
             />
           </div>
-          <p className="text-gray-400 mt-2">Create your perfect CV with AI-powered assistance</p>
+          <p className="text-gray-400 mt-2">
+            Créez votre CV parfait avec synchronisation temps réel
+            <span className="ml-2 text-xs text-luna-400">
+              Dernière modif: {cvData.lastModified.toLocaleTimeString()}
+            </span>
+          </p>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -55,154 +77,111 @@ export function CVBuilder() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-medium text-white shadow-lg hover:shadow-phoenix-500/25"
+            onClick={handleExportCV}
+            disabled={isExporting}
+            className="flex items-center space-x-2 px-6 py-3 bg-phoenix-gradient rounded-xl font-medium text-white shadow-lg hover:shadow-phoenix-500/25 disabled:opacity-50"
+            aria-label="Exporter le CV en PDF"
           >
-            <Download className="w-5 h-5" />
-            <span>Export CV</span>
+            {isExporting ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                />
+                <span>Export...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                <span>Export CV</span>
+              </>
+            )}
           </motion.button>
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex space-x-1 mb-8 bg-white/5 backdrop-blur-sm rounded-2xl p-2 border border-white/10">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <motion.button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl transition-all duration-300 flex-1 justify-center relative ${
-                activeTab === tab.id
-                  ? 'text-white'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-luna-gradient bg-opacity-20 rounded-xl border border-luna-500/30"
-                />
-              )}
-              <Icon className="w-5 h-5 relative z-10" />
-              <span className="font-medium relative z-10">{tab.label}</span>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-3">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {activeTab === 'edit' && <CVEditor />}
-            {activeTab === 'preview' && <CVPreview />}
-            {activeTab === 'optimize' && <AIOptimizer onScoreUpdate={setAtsScore} />}
-          </motion.div>
-        </div>
-
-        {/* Sidebar */}
+      {/* Layout Éditeur + Aperçu Synchronisé */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Éditeur */}
         <div className="space-y-6">
-          {/* Quick Actions */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6"
-          >
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <Sparkles className="w-5 h-5 mr-2 text-luna-400" />
-              Quick Actions
-              <LunaInteractionPoint
-                tooltipText="Demandez à Luna des suggestions d'actions"
-                variant="subtle"
-                position="right"
-              />
-            </h3>
-            
-            <div className="space-y-3">
-              {[
-                'Add new section',
-                'Import LinkedIn',
-                'Spell check',
-                'Optimize keywords'
-              ].map((action, index) => (
-                <motion.button
-                  key={index}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 text-gray-300 hover:text-white border border-white/5 hover:border-white/20"
-                >
-                  {action}
-                </motion.button>
-              ))}
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
+              <FileText className="w-6 h-6 text-luna-400" />
+              <span>Éditeur</span>
+            </h2>
+            <div className="flex items-center space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-white text-sm transition-all"
+                aria-label="Sauvegarder les modifications"
+              >
+                <Save className="w-4 h-4" />
+                <span>Sauvegarder</span>
+              </motion.button>
             </div>
-          </motion.div>
+          </div>
+          
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 h-[calc(100vh-300px)] overflow-y-auto">
+            <CVEditor />
+          </div>
+        </div>
 
-          {/* AI Suggestions */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6"
-          >
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-              <Brain className="w-5 h-5 mr-2 text-luna-400" />
-              AI Suggestions
-              <LunaInteractionPoint
-                tooltipText="Luna peut personnaliser ces suggestions"
-                variant="subtle"
-                position="right"
-              />
-            </h3>
-            
-            <div className="space-y-4">
-              {[
-                {
-                  type: 'Improve',
-                  text: 'Add quantified achievements to your experience section',
-                  priority: 'high'
-                },
-                {
-                  type: 'Missing',
-                  text: 'Include relevant technical skills',
-                  priority: 'medium'
-                },
-                {
-                  type: 'Optimize',
-                  text: 'Enhance summary with keywords',
-                  priority: 'low'
-                }
-              ].map((suggestion, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  className="p-3 rounded-lg bg-gradient-to-r from-white/5 to-white/10 border border-white/10"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                      suggestion.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                      suggestion.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-green-500/20 text-green-400'
-                    }`}>
-                      {suggestion.type}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-300">{suggestion.text}</p>
-                </motion.div>
-              ))}
+        {/* Aperçu */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white flex items-center space-x-2">
+              <Eye className="w-6 h-6 text-emerald-400" />
+              <span>Aperçu Temps Réel</span>
+            </h2>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 text-xs text-gray-400">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                <span>Synchronisé</span>
+              </div>
             </div>
-          </motion.div>
+          </div>
+          
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 h-[calc(100vh-300px)] overflow-y-auto">
+            <CVPreview />
+          </div>
         </div>
       </div>
+
+      {/* AI Optimizer Panel (Collapsible) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mt-8"
+      >
+        <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Brain className="w-6 h-6 text-purple-400" />
+            <h3 className="text-xl font-bold text-white">Optimisation IA</h3>
+            <div className="flex-1"></div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center space-x-2 px-4 py-2 bg-purple-gradient rounded-lg font-medium text-white text-sm"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Optimiser avec IA</span>
+            </motion.button>
+          </div>
+          <AIOptimizer />
+        </div>
+      </motion.div>
     </div>
+  );
+}
+
+// Composant principal avec Provider
+export function CVBuilder() {
+  return (
+    <CVProvider>
+      <CVBuilderContent />
+    </CVProvider>
   );
 }

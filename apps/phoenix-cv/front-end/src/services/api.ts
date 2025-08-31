@@ -70,27 +70,76 @@ export interface ChatResponse {
 }
 
 export interface SalaryAnalysisRequest {
-  position: string;
-  location: string;
-  experience: string;
-  skills: string[];
+  user_id: string;
+  cv_id: string;
+  target_role?: string;
+  target_location: string;
+  current_salary?: number;
+}
+
+export interface SalaryBenchmarkResponse {
+  success: boolean;
+  benchmark: {
+    job_title: string;
+    location: string;
+    experience_level: string;
+    salary_range: {
+      min: number;
+      max: number;
+      median: number;
+      p25: number;
+      p75: number;
+    };
+    sample_size: number;
+    confidence_score: number;
+    last_updated: string;
+  };
 }
 
 export interface SalaryAnalysisResponse {
-  minSalary: number;
-  maxSalary: number;
-  averageSalary: number;
-  currency: string;
-  confidence: number;
-  marketTrend: 'up' | 'down' | 'stable';
+  success: boolean;
+  analysis_id?: string;
+  salary_range?: {
+    min: number;
+    max: number;
+    median: number;
+  };
+  recommended_ask?: number;
+  market_position?: string;
+  market_insights: Array<{
+    type: string;
+    title: string;
+    description: string;
+    impact: number;
+  }>;
+  negotiation_tips: Array<{
+    category: string;
+    title: string;
+    content: string;
+    priority: string;
+  }>;
+  skill_premiums: Record<string, number>;
+  confidence_score: number;
+  analysis_date?: string;
+  processing_time_ms: number;
+  error_message?: string;
 }
 
-// Configuration des headers
-const getHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-  // Ajouter auth headers si nécessaire
-});
+// Configuration des headers avec JWT
+const getHeaders = () => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  // Ajouter JWT token si disponible
+  const token = localStorage.getItem('access_token') || localStorage.getItem('authToken');
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+};
 
 // Gestion des erreurs
 class APIError extends Error {
@@ -155,6 +204,19 @@ export const apiService = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  // Salary Benchmark
+  async getSalaryBenchmark(jobTitle: string, location: string = 'france', experienceLevel: string = 'mid_level'): Promise<SalaryBenchmarkResponse> {
+    const params = new URLSearchParams({
+      location,
+      experience_level: experienceLevel
+    });
+    const response = await fetch(`${API_BASE_URL}/api/salary/benchmark/${encodeURIComponent(jobTitle)}?${params}`, {
+      method: 'GET',
+      headers: getHeaders(),
     });
     return handleResponse(response);
   },
