@@ -1,59 +1,23 @@
-# Phoenix Aube Backend - Requirements (Security Patched)
-# Career Discovery Service Dependencies - Production Ready
+# 🌅 Phoenix Aube Backend - Clean Requirements
+# Career Discovery Service - Aligné sur écosystème Phoenix
 
 # ============================================================================
-# CORE FRAMEWORK (Updated for security)
+# CORE FRAMEWORK - Aligné Phoenix ecosystem
 # ============================================================================
-fastapi>=0.108.0
-uvicorn[standard]>=0.25.0
-pydantic>=2.6.0
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
 
 # ============================================================================
-# HTTP & SECURITY (Patched versions)
+# LUNA HUB INTEGRATION
 # ============================================================================
 httpx>=0.26.0
-python-multipart>=0.0.9  # 🔒 CVE fix: ReDoS + DoS multipart/form-data  
-starlette>=0.36.0        # 🔒 CVE fix: multipart DoS vulnerability
-python-jose[cryptography]>=3.3.0  # Note: Monitor for ECDSA confusion patches
-passlib[bcrypt]>=1.7.4
-python-decouple>=3.8
-
-# ============================================================================
-# LOGGING & MONITORING (Secure)
-# ============================================================================
+python-jose[cryptography]>=3.3.0
 structlog>=23.2.0
-python-json-logger>=2.0.7
 
 # ============================================================================
-# DATA PROCESSING & ML (Security patches)
+# PRODUCTION DEPLOYMENT
 # ============================================================================
-numpy>=1.26.0           # 🔒 Updated for security
-pandas>=2.1.0           # 🔒 Updated for security  
-scikit-learn>=1.4.0     # 🔒 CVE fix: sensitive data leaks
-
-# ============================================================================
-# DATABASE & STORAGE (Future)
-# ============================================================================
-# sqlalchemy==2.0.23
-# asyncpg==0.29.0
-# alembic==1.12.1
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-python-dateutil==2.8.2
-pytz==2023.3
-regex==2023.10.3
-
-# ============================================================================
-# DEVELOPMENT & TESTING (Optional)
-# ============================================================================
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2  # For testing
-pytest-mock==3.12.0
-
-# ============================================================================
-# PRODUCTION DEPLOYMENT (Security monitored)
-# ============================================================================
-gunicorn>=22.0.0  # 🔒 Updated for request smuggling patches
+python-multipart>=0.0.9
+python-decouple>=3.8
+gunicorn>=22.0.0

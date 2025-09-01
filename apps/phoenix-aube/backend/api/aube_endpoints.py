@@ -5,17 +5,24 @@ Standalone Phoenix application with enterprise grade matching
 """
 
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, HTTPException, Depends, status, Query
+from fastapi import APIRouter, HTTPException, Depends, status, Query, Header, Request
 from pydantic import BaseModel, Field
 import structlog
+import uuid
+import time
 from datetime import datetime, timezone
 
 from models.aube_models import (
     AubeSignals, AubeRecommendation, AubeAssessmentRequest, AubeAssessmentResponse,
     AubeCareerMatch, AubePersonalityProfile
 )
+from models.actions import AubeActionType, AubeActionValidator
 from core.aube_matching_service import AubeMatchingService
 from core.security import validate_user_id, ensure_request_is_clean
+from clients.luna_client import (
+    LunaClient, CheckRequest, ConsumeRequest, 
+    LunaInsufficientEnergy, LunaAuthError, LunaClientError
+)
 
 # Logger structuré
 logger = structlog.get_logger("aube_endpoints")
@@ -25,6 +32,31 @@ router = APIRouter(prefix="/aube", tags=["Phoenix Aube Career Discovery"])
 
 # Instance de service
 matching_service = AubeMatchingService()
+
+
+# ============================================================================
+# LUNA HUB DEPENDENCIES
+# ============================================================================
+
+def get_token(authorization: Optional[str] = Header(None)) -> str:
+    """Extraction et validation du token Bearer"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing Bearer token")
+    return authorization.split(" ", 1)[1]
+
+def get_correlation_id(request: Request) -> str:
+    """Récupère le correlation_id depuis le middleware"""
+    return getattr(request.state, 'correlation_id', str(uuid.uuid4()))
+
+def get_luna_client(
+    token: str = Depends(get_token),
+    correlation_id: str = Depends(get_correlation_id)
+) -> LunaClient:
+    """Client Luna avec corrélation"""
+    return LunaClient(
+        token_provider=lambda: token,
+        request_id_provider=lambda: correlation_id
+    )
 
 
 # ============================================================================
@@ -332,4 +364,99 @@ async def get_careers_database(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Database access error: {str(e)}"
+        )
+
+
+# ============================================================================
+# ENDPOINTS LUNA HUB INTÉGRÉS
+# ============================================================================
+
+@router.post("/career-match-luna",
+            response_model=AubeAssessmentResponse,
+            dependencies=[Depends(ensure_request_is_clean)],
+            summary="Career matching avec intégration Luna Hub complète",
+            description="""
+🌙 **Endpoint Intégré Luna Hub - Phoenix Aube**
+
+### Flux Luna Hub Complet
+1. **Check Energy** : Vérification énergie disponible via Luna Hub
+2. **Authorization** : Validation token et permissions
+3. **Career Processing** : Exécution matching si autorisé
+4. **Energy Consumption** : Déduction énergie après succès
+5. **Transaction Log** : Traçabilité complète
+
+### Gestion Erreurs
+- `402 Payment Required` : Énergie insuffisante → redirection achat
+- `401 Unauthorized` : Token invalide → re-authentification
+- `500 Internal Error` : Erreur processing → retry logic
+
+### Security & Compliance
+- Rate limiting via Luna Hub
+- Request correlation pour debugging
+- Audit trail complet
+            """)
+async def career_match_with_luna(
+    request: AubeAssessmentRequest,
+    luna_client: LunaClient = Depends(get_luna_client)
+) -> AubeAssessmentResponse:
+    """🌙 Career matching avec contrôle Luna Hub intégré"""
+    try:
+        validated_user_id = validate_user_id(request.user_id)
+        
+        # 1. Check énergie Luna Hub
+        logger.info("Checking Luna Hub energy", user_id=validated_user_id, action="match.recommend")
+        
+        check_response = luna_client.check_energy(CheckRequest(
+            user_id=validated_user_id,
+            action_name="match.recommend"
+        ))
+        
+        if not check_response.can_perform:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="insufficient_energy:cafe_luna"
+            )
+        
+        # 2. Processing career matching
+        logger.info("Processing Luna-authorized career matching", user_id=validated_user_id)
+        
+        assessment_result = await matching_service.process_full_assessment(
+            user_id=validated_user_id,
+            signals=request.signals,
+            context=request.context or {}
+        )
+        
+        # 3. Consume énergie après succès
+        consume_response = luna_client.consume_energy(ConsumeRequest(
+            user_id=validated_user_id,
+            action_name="match.recommend"
+        ))
+        
+        logger.info("Luna Hub transaction completed", 
+                   user_id=validated_user_id,
+                   transaction_id=consume_response.transaction_id,
+                   new_balance=consume_response.new_energy_balance)
+        
+        return assessment_result
+        
+    except LunaInsufficientEnergy as e:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=f"insufficient_energy:{e.required_pack}"
+        )
+    except LunaAuthError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Luna Hub authentication failed"
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Assessment data invalid: {str(e)}"
+        )
+    except Exception as e:
+        logger.error("Luna career matching error", user_id=request.user_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Career matching error: {str(e)}"
         )

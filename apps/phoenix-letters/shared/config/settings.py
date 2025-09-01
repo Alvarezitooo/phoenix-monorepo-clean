@@ -12,6 +12,20 @@ from dotenv import load_dotenv
 # Chargement des variables d'environnement
 load_dotenv()
 
+def _get_secure_secret_token() -> str:
+    """🔐 Helper pour secret token sécurisé"""
+    secret = os.getenv("API_SECRET_TOKEN")
+    if not secret:
+        env = os.getenv("ENVIRONMENT", "development")
+        if env == "production":
+            raise ValueError("API_SECRET_TOKEN environment variable is required in production")
+        else:
+            # Dev fallback avec warning explicite
+            import logging
+            logging.getLogger(__name__).warning("Using insecure dev secret - set API_SECRET_TOKEN for production")
+            return "dev-secret-change-in-prod"
+    return secret
+
 
 @dataclass(frozen=True)
 class AISettings:
@@ -48,7 +62,7 @@ class DatabaseSettings:
 class AuthSettings:
     """Configuration authentification"""
     
-    secret_token: str = field(default_factory=lambda: os.getenv("API_SECRET_TOKEN", "dev-secret-change-in-prod"))
+    secret_token: str = field(default_factory=lambda: _get_secure_secret_token())
     session_timeout_hours: int = 24
     max_login_attempts: int = 5
     

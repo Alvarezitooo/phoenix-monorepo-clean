@@ -14,7 +14,19 @@ logger = logging.getLogger(__name__)
 
 # Luna Hub configuration
 LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://luna-hub-backend-unified-production.up.railway.app")
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "default-secret-key")
+
+# 🔐 JWT Secret - Fail-safe en production
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    # Fail-fast si secret manquant en production
+    env = os.getenv("ENVIRONMENT", "development") 
+    if env == "production":
+        raise ValueError("JWT_SECRET_KEY environment variable is required in production")
+    else:
+        # Fallback dev avec warning
+        JWT_SECRET_KEY = "dev-secret-unsafe-for-production"
+        logger.warning("Using insecure JWT secret in development - set JWT_SECRET_KEY for production")
+
 JWT_ALGORITHM = "HS256"
 
 class LunaAuthBootstrap:

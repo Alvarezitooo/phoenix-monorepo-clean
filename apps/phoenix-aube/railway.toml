@@ -1,0 +1,38 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "uvicorn api_main:app --host 0.0.0.0 --port $PORT --workers 2 --log-level info"
+healthcheckPath = "/aube/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[environments.production]
+# Variables d'environnement automatiques Railway
+RAILWAY_ENVIRONMENT = "production"
+
+# Intégration Luna Hub - CRITIQUE
+LUNA_HUB_URL = "https://luna-hub-backend-unified-production.up.railway.app"
+LUNA_TIMEOUT_S = "8"
+LUNA_RETRIES = "2"
+
+# Application
+APP_NAME = "phoenix-aube"
+APP_VERSION = "2.0.0"
+ENVIRONMENT = "production"
+DEBUG = "false"
+
+# Performance
+WORKERS = "2"
+MAX_CONNECTIONS = "1000"
+KEEPALIVE_TIMEOUT = "5"
+
+# Security
+SECRET_KEY = "${{ PHOENIX_SECRET_KEY }}"
+ALLOWED_ORIGINS = '["https://aube.phoenix-ia.com"]'
+
+# Logging
+LOG_LEVEL = "INFO"
+STRUCTURED_LOGGING = "true"

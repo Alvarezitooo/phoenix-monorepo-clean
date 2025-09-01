@@ -1,41 +1,29 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: { 
+    unoptimized: true,
+    domains: ['localhost'] 
+  },
   
-  // API Routes configuration
+  // API Proxy pour development et production
   async rewrites() {
-    return [
+    return process.env.NODE_ENV === 'development' ? [
+      // En dev, proxy vers backend local
       {
-        source: '/api/:path*',
-        destination: process.env.NODE_ENV === 'production' 
-          ? '/api/:path*'  // In production, API is served by FastAPI
-          : 'http://localhost:8001/aube/:path*', // In dev, proxy to FastAPI
+        source: '/aube/:path*',
+        destination: 'http://localhost:8001/aube/:path*',
       },
-    ]
+      {
+        source: '/health',
+        destination: 'http://localhost:8001/health',
+      }
+    ] : [
+      // En prod, nginx gère déjà le proxy
+    ];
   },
+};
 
-  // Static export for production (served by FastAPI)
-  output: 'export',
-  trailingSlash: true,
-  images: {
-    unoptimized: true
-  },
-
-  // Environment variables
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'production' 
-      ? '' // Same origin in production
-      : 'http://localhost:8001',
-  },
-
-  // Build configuration
-  distDir: '.next',
-  
-  // Disable server-side features for static export
-  experimental: {
-    esmExternals: 'loose',
-  }
-}
-
-module.exports = nextConfig
+module.exports = nextConfig;

@@ -121,8 +121,9 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                     request._json_body = json_body
                     # Re-création du body pour FastAPI
                     request._body = body
-        except:
-            pass
+        except Exception as e:
+            # Body parsing failed - continue without JSON body
+            logger.debug("Failed to parse request body as JSON", error=str(e))
         
         # Extraction des métadonnées de requête
         user_id = extract_user_id_from_request(request)

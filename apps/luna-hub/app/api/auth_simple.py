@@ -81,8 +81,9 @@ async def register_user(registration_data: UserRegistrationIn, request: Request)
                     "current_energy": 100,
                     "is_unlimited": False
                 }, on_conflict="user_id").execute()
-            except:
-                pass  # users_energy optionnelle
+            except Exception as e:
+                logger.warning("Failed to create user energy record", error=str(e), user_id=user_id)
+                # users_energy optionnelle - continue without failing
         
         logger.info(f"User registered: {registration_data.email}")
         
@@ -197,7 +198,8 @@ async def get_user_by_email(email: str):
     try:
         result = sb.table("users").select("*").eq("email", email).execute()
         return result.data[0] if result.data else None
-    except:
+    except Exception as e:
+        logger.warning("Failed to get user by email", error=str(e), email=email)
         return None
 
 async def get_user_by_id(user_id: str):
@@ -207,5 +209,6 @@ async def get_user_by_id(user_id: str):
     try:
         result = sb.table("users").select("*").eq("id", user_id).execute()
         return result.data[0] if result.data else None
-    except:
+    except Exception as e:
+        logger.warning("Failed to get user by ID", error=str(e), user_id=user_id)
         return None
