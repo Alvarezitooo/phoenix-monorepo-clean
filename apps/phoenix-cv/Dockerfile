@@ -70,5 +70,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 EXPOSE ${PORT}
 
-# Railway-compatible command - Use unified entry point for consistency
-CMD ["python", "app_main.py"]
+# Railway-compatible command - Use Clean Architecture with Luna Hub integration
+CMD ["python", "api_main.py"]

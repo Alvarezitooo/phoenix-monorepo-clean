@@ -13,6 +13,10 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
 import os
+import structlog
+
+# Configuration Luna Hub
+LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://luna-hub-backend-unified-production.up.railway.app")
 
 # Import de notre Clean Architecture
 from shared.config.settings import config
@@ -24,6 +28,9 @@ from shared.exceptions.business_exceptions import (
     CVNotFoundError,
     OptimizationError
 )
+
+# Middleware Luna Hub
+from application.middleware.observability import ObservabilityMiddleware, setup_json_logging
 
 # Use Cases (Business Logic)
 from application.use_cases.mirror_match_use_case import (
@@ -298,9 +305,25 @@ services_container = ServicesContainer()
 async def lifespan(app: FastAPI):
     """Gestionnaire du cycle de vie de l'application"""
     
-    # Startup
+    # Startup - Configuration logs structurés
+    setup_json_logging("INFO" if os.getenv("ENVIRONMENT") == "production" else "DEBUG")
+    
+    # Test connectivité Luna Hub au démarrage
+    luna_status = "disconnected"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{LUNA_HUB_URL}/health")
+            luna_status = "connected" if (200 <= response.status_code < 300) else "disconnected"
+    except Exception as e:
+        structlog.get_logger().warning("Luna Hub connection failed at startup", error=str(e))
+    
     await services_container.initialize()
-    logger.info("🔥 Phoenix CV API démarrée")
+    structlog.get_logger().info(
+        "🔥 Phoenix CV API démarrée",
+        luna_hub_url=LUNA_HUB_URL,
+        luna_hub_status=luna_status
+    )
     
     yield
     
@@ -329,6 +352,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Middleware d'observabilité Luna Hub (MUST BE AFTER CORS)
+app.add_middleware(ObservabilityMiddleware, service_name="phoenix-cv")
 
 # Configuration Frontend Static Files (si disponible) 
 static_dir = Path(__file__).parent / "front-end" / "dist"
@@ -421,6 +447,23 @@ async def health_check():
                 "status": "healthy",
                 "type": "mock",
                 **repo_stats
+            }
+        
+        # Vérification Luna Hub
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                response = await client.get(f"{LUNA_HUB_URL}/health")
+                health_data["services"]["luna_hub"] = {
+                    "status": "healthy" if (200 <= response.status_code < 300) else "degraded",
+                    "url": LUNA_HUB_URL,
+                    "response_time_ms": response.elapsed.total_seconds() * 1000 if response.elapsed else 0
+                }
+        except Exception as e:
+            health_data["services"]["luna_hub"] = {
+                "status": "unhealthy", 
+                "url": LUNA_HUB_URL,
+                "error": str(e)
             }
         
         # Configuration

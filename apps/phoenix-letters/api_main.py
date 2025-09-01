@@ -14,6 +14,7 @@ from pathlib import Path
 import logging
 from typing import List, Optional
 from datetime import datetime
+import structlog
 
 # Import de notre Clean Architecture
 from shared.config.settings import config
@@ -45,7 +46,9 @@ from infrastructure.ai.gemini_service import GeminiService
 from infrastructure.database.mock_letter_repository import MockLetterRepository
 from infrastructure.database.luna_hub_user_repository import LunaHubUserRepository
 from infrastructure.clients.luna_client import LunaClient
-import os
+
+# Luna Hub Configuration
+LUNA_HUB_URL = os.getenv("LUNA_HUB_URL", "https://luna-hub-backend-unified-production.up.railway.app")
 
 # DTOs pour l'API
 from pydantic import BaseModel, Field
@@ -54,6 +57,25 @@ from enum import Enum
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def setup_json_logging(log_level="INFO"):
+    """Setup structured JSON logging"""
+    structlog.configure(
+        processors=[
+            structlog.stdlib.filter_by_level,
+            structlog.stdlib.add_logger_name,
+            structlog.stdlib.add_log_level,
+            structlog.stdlib.PositionalArgumentsFormatter(),
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.processors.UnicodeDecoder(),
+            structlog.processors.JSONRenderer()
+        ],
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
 
 # === DTOs API === 
 
@@ -125,6 +147,8 @@ class HealthCheck(BaseModel):
     version: str
     environment: str
     ai_service: dict
+    luna_hub_status: Optional[str] = None
+    luna_hub_url: Optional[str] = None
     timestamp: str
 
 # === Services Container ===
@@ -197,7 +221,25 @@ services = ServicesContainer()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Gestion du cycle de vie de l'application"""
-    # Startup
+    # Startup - Configuration logs structurés
+    setup_json_logging("INFO" if os.getenv("ENVIRONMENT") == "production" else "DEBUG")
+    
+    # Test connectivité Luna Hub au démarrage
+    luna_status = "disconnected"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{LUNA_HUB_URL}/health")
+            luna_status = "connected" if (200 <= response.status_code < 300) else "disconnected"
+    except Exception as e:
+        structlog.get_logger().warning("Luna Hub connection failed at startup", error=str(e))
+    
+    structlog.get_logger().info(
+        "🔥 Phoenix Letters API starting", 
+        luna_hub_status=luna_status,
+        luna_hub_url=LUNA_HUB_URL
+    )
+    
     await services.initialize()
     yield
     # Shutdown
@@ -308,11 +350,23 @@ async def health_check(services_container = Depends(get_services)):
     """Health check complet de l'API"""
     ai_health = await services_container.ai_service.health_check()
     
+    # Test connectivité Luna Hub
+    luna_status = "disconnected"
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{LUNA_HUB_URL}/health")
+            luna_status = "connected" if (200 <= response.status_code < 300) else "disconnected"
+    except Exception:
+        luna_status = "disconnected"
+    
     return HealthCheck(
         status="healthy",
-        version="2.0.0",
+        version="2.0.0", 
         environment=config.app.environment,
         ai_service=ai_health,
+        luna_hub_status=luna_status,
+        luna_hub_url=LUNA_HUB_URL,
         timestamp=datetime.now().isoformat()
     )
 

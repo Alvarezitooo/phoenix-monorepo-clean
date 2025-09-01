@@ -148,7 +148,7 @@ async def security_headers_middleware(request: Request, call_next):
 #         TrustedHostMiddleware, 
 #         allowed_hosts=[
 #             "luna-hub-backend-unified-production.up.railway.app",
-#             "phoenix-backend-unified-production.up.railway.app", 
+#             "luna-hub-production.up.railway.app", 
 #             "localhost"
 #         ]
 #     )
@@ -159,7 +159,7 @@ async def health_check():
     """Health check endpoint for Railway monitoring"""
     return {
         "status": "healthy",
-        "service": "phoenix-backend-unified",
+        "service": "luna-hub",
         "version": "2.0.0",
         "features": [
             "luna-session-zero",

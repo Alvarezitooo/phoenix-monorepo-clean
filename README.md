@@ -28,7 +28,7 @@ Transform career uncertainty into clear, actionable pathways through **AI-powere
 ```
 phoenix-production/
 ├── apps/
-│   ├── phoenix-backend-unified/     # 🏰 Luna Hub (Core Hub)
+│   ├── luna-hub/     # 🏰 Luna Hub (Core Hub)
 │   ├── phoenix-aube/               # 🌙 Career Assessment Service
 │   ├── phoenix-cv/                 # 📄 CV Generation & Analysis
 │   ├── phoenix-letters/            # ✉️ Cover Letter Generation
@@ -159,7 +159,7 @@ git clone [repo-url]
 cd phoenix-production
 
 # Backend setup (Luna Hub)
-cd apps/phoenix-backend-unified
+cd apps/luna-hub
 pip install -r requirements.txt
 cp .env.example .env  # Configure your environment
 
@@ -191,7 +191,7 @@ ENVIRONMENT=development  # or production
 ### **Development Commands**
 ```bash
 # Start Luna Hub
-cd apps/phoenix-backend-unified
+cd apps/luna-hub
 python api_main.py
 
 # Start Website

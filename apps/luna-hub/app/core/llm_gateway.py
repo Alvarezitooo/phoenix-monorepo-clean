@@ -18,7 +18,7 @@ class GeminiProvider(LLMGateway):
             return f.read()
     
     def assemble_prompt(self, narrative_json: str, persona_profile: Dict[str,Any]) -> Dict[str,str]:
-        system_core = self._read("apps/phoenix-backend-unified/config/llm_prompts/luna_core_system.txt")
+        system_core = self._read("apps/luna-hub/config/llm_prompts/luna_core_system.txt")
         # playbook simple (j2 simplifiée inline)
         playbook = f"[TONE]={persona_profile.get('mode')} | [READING_LEVEL]={persona_profile.get('reading_level')}"
         context = f"[CONTEXT_NARRATIF]\n{narrative_json}\n[PERSONA_PROFILE]\n{json.dumps(persona_profile)}"

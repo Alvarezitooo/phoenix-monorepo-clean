@@ -37,7 +37,7 @@ def test_no_duplicate_event_store_file():
     🧹 Vérifie que le fichier dupliqué event_store_supabase.py n'existe plus
     """
     import os
-    duplicate_path = "/Users/mattvaness/Desktop/IA/phoenix-production/apps/phoenix-backend-unified/app/core/event_store_supabase.py"
+    duplicate_path = "/Users/mattvaness/Desktop/IA/phoenix-production/apps/luna-hub/app/core/event_store_supabase.py"
     
     assert not os.path.exists(duplicate_path), "Le fichier event_store_supabase.py dupliqué doit être supprimé"
 

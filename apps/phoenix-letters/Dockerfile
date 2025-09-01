@@ -36,8 +36,6 @@ COPY infrastructure ./infrastructure
 COPY presentation ./presentation
 COPY shared ./shared
 COPY api_main.py ./api_main.py
-COPY main.py ./main.py
-COPY app_main.py ./app_main.py
 
 # Build frontend
 WORKDIR /app/frontend/project
@@ -64,5 +62,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 EXPOSE ${PORT}
 
-# Railway-compatible command - Use unified entry point for consistency
-CMD ["python", "app_main.py"]
+# Railway-compatible command - Use Clean Architecture with Luna Hub integration
+CMD ["python", "api_main.py"]

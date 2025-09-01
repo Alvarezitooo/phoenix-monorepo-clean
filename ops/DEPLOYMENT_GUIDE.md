@@ -58,7 +58,7 @@ Create 4 services in Railway dashboard:
 
 | Service | Repository Path | Port | Description |
 |---------|----------------|------|-------------|
-| `phoenix-backend-unified` | `apps/phoenix-backend-unified` | 8003 | Luna Hub Core |
+| `luna-hub` | `apps/luna-hub` | 8003 | Luna Hub Core |
 | `phoenix-cv` | `apps/phoenix-cv` | 8002 | CV Analysis Service |
 | `phoenix-letters` | `apps/phoenix-letters` | 8001 | Letters Generation |
 | `phoenix-website` | `apps/phoenix-website` | 80 | React Frontend |
@@ -134,8 +134,8 @@ If automatic deployment fails:
 
 ```bash
 # Deploy specific service
-cd apps/phoenix-backend-unified
-railway up --service phoenix-backend-unified
+cd apps/luna-hub
+railway up --service luna-hub
 
 cd ../phoenix-cv
 railway up --service phoenix-cv
@@ -220,7 +220,7 @@ curl https://luna-hub/monitoring/ready
 
 1. **Identify problematic deployment:**
    ```bash
-   railway logs --service phoenix-backend-unified
+   railway logs --service luna-hub
    ```
 
 2. **Rollback via Railway dashboard:**
@@ -231,10 +231,10 @@ curl https://luna-hub/monitoring/ready
 3. **Or via CLI:**
    ```bash
    # List deployments
-   railway deployment:list --service phoenix-backend-unified
+   railway deployment:list --service luna-hub
    
    # Rollback to specific deployment
-   railway deployment:rollback <deployment-id> --service phoenix-backend-unified
+   railway deployment:rollback <deployment-id> --service luna-hub
    ```
 
 ### Planned Rollback
@@ -261,7 +261,7 @@ curl https://luna-hub/monitoring/ready
 2. **Investigation:**
    ```bash
    # Check all services
-   railway logs --service phoenix-backend-unified --tail
+   railway logs --service luna-hub --tail
    railway logs --service phoenix-cv --tail
    railway logs --service phoenix-letters --tail
    railway logs --service phoenix-website --tail
@@ -396,8 +396,8 @@ railway logs --service service-name --tail
 ### Log Analysis
 ```bash
 # Structured logs analysis
-railway logs --service phoenix-backend-unified | grep "ERROR"
-railway logs --service phoenix-backend-unified | grep "request_id"
+railway logs --service luna-hub | grep "ERROR"
+railway logs --service luna-hub | grep "request_id"
 ```
 
 ### Contact Information

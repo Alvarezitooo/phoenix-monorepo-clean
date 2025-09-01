@@ -5,7 +5,7 @@ echo "🚀 Démarrage des services Phoenix..."
 
 # Backend
 echo "Starting Backend Unified..."
-cd apps/phoenix-backend-unified
+cd apps/luna-hub
 poetry install --quiet
 poetry run uvicorn main:app --reload --port 8000 &
 BACKEND_PID=$!

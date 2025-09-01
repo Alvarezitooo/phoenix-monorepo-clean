@@ -2,7 +2,7 @@
 
 > **But** : Configurer **Claude Code** dans le terminal pour accélérer les fixes, optimiser les perfs, et garantir la conformité Oracle (Hub roi • Zéro logique métier front • API contrat sacré • Tout est un événement • Sécurité par défaut).
 >
-> **Périmètre** : `phoenix-backend-unified` (Hub), `phoenix-website`, `phoenix-cv`, `phoenix-letters`.
+> **Périmètre** : `luna-hub` (Hub), `phoenix-website`, `phoenix-cv`, `phoenix-letters`.
 
 ---
 
@@ -25,7 +25,7 @@
 ```
 phoenix/
 ├── apps/
-│   ├── phoenix-backend-unified/   # Hub Luna (FastAPI)
+│   ├── luna-hub/   # Hub Luna (FastAPI)
 │   ├── phoenix-website/           # Next.js (landing + session zéro)
 │   ├── phoenix-cv/                # App CV (React/Vite)
 │   └── phoenix-letters/           # App Letters (React/Vite)
@@ -44,7 +44,7 @@ NEXT_PUBLIC_LUNA_LEAD_ENDPOINT=https://<hub>/public/leads
 NEXT_PUBLIC_CV_APP_URL=https://phoenix-cv-production.up.railway.app
 ```
 
-**Backend Hub** (`phoenix-backend-unified`)
+**Backend Hub** (`luna-hub`)
 ```
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
@@ -71,7 +71,7 @@ alias kt='kubetail || true'   # si vous avez kubetail
 
 # — chemins —
 export PHX=$HOME/dev/phoenix
-export HUB=$PHX/apps/phoenix-backend-unified
+export HUB=$PHX/apps/luna-hub
 export WEB=$PHX/apps/phoenix-website
 export CV=$PHX/apps/phoenix-cv
 export LET=$PHX/apps/phoenix-letters
@@ -98,7 +98,7 @@ phx.api.post() { url="$1"; shift; curl -sS -X POST "$url" -H 'Content-Type: appl
 phx.api.get()  { url="$1"; shift; curl -sS -X GET  "$url" -H 'Content-Type: application/json' "$@"; }
 
 # — logs Railway (prod) —
-phx.hub.logs() { r logs --service phoenix-backend-unified --env production; }
+phx.hub.logs() { r logs --service luna-hub --env production; }
 phx.cv.logs()  { r logs --service phoenix-cv --env production; }
 phx.let.logs() { r logs --service phoenix-letters --env production; }
 phx.web.logs() { r logs --service phoenix-website --env production; }
@@ -158,7 +158,7 @@ npx husky add .husky/commit-msg 'npx --no -- commitlint --edit "$1"'
 **A) “Fix de bug reproductible”**
 ```
 Contexte: Phoenix-Luna monorepo. Respecte strictement:
-- Hub roi (phoenix-backend-unified) = logique métier
+- Hub roi (luna-hub) = logique métier
 - Zéro logique métier front
 - API = contrat sacré (voir ARCHITECTURE_DIAGRAM)
 - Tout est un événement (Event Store Supabase)
@@ -213,7 +213,7 @@ phx.hub.logs
 phx.web.logs
 phx.cv.logs
 phx.let.logs
-phx.hub.health https://phoenix-backend-unified-production.up.railway.app
+phx.hub.health https://luna-hub-production.up.railway.app
 ```
 
 ### 6.2 Smoke test rapide endpoints clés
@@ -315,7 +315,7 @@ Rollback: ...
 - **Style** : réponses **courtes, actionnables**, livrant **diff minimal**, **tests d’abord**, impacts UX/perf explicités.
 
 ### 11.2 Règles Non‑Négociables (copiées dans chaque session)
-1) **Hub est Roi** : toute logique métier dans `phoenix-backend-unified`.
+1) **Hub est Roi** : toute logique métier dans `luna-hub`.
 2) **Zéro logique métier front** : le front collecte l’intention, le Hub décide.
 3) **API = contrat sacré** : respecter `ARCHITECTURE_DIAGRAM.md`; proposer migrations rétro‑compatibles si nécessaire.
 4) **Tout est un événement** : chaque mutation → insertion Event Store.

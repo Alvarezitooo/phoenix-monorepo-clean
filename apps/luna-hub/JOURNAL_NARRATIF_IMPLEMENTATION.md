@@ -4,7 +4,7 @@
 
 **Objectif :** Implémentation du système Journal Narratif (Arène du Premier Héros) pour transformer les utilisateurs en héros de leur propre récit de transformation professionnelle.
 
-**Architecture :** Hub-Roi (toute la logique dans phoenix-backend-unified)
+**Architecture :** Hub-Roi (toute la logique dans luna-hub)
 **Principe :** 6 leviers psychologiques (chapitrage, progression, complicité, projection, appartenance, ancrage éthique)
 
 ---
@@ -99,7 +99,7 @@
 ## 🎯 Architecture & Conformité
 
 ### **Principes respectés :**
-- ✅ **Hub-Roi** : Toute la logique métier dans phoenix-backend-unified
+- ✅ **Hub-Roi** : Toute la logique métier dans luna-hub
 - ✅ **API Sacrée** : Contrats stricts avec documentation OpenAPI exhaustive
 - ✅ **Événements** : Tout est tracé dans l'Event Store pour analytics
 - ✅ **Sécurité** : Security Guardian sur tous les inputs utilisateur
@@ -116,7 +116,7 @@
 ## 🗂️ Structure des fichiers
 
 ```
-phoenix-backend-unified/
+luna-hub/
 ├── app/
 │   ├── models/
 │   │   └── journal_dto.py              ✅ Modèles Pydantic Journal

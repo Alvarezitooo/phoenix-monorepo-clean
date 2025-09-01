@@ -10,10 +10,10 @@ TIMESTAMP=$(date +"%Y-%m-%d-%H:%M")
 echo "🔧 Force rebuild Railway avec timestamp: $TIMESTAMP"
 
 # 1. Modifier Dockerfile pour casser le cache
-sed -i.bak "s/CACHE BUST.*$/CACHE BUST $TIMESTAMP/" apps/phoenix-backend-unified/Dockerfile
+sed -i.bak "s/CACHE BUST.*$/CACHE BUST $TIMESTAMP/" apps/luna-hub/Dockerfile
 
 # 2. Modifier un fichier versionné pour forcer le changement
-echo "# Force rebuild: $TIMESTAMP" >> apps/phoenix-backend-unified/.rebuild_trigger
+echo "# Force rebuild: $TIMESTAMP" >> apps/luna-hub/.rebuild_trigger
 
 # 3. Commit et push
 git add .
@@ -24,4 +24,4 @@ echo "✅ Rebuild forcé ! Railway va détecter les changements."
 echo "🔍 Surveillez les déploiements sur Railway Dashboard"
 
 # Nettoyage
-rm -f apps/phoenix-backend-unified/Dockerfile.bak
+rm -f apps/luna-hub/Dockerfile.bak
