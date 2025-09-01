@@ -8,8 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONPATH=/app \
-    PORT=8080
+    PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -66,9 +65,9 @@ USER appuser
 
 # Health check for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD curl -f http://localhost:$PORT/health || exit 1
 
-EXPOSE ${PORT}
+EXPOSE $PORT
 
 # Railway-compatible command - Use Clean Architecture with Luna Hub integration
 CMD ["python", "api_main.py"]

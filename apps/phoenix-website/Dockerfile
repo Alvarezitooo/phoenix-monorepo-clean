@@ -8,8 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PYTHONPATH=/app \
-    PORT=8080
+    PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -38,9 +37,9 @@ COPY app_main.py ./
 
 # Health check for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD curl -f http://localhost:$PORT/health || exit 1
 
-EXPOSE ${PORT}
+EXPOSE $PORT
 
 # Railway-compatible command (using app_main.py as primary)
 CMD ["sh", "-c", "gunicorn app_main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:${PORT} --timeout 120 --keep-alive 30 --max-requests 200 --max-requests-jitter 20 --preload --access-logfile - --error-logfile -"]
