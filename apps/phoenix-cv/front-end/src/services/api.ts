@@ -132,11 +132,7 @@ const getHeaders = () => {
     'Accept': 'application/json',
   };
 
-  // Ajouter JWT token si disponible
-  const token = localStorage.getItem('access_token') || localStorage.getItem('authToken');
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  // 🔐 Plus de token localStorage - cookies HTTPOnly automatiques
 
   return headers;
 };
@@ -157,13 +153,24 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
+// 🔐 Fetch sécurisé avec cookies HTTPOnly
+const secureFetch = async (url: string, options: RequestInit = {}) => {
+  return fetch(url, {
+    ...options,
+    credentials: 'include', // Cookies HTTPOnly inclus
+    headers: {
+      ...getHeaders(),
+      ...options.headers,
+    },
+  });
+};
+
 // Services API - Connectés au backend Phoenix CV
 export const apiService = {
   // Mirror Match Analysis
   async mirrorMatch(data: MirrorMatchRequest): Promise<MirrorMatchResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/cv/mirror-match`, {
+    const response = await secureFetch(`${API_BASE_URL}/api/cv/mirror-match`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -171,9 +178,8 @@ export const apiService = {
 
   // CV Optimization
   async optimizeCV(data: CVOptimizationRequest): Promise<CVOptimizationResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/cv/optimize`, {
+    const response = await secureFetch(`${API_BASE_URL}/api/cv/optimize`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -181,18 +187,16 @@ export const apiService = {
 
   // Chat avec Luna
   async startChat(data: ChatStartRequest): Promise<ChatResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/chat/start`, {
+    const response = await secureFetch(`${API_BASE_URL}/api/chat/start`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
   },
 
   async sendMessage(data: ChatMessageRequest): Promise<ChatResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/chat/message`, {
+    const response = await secureFetch(`${API_BASE_URL}/api/chat/message`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -200,9 +204,8 @@ export const apiService = {
 
   // Salary Analysis
   async analyzeSalary(data: SalaryAnalysisRequest): Promise<SalaryAnalysisResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/salary/analyze`, {
+    const response = await secureFetch(`${API_BASE_URL}/api/salary/analyze`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -214,18 +217,16 @@ export const apiService = {
       location,
       experience_level: experienceLevel
     });
-    const response = await fetch(`${API_BASE_URL}/api/salary/benchmark/${encodeURIComponent(jobTitle)}?${params}`, {
+    const response = await secureFetch(`${API_BASE_URL}/api/salary/benchmark/${encodeURIComponent(jobTitle)}?${params}`, {
       method: 'GET',
-      headers: getHeaders(),
     });
     return handleResponse(response);
   },
 
   // LinkedIn Integration
   async linkedinAuth(data: { user_id: string; return_url?: string }): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/api/linkedin/auth`, {
+    const response = await secureFetch(`${API_BASE_URL}/api/linkedin/auth`, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -233,9 +234,8 @@ export const apiService = {
 
   // Health Check
   async healthCheck(): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/health`, {
+    const response = await secureFetch(`${API_BASE_URL}/health`, {
       method: 'GET',
-      headers: getHeaders(),
     });
     return handleResponse(response);
   },

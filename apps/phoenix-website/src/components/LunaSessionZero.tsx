@@ -1,9 +1,11 @@
 /**
  * 🌙 Luna Session Zero - Complete Authentication System
- * Conversational Authentication with Enterprise Security
+ * Conversational UX with Modern HTTPOnly Security
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from "framer-motion"
+import { Coffee, ChevronRight, Sparkles, Eye, EyeOff } from "lucide-react"
 import { api, AuthResponse, LoginRequest, RegisterRequest } from '../lib/api'
 import { SessionsManagement } from './SessionsManagement'
 
@@ -15,6 +17,8 @@ interface LunaSessionZeroProps {
 }
 
 type AuthMode = 'welcome' | 'login' | 'register' | 'sessions'
+type Step = "intro" | "email" | "password" | "motivation" | "gift" | "mission" | "login_intro" | "login_form"
+type Status = "idle" | "sending" | "success" | "error"
 
 interface AuthForm {
   email: string
@@ -29,10 +33,18 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
   initialMode = 'welcome'
 }) => {
   const [mode, setMode] = useState<AuthMode>(initialMode)
+  const [step, setStep] = useState<Step>("intro")
+  const [status, setStatus] = useState<Status>("idle")
+  const [message, setMessage] = useState("")
   const [form, setForm] = useState<AuthForm>({ email: '', password: '', name: '' })
+  const [motivation, setMotivation] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [energyLevel, setEnergyLevel] = useState(0)
+  
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -40,12 +52,28 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
       checkAuthentication()
       // Reset to initial mode when modal opens
       setMode(initialMode)
+      setStep("intro")
+      setStatus("idle")
+      setMessage("")
+      setForm({ email: '', password: '', name: '' })
+      setMotivation("")
+      setEnergyLevel(0)
     }
   }, [isOpen, initialMode])
 
+  // Focus management for accessibility
+  useEffect(() => {
+    if (isOpen && dialogRef.current && mode !== 'sessions') {
+      const focusableElement = dialogRef.current.querySelector(
+        'button, input, textarea, [tabindex]:not([tabindex="-1"])'
+      ) as HTMLElement
+      focusableElement?.focus()
+    }
+  }, [isOpen, step, mode])
+
   const checkAuthentication = async () => {
-    if (!api.isAuthenticated()) {
-      // Garde le mode initial si non connecté
+    const isAuth = await api.isAuthenticated();
+    if (!isAuth) {
       setMode(initialMode)
       return
     }
@@ -59,9 +87,14 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
     }
   }
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const handleLogin = async () => {
+    if (!form.email || !form.password) {
+      setStatus("error")
+      setMessage("Email et mot de passe requis")
+      return
+    }
+
+    setStatus("sending")
     setError(null)
 
     try {
@@ -70,31 +103,35 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
         password: form.password
       }
 
-      const response: AuthResponse = await api.login(loginRequest)
-      const user = await api.getCurrentUser()
+      const userData = await api.login(loginRequest)
       
-      setCurrentUser(user)
-      onAuthenticated(user)
-      setMode('sessions')
+      setCurrentUser(userData)
+      onAuthenticated(userData)
+      setStatus("success")
+      setMessage("Connexion réussie ! Bienvenue de retour.")
+      setTimeout(() => setStep("mission"), 1000)
     } catch (err: any) {
       console.error('Luna Login Error:', err)
-      let errorMessage = 'Login failed'
+      setStatus("error")
       
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        errorMessage = 'Unable to connect to Luna Hub. Please check your connection or try again later.'
+        setMessage('Unable to connect to Luna Hub. Please check your connection or try again later.')
       } else if (err.message) {
-        errorMessage = err.message
+        setMessage(err.message)
+      } else {
+        setMessage('Erreur de connexion')
       }
-      
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
     }
   }
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const handleRegister = async () => {
+    if (!form.email || !form.password) {
+      setStatus("error")
+      setMessage("Email et mot de passe requis")
+      return
+    }
+
+    setStatus("sending")
     setError(null)
 
     try {
@@ -104,33 +141,85 @@ export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
         name: form.name
       }
 
-      const response: AuthResponse = await api.register(registerRequest)
-      const user = await api.getCurrentUser()
+      const userData = await api.register(registerRequest)
       
-      setCurrentUser(user)
-      onAuthenticated(user)
-      setMode('sessions')
+      setCurrentUser(userData)
+      onAuthenticated(userData)
+      setStatus("idle")
+      setStep("motivation")
     } catch (err: any) {
       console.error('Luna Registration Error:', err)
-      let errorMessage = 'Registration failed'
+      setStatus("error")
       
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        errorMessage = 'Unable to connect to Luna Hub. Please check your connection or try again later.'
+        setMessage('Unable to connect to Luna Hub. Please check your connection or try again later.')
       } else if (err.message) {
-        errorMessage = err.message
+        setMessage(err.message)
+      } else {
+        setMessage('Erreur d\'inscription')
       }
-      
-      setError(errorMessage)
-    } finally {
-      setLoading(false)
     }
   }
 
-  const handleLogout = () => {
-    api.logout()
+  const handleLogout = async () => {
+    await api.logout()
     setCurrentUser(null)
     setMode('welcome')
     onClose()
+  }
+
+  const handleMotivationSubmit = async () => {
+    if (!motivation.trim()) {
+      setStatus("error")
+      setMessage("Partagez votre motivation pour continuer")
+      return
+    }
+
+    setStatus("sending")
+
+    try {
+      // Simulate narrative start - could call Luna Hub API here
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      setStep("gift")
+      setStatus("idle")
+      // Start energy animation
+      animateEnergyGift()
+    } catch (error) {
+      setStatus("error")
+      setMessage("Erreur lors de l'enregistrement")
+    }
+  }
+
+  const animateEnergyGift = () => {
+    const duration = 2000
+    const targetEnergy = 100
+    const startTime = Date.now()
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const easeOut = 1 - Math.pow(1 - progress, 3)
+      
+      setEnergyLevel(Math.floor(easeOut * targetEnergy))
+
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        setTimeout(() => setStep("mission"), 500)
+      }
+    }
+
+    requestAnimationFrame(animate)
+  }
+
+  const redirectToCV = () => {
+    const cvAppUrl = "https://phoenix-cv-production.up.railway.app"
+    // Use URL params to trigger welcome banner
+    const redirectUrl = `${cvAppUrl}?welcome=true`
+    // Mark user as just registered for Phoenix CV
+    localStorage.setItem('phoenix_just_registered', 'true')
+    window.location.href = redirectUrl
   }
 
   if (!isOpen) return null

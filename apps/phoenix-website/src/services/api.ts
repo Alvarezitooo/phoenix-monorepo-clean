@@ -15,9 +15,9 @@ export interface PhoenixServices {
   'luna-hub': PhoenixService;
 }
 
-// Types d'authentification
+// Types d'authentification - Plus de tokens exposés
 export interface AuthResponse {
-  access_token: string;
+  access_token: string; // Maintenu pour compatibilité register endpoint
   token_type: string;
   user: User;
 }
@@ -62,39 +62,8 @@ const PHOENIX_SERVICES: PhoenixServices = {
   }
 };
 
-// Clé pour le localStorage - TODO: Migrer vers HTTPOnly cookies
-const AUTH_TOKEN_KEY = 'phoenix_auth_token';
-const AUTH_USER_KEY = 'phoenix_auth_user';
-
-// Token validation et protection basique
-const isTokenValid = (token: string): boolean => {
-  if (!token || token.length < 20) return false;
-  
-  // Validation JWT basique (sans crypto complète pour perf)
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-    
-    // Decode payload pour vérifier expiration
-    const payload = JSON.parse(atob(parts[1]));
-    const now = Date.now() / 1000;
-    
-    // Token expiré
-    if (payload.exp && payload.exp < now) {
-      console.warn('Token expired, removing from storage');
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(AUTH_USER_KEY);
-      return false;
-    }
-    
-    return true;
-  } catch (e) {
-    console.warn('Invalid token format, removing from storage');
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_USER_KEY);
-    return false;
-  }
-};
+// 🔐 MIGRATION COOKIES HTTPONLY - Plus de localStorage
+const AUTH_USER_KEY = 'phoenix_auth_user'; // User info seulement (non-sensible)
 
 // Instance API avec auth
 class PhoenixAPI {
@@ -104,21 +73,8 @@ class PhoenixAPI {
     this.baseUrl = PHOENIX_SERVICES['luna-hub'].url;
   }
 
-  // Gestion du token avec validation
-  private getToken(): string | null {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (token && isTokenValid(token)) {
-      return token;
-    }
-    return null;
-  }
-
-  private setToken(token: string): void {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-  }
-
-  private removeToken(): void {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
+  // 🔐 Plus de gestion token - Cookie HTTPOnly automatique
+  private clearUserData(): void {
     localStorage.removeItem(AUTH_USER_KEY);
   }
 
@@ -131,27 +87,19 @@ class PhoenixAPI {
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
   }
 
-  // Headers avec authentification
-  private getHeaders(includeAuth: boolean = true): HeadersInit {
-    const headers: HeadersInit = {
+  // Headers basiques - Cookie HTTPOnly géré automatiquement
+  private getHeaders(): HeadersInit {
+    return {
       'Content-Type': 'application/json',
     };
-    
-    if (includeAuth) {
-      const token = this.getToken();
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    
-    return headers;
   }
 
-  // Méthodes d'authentification
-  async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await fetch(`${this.baseUrl}/auth/login`, {
+  // 🔐 Authentification sécurisée avec cookies HTTPOnly
+  async login(credentials: LoginRequest): Promise<User> {
+    const response = await fetch(`${this.baseUrl}/auth/secure-session`, {
       method: 'POST',
-      headers: this.getHeaders(false),
+      headers: this.getHeaders(),
+      credentials: 'include', // Inclut cookies HTTPOnly
       body: JSON.stringify(credentials),
     });
 
@@ -160,39 +108,51 @@ class PhoenixAPI {
       throw new Error(error || 'Login failed');
     }
 
-    const authData: AuthResponse = await response.json();
-    this.setToken(authData.access_token);
-    this.setStoredUser(authData.user);
-    return authData;
+    const userData: User = await response.json();
+    this.setStoredUser(userData);
+    return userData;
   }
 
-  async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await fetch(`${this.baseUrl}/auth/register`, {
+  async register(userData: RegisterRequest): Promise<User> {
+    // Étape 1: Register normal pour créer compte
+    const registerResponse = await fetch(`${this.baseUrl}/auth/register`, {
       method: 'POST',
-      headers: this.getHeaders(false),
+      headers: this.getHeaders(),
       body: JSON.stringify(userData),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
+    if (!registerResponse.ok) {
+      const error = await registerResponse.text();
       throw new Error(error || 'Registration failed');
     }
 
-    const authData: AuthResponse = await response.json();
-    this.setToken(authData.access_token);
-    this.setStoredUser(authData.user);
-    return authData;
+    // Étape 2: Secure session pour HTTPOnly cookie
+    const sessionResponse = await fetch(`${this.baseUrl}/auth/secure-session`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ email: userData.email, password: userData.password }),
+    });
+
+    if (!sessionResponse.ok) {
+      throw new Error('Failed to create secure session');
+    }
+
+    const user: User = await sessionResponse.json();
+    this.setStoredUser(user);
+    return user;
   }
 
   async getCurrentUser(): Promise<User> {
     const response = await fetch(`${this.baseUrl}/auth/me`, {
       method: 'GET',
       headers: this.getHeaders(),
+      credentials: 'include', // Cookie HTTPOnly inclus
     });
 
     if (!response.ok) {
       if (response.status === 401) {
-        this.removeToken();
+        this.clearUserData();
       }
       throw new Error('Failed to get user info');
     }
@@ -202,23 +162,34 @@ class PhoenixAPI {
     return user;
   }
 
-  logout(): void {
-    this.removeToken();
+  async logout(): Promise<void> {
+    await fetch(`${this.baseUrl}/auth/logout-secure`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      credentials: 'include',
+    });
+    this.clearUserData();
   }
 
-  isAuthenticated(): boolean {
-    return !!this.getToken();
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      await this.getCurrentUser();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   getUser(): User | null {
     return this.getStoredUser();
   }
 
-  // Méthodes de billing
+  // Méthodes de billing avec auth HTTPOnly
   async createPaymentIntent(packageType: string): Promise<any> {
     const response = await fetch(`${this.baseUrl}/billing/create-intent`, {
       method: 'POST',
       headers: this.getHeaders(),
+      credentials: 'include', // Auth cookie
       body: JSON.stringify({ package_type: packageType }),
     });
 
@@ -233,6 +204,7 @@ class PhoenixAPI {
     const response = await fetch(`${this.baseUrl}/billing/confirm-payment`, {
       method: 'POST',
       headers: this.getHeaders(),
+      credentials: 'include', // Auth cookie
       body: JSON.stringify({ payment_intent_id: paymentIntentId }),
     });
 
@@ -248,23 +220,22 @@ class PhoenixAPI {
 export const api = new PhoenixAPI();
 
 /**
- * Redirige vers un service Phoenix avec token si connecté
+ * 🔐 Redirige vers un service Phoenix avec auth centralisée
+ * Plus de token URL - cookies HTTPOnly partagés cross-domain
  */
-export const redirectToService = (service: keyof PhoenixServices) => {
+export const redirectToService = async (service: keyof PhoenixServices) => {
   const serviceConfig = PHOENIX_SERVICES[service];
   if (serviceConfig && serviceConfig.available) {
-    let targetUrl = serviceConfig.url;
-    
-    // Transmettre le token si l'utilisateur est connecté
-    if (api.isAuthenticated()) {
-      const token = localStorage.getItem('phoenix_auth_token');
-      if (token && service !== 'luna-hub') {
-        targetUrl = `${serviceConfig.url}?phoenix_token=${encodeURIComponent(token)}`;
-      }
+    // Vérifier auth avant redirection
+    const isAuth = await api.isAuthenticated();
+    if (!isAuth && service !== 'luna-hub') {
+      console.warn(`User not authenticated, cannot access ${service}`);
+      return;
     }
     
-    // Ouvre dans un nouvel onglet pour garder Phoenix Website ouvert
-    window.open(targetUrl, '_blank');
+    // Redirection simple - cookies HTTPOnly gérés automatiquement
+    // par navigateur sur même domaine .railway.app
+    window.open(serviceConfig.url, '_blank');
   } else {
     console.error(`Service ${service} not available`);
   }

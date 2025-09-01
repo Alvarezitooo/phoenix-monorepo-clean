@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AuthService } from '@/services/authService';
 import { 
   Calendar, 
   TrendingUp, 
@@ -82,26 +83,26 @@ const JournalPage: React.FC<JournalPageProps> = ({ userId, onClose }) => {
   useEffect(() => {
     const fetchJournal = async () => {
       // Récupérer l'utilisateur connecté depuis le localStorage ou l'API
-      // Récupérer l'utilisateur authentifié réel
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setError('Veuillez vous connecter pour accéder à votre journal');
+      // 🔐 Vérifier auth avec AuthService
+      try {
+        const isAuth = await AuthService.isAuthenticated();
+        if (!isAuth) {
+          setError('Veuillez vous connecter pour accéder à votre journal');
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        setError('Erreur d\\'authentification');
         setLoading(false);
         return;
       }
 
-      let currentUserId: string;
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        currentUserId = payload.sub;
-        
-        if (!currentUserId) {
-          setError('Token invalide - Veuillez vous reconnecter');
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        setError('Token malformé - Veuillez vous reconnecter');
+      // 🔐 Récupérer user_id depuis AuthService
+      const userData = AuthService.getUserData();
+      const currentUserId = userData?.user_id;
+      
+      if (!currentUserId) {
+        setError('Session invalide - Veuillez vous reconnecter');
         setLoading(false);
         return;
       }
@@ -109,8 +110,8 @@ const JournalPage: React.FC<JournalPageProps> = ({ userId, onClose }) => {
       try {
         setLoading(true);
         const response = await fetch(`https://luna-hub-backend-unified-production.up.railway.app/luna/journal/${currentUserId}`, {
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });

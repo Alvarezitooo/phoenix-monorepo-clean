@@ -1,238 +1,218 @@
-import React, { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Coffee, ChevronRight, Sparkles, Eye, EyeOff } from "lucide-react";
+/**
+ * 🌙 Luna Session Zero V2 - Modern Auth with Premium UX
+ * Migration de la meilleure UX de LunaModalV2 vers API moderne HTTPOnly
+ */
 
-interface LunaModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+import React, { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from "framer-motion"
+import { Coffee, ChevronRight, Sparkles, Eye, EyeOff } from "lucide-react"
+import { api, LoginRequest, RegisterRequest } from '../lib/api'
+import { SessionsManagement } from './SessionsManagement'
+
+interface LunaSessionZeroProps {
+  isOpen: boolean
+  onClose: () => void
+  onAuthenticated: (user: any) => void
+  initialMode?: AuthMode
 }
 
-type Step = "intro" | "email" | "password" | "motivation" | "gift" | "mission" | "login_intro" | "login_form";
-type Status = "idle" | "sending" | "success" | "error";
-type AuthMode = "register" | "login";
+type AuthMode = 'welcome' | 'login' | 'register' | 'sessions'
+type Step = "intro" | "email" | "password" | "motivation" | "gift" | "mission" | "login_form"
+type Status = "idle" | "sending" | "success" | "error"
 
-export function LunaModal({ isOpen, onClose }: LunaModalProps) {
-  const [step, setStep] = useState<Step>("intro");
-  const [status, setStatus] = useState<Status>("idle");
-  const [message, setMessage] = useState("");
-  const [authMode, setAuthMode] = useState<AuthMode>("register");
+export const LunaSessionZero: React.FC<LunaSessionZeroProps> = ({
+  isOpen,
+  onClose,
+  onAuthenticated,
+  initialMode = 'register'
+}) => {
+  const [mode, setMode] = useState<AuthMode>(initialMode)
+  const [step, setStep] = useState<Step>("intro")
+  const [status, setStatus] = useState<Status>("idle")
+  const [message, setMessage] = useState("")
   
   // Form data
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [motivation, setMotivation] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [motivation, setMotivation] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   
   // Auth state
-  const [token, setToken] = useState<string | null>(null);
-  const [energyLevel, setEnergyLevel] = useState(0);
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [energyLevel, setEnergyLevel] = useState(0)
   
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setStep("intro");
-      setStatus("idle");
-      setMessage("");
-      setEmail("");
-      setPassword("");
-      setMotivation("");
-      setToken(null);
-      setEnergyLevel(0);
-      setAuthMode("register");
+      checkAuthentication()
+      setStep("intro")
+      setStatus("idle")
+      setMessage("")
+      setEmail("")
+      setPassword("")
+      setName("")
+      setMotivation("")
+      setEnergyLevel(0)
+      setMode(initialMode)
     }
-  }, [isOpen]);
+  }, [isOpen, initialMode])
 
   // Focus management for accessibility
   useEffect(() => {
-    if (isOpen && dialogRef.current) {
+    if (isOpen && dialogRef.current && mode !== 'sessions') {
       const focusableElement = dialogRef.current.querySelector(
         'button, input, textarea, [tabindex]:not([tabindex="-1"])'
-      ) as HTMLElement;
-      focusableElement?.focus();
+      ) as HTMLElement
+      focusableElement?.focus()
     }
-  }, [isOpen, step]);
+  }, [isOpen, step, mode])
 
   // Reset form when switching auth modes
   useEffect(() => {
-    setEmail("");
-    setPassword("");
-    setMessage("");
-    setStatus("idle");
-    setStep("intro");
-  }, [authMode]);
+    setEmail("")
+    setPassword("")
+    setName("")
+    setMessage("")
+    setStatus("idle")
+    setStep("intro")
+  }, [mode])
 
-  // API endpoints from environment - Cache bust: 2025-08-24-21:12
-  const registerEndpoint = import.meta.env.VITE_LUNA_REGISTER_ENDPOINT;
-  const loginEndpoint = import.meta.env.VITE_LUNA_LOGIN_ENDPOINT;
-  const narrativeEndpoint = import.meta.env.VITE_LUNA_NARRATIVE_START_ENDPOINT;
-  const cvAppUrl = import.meta.env.VITE_CV_APP_URL || "https://phoenix-cv-production.up.railway.app";
+  const checkAuthentication = async () => {
+    const isAuth = await api.isAuthenticated()
+    if (!isAuth) {
+      setMode(initialMode)
+      return
+    }
+
+    try {
+      const user = await api.getCurrentUser()
+      setCurrentUser(user)
+      setMode('sessions')
+    } catch (error) {
+      setMode('welcome')
+    }
+  }
 
   const handleRegister = async () => {
     if (!email || !password) {
-      setStatus("error");
-      setMessage("Email et mot de passe requis");
-      return;
+      setStatus("error")
+      setMessage("Email et mot de passe requis")
+      return
     }
 
-    setStatus("sending");
+    setStatus("sending")
 
     try {
-      if (!registerEndpoint) {
-        throw new Error("VITE_LUNA_REGISTER_ENDPOINT not configured");
+      const registerRequest: RegisterRequest = {
+        email,
+        password,
+        name: name || undefined
       }
 
-      const response = await fetch(registerEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const authToken = data.access_token || data.token || data.jwt;
-        
-        if (authToken) {
-          setToken(authToken);
-          setStep("motivation");
-          setStatus("idle");
-        } else {
-          throw new Error("No token received");
-        }
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
-      }
+      const userData = await api.register(registerRequest)
+      setCurrentUser(userData)
+      onAuthenticated(userData)
+      setStep("motivation")
+      setStatus("idle")
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Erreur d'inscription");
-      console.error("Registration error:", error);
+      setStatus("error")
+      setMessage(error instanceof Error ? error.message : "Erreur d'inscription")
+      console.error("Registration error:", error)
     }
-  };
+  }
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setStatus("error");
-      setMessage("Email et mot de passe requis");
-      return;
+      setStatus("error")
+      setMessage("Email et mot de passe requis")
+      return
     }
 
-    setStatus("sending");
+    setStatus("sending")
 
     try {
-      if (!loginEndpoint) {
-        throw new Error("VITE_LUNA_LOGIN_ENDPOINT not configured");
+      const loginRequest: LoginRequest = {
+        email,
+        password
       }
 
-      const response = await fetch(loginEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const authToken = data.access_token || data.token || data.jwt;
-        
-        if (authToken) {
-          setToken(authToken);
-          setStep("mission"); // Direct vers mission pour utilisateur existant
-          setStatus("idle");
-          setMessage("Connexion réussie ! Bienvenue de retour.");
-        } else {
-          throw new Error("No token received");
-        }
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
-      }
+      const userData = await api.login(loginRequest)
+      setCurrentUser(userData)
+      onAuthenticated(userData)
+      setStep("mission") // Direct vers mission pour utilisateur existant
+      setStatus("idle")
+      setMessage("Connexion réussie ! Bienvenue de retour.")
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Erreur de connexion");
-      console.error("Login error:", error);
+      setStatus("error")
+      setMessage(error instanceof Error ? error.message : "Erreur de connexion")
+      console.error("Login error:", error)
     }
-  };
+  }
 
-  const handleNarrativeStart = async () => {
+  const handleMotivationSubmit = async () => {
     if (!motivation.trim()) {
-      setStatus("error");
-      setMessage("Partagez votre motivation pour continuer");
-      return;
+      setStatus("error")
+      setMessage("Partagez votre motivation pour continuer")
+      return
     }
 
-    setStatus("sending");
+    setStatus("sending")
 
     try {
-      if (!narrativeEndpoint || !token) {
-        throw new Error("VITE_LUNA_NARRATIVE_START_ENDPOINT or token not configured");
-      }
-
-      const response = await fetch(narrativeEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ motivation }),
-      });
-
-      if (response.ok) {
-        setStep("gift");
-        setStatus("idle");
-        // Start energy animation
-        animateEnergyGift();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
-      }
+      // Simulate narrative start - could integrate with Luna Hub API here
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      setStep("gift")
+      setStatus("idle")
+      // Start energy animation
+      animateEnergyGift()
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Erreur lors de l'enregistrement");
-      console.error("Narrative start error:", error);
+      setStatus("error")
+      setMessage("Erreur lors de l'enregistrement")
+      console.error("Motivation submit error:", error)
     }
-  };
+  }
 
   const animateEnergyGift = () => {
-    const duration = 2000;
-    const targetEnergy = 100;
-    const startTime = Date.now();
+    const duration = 2000
+    const targetEnergy = 100
+    const startTime = Date.now()
 
     const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const easeOut = 1 - Math.pow(1 - progress, 3)
       
-      setEnergyLevel(Math.floor(easeOut * targetEnergy));
+      setEnergyLevel(Math.floor(easeOut * targetEnergy))
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animate)
       } else {
-        setTimeout(() => setStep("mission"), 500);
+        setTimeout(() => setStep("mission"), 500)
       }
-    };
+    }
 
-    requestAnimationFrame(animate);
-  };
+    requestAnimationFrame(animate)
+  }
 
   const redirectToCV = () => {
-    if (token && cvAppUrl) {
-      // Use fragment to pass token + URL params to trigger welcome banner
-      const redirectUrl = `${cvAppUrl}?welcome=true#token=${encodeURIComponent(token)}`;
-      // Mark user as just registered for Phoenix CV
-      localStorage.setItem('phoenix_just_registered', 'true');
-      window.location.href = redirectUrl;
-    } else {
-      // Fallback redirect without token but still with welcome
-      const redirectUrl = `${cvAppUrl}?welcome=true`;
-      localStorage.setItem('phoenix_just_registered', 'true');
-      window.location.href = redirectUrl;
-    }
-  };
+    const cvAppUrl = "https://phoenix-cv-production.up.railway.app"
+    // Use URL params to trigger welcome banner
+    const redirectUrl = `${cvAppUrl}?welcome=true`
+    // Mark user as just registered for Phoenix CV
+    localStorage.setItem('phoenix_just_registered', 'true')
+    window.location.href = redirectUrl
+  }
+
+  const handleLogout = async () => {
+    await api.logout()
+    setCurrentUser(null)
+    setMode('welcome')
+    onClose()
+  }
 
   // Render functions for each step
   function StepHeaderBlock() {
@@ -248,12 +228,12 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
         </motion.div>
         <div>
           <h2 id="luna-modal-title" className="text-xl font-bold text-gray-900">
-            Luna
+            Luna Session Zero
           </h2>
-          <p className="text-sm text-gray-600">Votre guide IA bienveillant</p>
+          <p className="text-sm text-gray-600">Votre authentification Phoenix</p>
         </div>
       </div>
-    );
+    )
   }
 
   function renderIntro() {
@@ -261,16 +241,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
       <>
         <StepHeaderBlock />
         <div className="prose prose-sm max-w-none text-gray-800">
-          {authMode === "register" ? (
-            <>
-              <p className="mb-3">
-                Bienvenue, partenaire. 🌙
-              </p>
-              <p className="mb-4">
-                Prêt(e) pour ta première mission ? Je vais transformer le chaos de ta reconversion en récit clair et puissant.
-              </p>
-            </>
-          ) : (
+          {mode === "login" ? (
             <>
               <p className="mb-3">
                 Bon retour parmi nous. 🌙
@@ -279,14 +250,23 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
                 Pour continuer là où nous nous étions arrêtés, veuillez vous identifier.
               </p>
             </>
+          ) : (
+            <>
+              <p className="mb-3">
+                Bienvenue, partenaire. 🌙
+              </p>
+              <p className="mb-4">
+                Prêt(e) pour ta première mission ? Je vais transformer le chaos de ta reconversion en récit clair et puissant.
+              </p>
+            </>
           )}
         </div>
         <div className="mt-4 flex items-center justify-between gap-2">
           <button
-            onClick={() => setAuthMode(authMode === "register" ? "login" : "register")}
+            onClick={() => setMode(mode === "register" ? "login" : "register")}
             className="text-sm text-gray-600 hover:text-gray-800 underline"
           >
-            {authMode === "register" ? "Déjà un partenaire ? Connectez-vous" : "Nouveau ici ? Commencez votre histoire"}
+            {mode === "register" ? "Déjà un partenaire ? Connectez-vous" : "Nouveau ici ? Commencez votre histoire"}
           </button>
           <div className="flex gap-2">
             <button
@@ -296,15 +276,15 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
               Plus tard
             </button>
             <button
-              onClick={() => setStep(authMode === "register" ? "email" : "login_form")}
+              onClick={() => setStep(mode === "register" ? "email" : "login_form")}
               className="flex items-center gap-2 rounded-2xl bg-black px-4 py-2 text-white shadow hover:shadow-md"
             >
-              {authMode === "register" ? "Commencer" : "Se connecter"} <ChevronRight className="h-4 w-4" />
+              {mode === "register" ? "Commencer" : "Se connecter"} <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
       </>
-    );
+    )
   }
 
   function renderEmail() {
@@ -350,7 +330,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
           </div>
         </form>
       </>
-    );
+    )
   }
 
   function renderPassword() {
@@ -408,7 +388,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
           </div>
         </form>
       </>
-    );
+    )
   }
 
   function renderMotivation() {
@@ -423,7 +403,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
             Pour personnaliser ton expérience, raconte-moi en quelques mots ce qui t'amène ici. Qu'est-ce qui t'inspire dans ta reconversion ?
           </p>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); handleNarrativeStart(); }} className="mt-2">
+        <form onSubmit={(e) => { e.preventDefault(); handleMotivationSubmit(); }} className="mt-2">
           <label htmlFor="luna-motivation" className="block text-sm font-medium text-gray-700 mb-2">
             Ta motivation
           </label>
@@ -458,7 +438,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
           </div>
         </form>
       </>
-    );
+    )
   }
 
   function renderGift() {
@@ -496,7 +476,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
           </div>
         </div>
       </>
-    );
+    )
   }
 
   function renderMission() {
@@ -531,7 +511,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
           </button>
         </div>
       </>
-    );
+    )
   }
 
   function renderLoginForm() {
@@ -593,7 +573,7 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
           )}
           <div className="flex items-center justify-between gap-2">
             <button
-              onClick={() => setAuthMode("register")}
+              onClick={() => setMode("register")}
               className="text-sm text-gray-600 hover:text-gray-800 underline"
             >
               Nouveau ici ? Commencez votre histoire
@@ -618,47 +598,61 @@ export function LunaModal({ isOpen, onClose }: LunaModalProps) {
           </div>
         </form>
       </>
-    );
+    )
   }
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
+  if (!isOpen) return null
 
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="luna-modal-title"
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            ref={dialogRef}
-          >
-            <motion.div 
-              className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
-              layout
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+  return (
+    <>
+      {mode === 'sessions' ? (
+        <SessionsManagement
+          isOpen={isOpen}
+          onClose={() => {
+            onClose()
+            setMode('welcome')
+          }}
+        />
+      ) : (
+        <AnimatePresence>
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+            />
+
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="luna-modal-title"
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              ref={dialogRef}
             >
-              {step === "intro" && renderIntro()}
-              {step === "email" && renderEmail()}
-              {step === "password" && renderPassword()}
-              {step === "motivation" && renderMotivation()}
-              {step === "gift" && renderGift()}
-              {step === "mission" && renderMission()}
-              {step === "login_form" && renderLoginForm()}
+              <motion.div 
+                className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+                layout
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              >
+                {step === "intro" && renderIntro()}
+                {step === "email" && renderEmail()}
+                {step === "password" && renderPassword()}
+                {step === "motivation" && renderMotivation()}
+                {step === "gift" && renderGift()}
+                {step === "mission" && renderMission()}
+                {step === "login_form" && renderLoginForm()}
+              </motion.div>
             </motion.div>
-          </motion.div>
-        </>
+          </>
+        </AnimatePresence>
       )}
-    </AnimatePresence>
-  );
+    </>
+  )
 }
+
+export default LunaSessionZero

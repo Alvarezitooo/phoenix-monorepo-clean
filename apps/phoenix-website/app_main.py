@@ -95,7 +95,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=False,  # JWT Bearer seulement, pas de cookies cross-domain
+    allow_credentials=True,  # 🔐 Cookies HTTPOnly supportés
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -124,7 +124,8 @@ async def add_security_headers(request: Request, call_next):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' https://luna-hub-backend-unified-production.up.railway.app"
+            "connect-src 'self' https://luna-hub-backend-unified-production.up.railway.app; "
+            "frame-ancestors 'none'"
         )
     
     return response

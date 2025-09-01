@@ -64,14 +64,8 @@ export function PhoenixNavigation() {
   const handleAppNavigation = (app: PhoenixApp) => {
     if (app.current) return;
     
-    // Garder le token si disponible
-    const currentToken = localStorage.getItem('authToken') || localStorage.getItem('access_token');
-    let targetUrl = app.url;
-    
-    if (currentToken && app.id !== 'website') {
-      // Transmettre le token aux autres apps Phoenix
-      targetUrl = `${app.url}?phoenix_token=${encodeURIComponent(currentToken)}`;
-    }
+    // 🔐 Plus de token URL - Cookies HTTPOnly cross-domain
+    const targetUrl = app.url;
     
     window.location.href = targetUrl;
   };

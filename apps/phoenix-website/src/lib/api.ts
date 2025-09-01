@@ -143,38 +143,12 @@ export interface UserSession {
   };
 }
 
-// Classe API pour interaction avec Luna Hub
+// 🔐 Classe API avec cookies HTTPOnly - Plus de localStorage tokens
 export class LunaAPI {
   private baseUrl: string;
-  private accessToken: string | null = null;
-  private refreshToken: string | null = null;
   
   constructor(baseUrl: string = LUNA_HUB_URL) {
     this.baseUrl = baseUrl;
-    // Load tokens from localStorage
-    this.loadTokens();
-  }
-
-  private loadTokens() {
-    this.accessToken = localStorage.getItem('access_token');
-    this.refreshToken = localStorage.getItem('refresh_token');
-  }
-
-  private saveTokens(accessToken: string, refreshToken?: string) {
-    this.accessToken = accessToken;
-    localStorage.setItem('access_token', accessToken);
-    
-    if (refreshToken) {
-      this.refreshToken = refreshToken;
-      localStorage.setItem('refresh_token', refreshToken);
-    }
-  }
-
-  private clearTokens() {
-    this.accessToken = null;
-    this.refreshToken = null;
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
   }
   
   private async request<T>(
@@ -188,41 +162,18 @@ export class LunaAPI {
       'Content-Type': 'application/json',
       'X-Request-ID': crypto.randomUUID(),
     };
-
-    // Add authorization header if available and needed
-    if (useAuth && this.accessToken) {
-      defaultHeaders['Authorization'] = `Bearer ${this.accessToken}`;
-    }
     
-    let response = await fetch(url, {
+    const response = await fetch(url, {
       ...options,
+      credentials: useAuth ? 'include' : 'omit', // Cookie HTTPOnly inclus
       headers: {
         ...defaultHeaders,
         ...options.headers,
       },
     });
-
-    // Handle token refresh on 401
-    if (response.status === 401 && useAuth && this.refreshToken) {
-      const refreshed = await this.refreshAccessToken();
-      if (refreshed) {
-        // Retry request with new token
-        defaultHeaders['Authorization'] = `Bearer ${this.accessToken}`;
-        response = await fetch(url, {
-          ...options,
-          headers: {
-            ...defaultHeaders,
-            ...options.headers,
-          },
-        });
-      }
-    }
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (response.status === 401) {
-        this.clearTokens();
-      }
       throw new Error(
         errorData.detail || `API Error: ${response.status} ${response.statusText}`
       );
@@ -231,43 +182,30 @@ export class LunaAPI {
     return response.json();
   }
 
-  private async refreshAccessToken(): Promise<boolean> {
-    if (!this.refreshToken) return false;
+  // 🔐 Plus de refresh tokens - HTTPOnly cookies gérés côté serveur
 
-    try {
-      const response = await this.request<AuthResponse>('/auth/refresh', {
-        method: 'POST',
-        body: JSON.stringify({ refresh_token: this.refreshToken }),
-      }, false);
+  // ====== AUTHENTICATION ENDPOINTS (HTTPOnly) ======
 
-      this.saveTokens(response.access_token, response.refresh_token);
-      return true;
-    } catch (error) {
-      this.clearTokens();
-      return false;
-    }
+  async login(request: LoginRequest): Promise<any> {
+    // Secure session pour HTTPOnly cookie
+    return this.request('/auth/secure-session', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }, false);
   }
 
-  // ====== AUTHENTICATION ENDPOINTS ======
-
-  async login(request: LoginRequest): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>('/auth/login', {
+  async register(request: RegisterRequest): Promise<any> {
+    // Étape 1: Register normal
+    await this.request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(request),
     }, false);
 
-    this.saveTokens(response.access_token, response.refresh_token);
-    return response;
-  }
-
-  async register(request: RegisterRequest): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>('/auth/register', {
+    // Étape 2: Secure session pour cookie
+    return this.request('/auth/secure-session', {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify({ email: request.email, password: request.password }),
     }, false);
-
-    this.saveTokens(response.access_token, response.refresh_token);
-    return response;
   }
 
   async getCurrentUser() {
@@ -290,12 +228,19 @@ export class LunaAPI {
     });
   }
 
-  logout() {
-    this.clearTokens();
+  async logout(): Promise<void> {
+    await this.request('/auth/logout-secure', {
+      method: 'POST',
+    });
   }
 
-  isAuthenticated(): boolean {
-    return !!this.accessToken;
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      await this.getCurrentUser();
+      return true;
+    } catch {
+      return false;
+    }
   }
   
   // ====== BILLING ENDPOINTS ======

@@ -12,7 +12,7 @@ export default function AubeResultsPage(){
   
   useEffect(()=>{
     // Récupérer l'utilisateur authentifié
-    const token = localStorage.getItem('access_token');
+    const token = // 🔐 CLEANED: Was localStorage access_token - now uses HTTPOnly cookies;
     if (!token) {
       setError('Veuillez vous connecter pour accéder aux recommandations');
       setLoading(false);
@@ -43,7 +43,7 @@ export default function AubeResultsPage(){
           method:'POST', 
           headers:{
             'Content-Type':'application/json',
-            'Authorization': `Bearer ${token}`
+            // 🔐 CLEANED: Auth header - use credentials: 'include' instead
           }, 
           body: JSON.stringify({
             k: 5,

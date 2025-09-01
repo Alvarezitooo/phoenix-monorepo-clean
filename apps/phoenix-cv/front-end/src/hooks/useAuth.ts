@@ -27,32 +27,17 @@ export function useAuth(): UseAuthReturn {
     try {
       setIsLoading(true);
       
-      // Vérifie d'abord les tokens dans l'URL (redirect depuis Phoenix Website)
-      const tokenFromURL = AuthService.handleTokenFromURL();
-      if (tokenFromURL) {
-        setIsAuthenticated(true);
-        setUserId(AuthService.getUserId());
-        setEmail(AuthService.getUserEmail());
-        setIsLoading(false);
-        return true;
-      }
+      // 🔐 Clean URL de anciens tokens
+      AuthService.handleTokenFromURL();
 
-      // Vérifie l'authentification locale
-      if (!AuthService.isAuthenticated()) {
-        setIsAuthenticated(false);
-        setUserId(null);
-        setEmail(null);
-        setIsLoading(false);
-        return false;
-      }
-
-      // Valide le token avec Luna Hub
-      const isValid = await AuthService.validateToken();
+      // Vérifie auth avec cookies HTTPOnly
+      const isAuth = await AuthService.isAuthenticated();
       
-      if (isValid) {
+      if (isAuth) {
+        const userData = AuthService.getUserData();
         setIsAuthenticated(true);
-        setUserId(AuthService.getUserId());
-        setEmail(AuthService.getUserEmail());
+        setUserId(userData?.user_id || null);
+        setEmail(userData?.email || null);
       } else {
         setIsAuthenticated(false);
         setUserId(null);
@@ -60,7 +45,7 @@ export function useAuth(): UseAuthReturn {
       }
 
       setIsLoading(false);
-      return isValid;
+      return isAuth;
     } catch (error) {
       console.error('Auth check failed:', error);
       setIsAuthenticated(false);
@@ -74,11 +59,11 @@ export function useAuth(): UseAuthReturn {
   const login = async (email: string, password: string): Promise<void> => {
     try {
       setIsLoading(true);
-      const response = await AuthService.login(email, password);
+      const userData = await AuthService.login(email, password);
       
       setIsAuthenticated(true);
-      setUserId(response.user_id);
-      setEmail(response.email);
+      setUserId(userData.id);
+      setEmail(userData.email);
     } catch (error) {
       setIsAuthenticated(false);
       setUserId(null);

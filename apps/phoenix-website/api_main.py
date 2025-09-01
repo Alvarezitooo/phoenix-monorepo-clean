@@ -36,7 +36,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=False,  # JWT Bearer seulement, pas de cookies cross-domain
+    allow_credentials=True,  # 🔐 Cookies HTTPOnly supportés
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )

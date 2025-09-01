@@ -19,69 +19,59 @@ interface AuthTokens {
   email: string;
 }
 
+// 🔐 AuthService migré vers cookies HTTPOnly
 class AuthService {
-  private static readonly ACCESS_TOKEN_KEY = 'access_token';
-  private static readonly USER_ID_KEY = 'user_id';
-  private static readonly USER_EMAIL_KEY = 'user_email';
+  private static readonly USER_DATA_KEY = 'phoenix_auth_user';
 
   /**
-   * Vérifie si l'utilisateur est authentifié
+   * 🔐 Vérifie auth avec validation serveur
    */
-  static isAuthenticated(): boolean {
-    const token = localStorage.getItem(this.ACCESS_TOKEN_KEY);
-    return !!token;
+  static async isAuthenticated(): Promise<boolean> {
+    try {
+      await this.validateToken();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
-   * Récupère le token d'accès
+   * Récupère les données utilisateur depuis localStorage (non-sensible)
    */
-  static getAccessToken(): string | null {
-    return localStorage.getItem(this.ACCESS_TOKEN_KEY);
+  static getUserData(): { user_id: string; email: string } | null {
+    const userData = localStorage.getItem(this.USER_DATA_KEY);
+    return userData ? JSON.parse(userData) : null;
   }
 
   /**
-   * Récupère l'ID utilisateur
+   * Stocke les données utilisateur (non-sensibles)
    */
-  static getUserId(): string | null {
-    return localStorage.getItem(this.USER_ID_KEY);
+  private static setUserData(userData: { user_id: string; email: string }): void {
+    localStorage.setItem(this.USER_DATA_KEY, JSON.stringify(userData));
   }
 
   /**
-   * Récupère l'email utilisateur
+   * Supprime les données utilisateur
    */
-  static getUserEmail(): string | null {
-    return localStorage.getItem(this.USER_EMAIL_KEY);
-  }
-
-  /**
-   * Stocke les tokens d'authentification
-   */
-  static setTokens(tokens: AuthTokens): void {
-    localStorage.setItem(this.ACCESS_TOKEN_KEY, tokens.access_token);
-    localStorage.setItem(this.USER_ID_KEY, tokens.user_id);
-    localStorage.setItem(this.USER_EMAIL_KEY, tokens.email);
-  }
-
-  /**
-   * Supprime les tokens (logout)
-   */
-  static clearTokens(): void {
-    localStorage.removeItem(this.ACCESS_TOKEN_KEY);
-    localStorage.removeItem(this.USER_ID_KEY);
-    localStorage.removeItem(this.USER_EMAIL_KEY);
+  static clearUserData(): void {
+    localStorage.removeItem(this.USER_DATA_KEY);
     // Nettoie aussi les anciens tokens
+    // 🔐 CLEANED: localStorage.removeItem access_token;
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_email');
     localStorage.removeItem('authToken');
   }
 
   /**
-   * Login via Luna Hub
+   * 🔐 Login via secure session (HTTPOnly cookies)
    */
-  static async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await fetch(`${LUNA_HUB_URL}/auth/login`, {
+  static async login(email: string, password: string): Promise<any> {
+    const response = await fetch(`${LUNA_HUB_URL}/auth/secure-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // Cookie HTTPOnly
       body: JSON.stringify({ email, password }),
     });
 
@@ -90,65 +80,65 @@ class AuthService {
       throw new Error(error.message || 'Authentication failed');
     }
 
-    const data = await response.json();
+    const userData = await response.json();
     
-    // Stocke les tokens
-    this.setTokens({
-      access_token: data.access_token,
-      user_id: data.user_id,
-      email: data.email,
+    // Stocke données non-sensibles
+    this.setUserData({
+      user_id: userData.id,
+      email: userData.email,
     });
 
-    return data;
+    return userData;
   }
 
   /**
-   * Vérifie la validité du token via Luna Hub
+   * Vérifie la validité avec cookies HTTPOnly
    */
-  static async validateToken(): Promise<boolean> {
-    const token = this.getAccessToken();
-    if (!token) return false;
-
+  static async validateToken(): Promise<any> {
     try {
       const response = await fetch(`${LUNA_HUB_URL}/auth/me`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
+        credentials: 'include', // Cookie HTTPOnly inclus
       });
 
       if (!response.ok) {
-        this.clearTokens();
-        return false;
+        this.clearUserData();
+        throw new Error('Authentication failed');
       }
 
-      return true;
+      const userData = await response.json();
+      this.setUserData({
+        user_id: userData.id,
+        email: userData.email,
+      });
+
+      return userData;
     } catch (error) {
       console.error('Token validation error:', error);
-      this.clearTokens();
-      return false;
+      this.clearUserData();
+      throw error;
     }
   }
 
   /**
-   * Logout complet
+   * Logout sécurisé avec serveur
    */
   static async logout(): Promise<void> {
     try {
-      const token = this.getAccessToken();
-      if (token) {
-        // Optionnel : appeler endpoint logout côté serveur
-        await fetch(`${LUNA_HUB_URL}/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      }
+      await fetch(`${LUNA_HUB_URL}/auth/logout-secure`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      this.clearTokens();
+      this.clearUserData();
     }
   }
 
@@ -162,27 +152,22 @@ class AuthService {
   }
 
   /**
-   * Handle token from URL (redirect depuis Phoenix Website)
+   * 🔐 Plus de token URL - Cookies HTTPOnly cross-domain
    */
   static handleTokenFromURL(): boolean {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const userId = urlParams.get('userId');
-    const email = urlParams.get('email');
-
-    if (token && userId && email) {
-      this.setTokens({
-        access_token: token,
-        user_id: userId,
-        email: email,
-      });
-      
-      // Nettoie l'URL
+    
+    // Nettoie anciens params token si présents
+    if (urlParams.has('token') || urlParams.has('phoenix_token')) {
+      urlParams.delete('token');
+      urlParams.delete('phoenix_token');
+      urlParams.delete('userId');
+      urlParams.delete('email');
       window.history.replaceState({}, document.title, window.location.pathname);
-      return true;
     }
-
-    return false;
+    
+    // Plus rien à faire - cookies HTTPOnly gérés automatiquement
+    return true;
   }
 }
 

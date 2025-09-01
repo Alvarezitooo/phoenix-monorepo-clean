@@ -19,22 +19,13 @@ interface AuthResponse {
   user: User;
 }
 
+// 🔐 AuthService migré vers cookies HTTPOnly
 class AuthService {
   private readonly LUNA_HUB_URL = import.meta.env.VITE_LUNA_HUB_URL || 'https://luna-hub-backend-unified-production.up.railway.app';
-  private readonly TOKEN_KEY = 'phoenix_auth_token';
-  private readonly USER_KEY = 'phoenix_auth_user';
+  private readonly USER_KEY = 'phoenix_auth_user'; // Info user seulement
 
-  // Token management
-  getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  private setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-  }
-
-  private removeToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+  // 🔐 Plus de gestion token localStorage - Cookie HTTPOnly automatique
+  private clearUserData(): void {
     localStorage.removeItem(this.USER_KEY);
   }
 
@@ -48,37 +39,34 @@ class AuthService {
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
-  // Auth headers
-  private getHeaders(includeAuth: boolean = true): HeadersInit {
-    const headers: HeadersInit = {
+  // Headers basiques - Cookie HTTPOnly géré automatiquement
+  private getHeaders(): HeadersInit {
+    return {
       'Content-Type': 'application/json',
     };
-    
-    if (includeAuth) {
-      const token = this.getToken();
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
+  }
+
+  // Check authentication status avec validation serveur
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      await this.getCurrentUser();
+      return true;
+    } catch {
+      return false;
     }
-    
-    return headers;
   }
 
-  // Check authentication status
-  isAuthenticated(): boolean {
-    return !!this.getToken();
-  }
-
-  // Get current user from Luna Hub
+  // Get current user from Luna Hub avec cookies HTTPOnly
   async getCurrentUser(): Promise<User> {
     const response = await fetch(`${this.LUNA_HUB_URL}/auth/me`, {
       method: 'GET',
       headers: this.getHeaders(),
+      credentials: 'include', // Cookie HTTPOnly inclus
     });
 
     if (!response.ok) {
       if (response.status === 401) {
-        this.removeToken();
+        this.clearUserData();
       }
       throw new Error('Failed to get user info');
     }
@@ -88,26 +76,26 @@ class AuthService {
     return user;
   }
 
-  // Initialize from URL token (from Phoenix Website)
+  // 🔐 Plus de token URL - Cookies HTTPOnly cross-domain .railway.app
   initializeFromToken(token?: string): void {
-    // Check URL params for phoenix_token from other Phoenix apps
+    // Clean URL si ancien token présent
     const urlParams = new URLSearchParams(window.location.search);
-    const phoenixToken = token || urlParams.get('phoenix_token');
-    
-    if (phoenixToken) {
-      this.setToken(phoenixToken);
-      // Clean URL
-      if (urlParams.has('phoenix_token')) {
-        urlParams.delete('phoenix_token');
-        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-        window.history.replaceState({}, '', newUrl);
-      }
+    if (urlParams.has('phoenix_token')) {
+      urlParams.delete('phoenix_token');
+      const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+      window.history.replaceState({}, '', newUrl);
     }
+    // Plus rien à faire - cookies HTTPOnly gérés automatiquement
   }
 
-  // Logout
-  logout(): void {
-    this.removeToken();
+  // Logout sécurisé avec serveur
+  async logout(): Promise<void> {
+    await fetch(`${this.LUNA_HUB_URL}/auth/logout-secure`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      credentials: 'include',
+    });
+    this.clearUserData();
   }
 
   // Check if user has unlimited subscription

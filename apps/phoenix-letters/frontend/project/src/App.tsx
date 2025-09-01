@@ -21,7 +21,8 @@ function App() {
       // Check for token from Phoenix Website or URL
       authService.initializeFromToken();
       
-      if (authService.isAuthenticated()) {
+      const isAuth = await authService.isAuthenticated();
+      if (isAuth) {
         try {
           const authUser = await authService.getCurrentUser();
           // Convert auth user to app user format
@@ -34,26 +35,14 @@ function App() {
           });
         } catch (error) {
           console.error('Auth failed:', error);
-          // MODE DÉMO: Créer utilisateur démo au lieu de rediriger
-          console.log('🎭 MODE DÉMO: Creating demo user');
-          setUser({
-            id: 'demo-user-' + Date.now(),
-            name: 'Utilisateur Démo',
-            email: 'demo@phoenix-letters.com',
-            subscription: 'free',
-            createdAt: new Date(),
-          });
+          // 🔐 Redirection sécurisée vers Phoenix Website
+          authService.redirectToLogin();
+          return;
         }
       } else {
-        // MODE DÉMO: Créer utilisateur démo au lieu de rediriger
-        console.log('🎭 MODE DÉMO: No auth, creating demo user');
-        setUser({
-          id: 'demo-user-' + Date.now(),
-          name: 'Utilisateur Démo',
-          email: 'demo@phoenix-letters.com', 
-          subscription: 'free',
-          createdAt: new Date(),
-        });
+        // 🔐 Redirection sécurisée vers Phoenix Website
+        authService.redirectToLogin();
+        return;
       }
     };
     

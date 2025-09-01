@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { lunaCVAPI, EnergyCheckResponse, LunaMessage } from '../../services/lunaAPI';
+import { AuthService } from '../../services/authService';
 
 // Use harmonized Message type from lunaAPI
 type Message = LunaMessage;
@@ -72,17 +73,10 @@ export function LunaProvider({ children, initialEnergy = 90 }: LunaProviderProps
   // CV specific state
   const [currentCVId, setCurrentCVId] = useState<string>();
 
-  // Récupérer l'utilisateur authentifié réel
+  // 🔐 Récupérer user_id depuis AuthService
   const getUserId = (): string | null => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return null;
-    
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.sub;
-    } catch {
-      return null;
-    }
+    const userData = AuthService.getUserData();
+    return userData?.user_id || null;
   };
   
   const userId = getUserId();

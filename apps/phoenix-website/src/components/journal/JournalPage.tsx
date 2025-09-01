@@ -82,27 +82,40 @@ const JournalPage: React.FC<JournalPageProps> = ({ userId, onClose }) => {
 
   useEffect(() => {
     const fetchJournal = async () => {
-      // Récupérer l'utilisateur authentifié réel
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        setError('Veuillez vous connecter pour accéder à votre journal');
+      // 🔐 Vérifier authentification via cookies HTTPOnly
+      try {
+        const response = await fetch(`${LUNA_HUB_URL}/auth/me`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          setError('Veuillez vous connecter pour accéder à votre journal');
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        setError('Erreur de connexion');
         setLoading(false);
         return;
       }
 
+      // 🔐 Récupérer user_id depuis /auth/me
       let currentUserId: string;
       try {
-        // Décoder le token JWT pour récupérer l'user_id réel
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        currentUserId = payload.sub;
+        const userResponse = await fetch(`${LUNA_HUB_URL}/auth/me`, {
+          credentials: 'include'
+        });
         
-        if (!currentUserId) {
-          setError('Token invalide - Veuillez vous reconnecter');
+        if (!userResponse.ok) {
+          setError('Session expirée - Veuillez vous reconnecter');
           setLoading(false);
           return;
         }
+        
+        const userData = await userResponse.json();
+        currentUserId = userData.id;
       } catch (err) {
-        setError('Token malformé - Veuillez vous reconnecter');
+        setError('Erreur lors de la récupération du profil utilisateur');
         setLoading(false);
         return;
       }
@@ -110,8 +123,8 @@ const JournalPage: React.FC<JournalPageProps> = ({ userId, onClose }) => {
       try {
         setLoading(true);
         const response = await fetch(`https://luna-hub-backend-unified-production.up.railway.app/luna/journal/${currentUserId}`, {
+          credentials: 'include', // 🔐 Cookie HTTPOnly inclus
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });

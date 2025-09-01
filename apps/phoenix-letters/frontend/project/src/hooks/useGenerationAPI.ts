@@ -4,17 +4,12 @@ import { Letter, GenerationProgress } from '@/types';
 import { apiService } from '@/services/api';
 import { useLuna } from '@/components/Luna';
 
-// Fonction utilitaire pour récupérer l'utilisateur authentifié
+// 🔐 Fonction utilitaire pour récupérer l'utilisateur depuis store auth
+import { authService } from '@/services/authService';
+
 const getUserId = (): string | null => {
-  const token = localStorage.getItem('access_token');
-  if (!token) return null;
-  
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.sub;
-  } catch {
-    return null;
-  }
+  const userData = authService.getUser();
+  return userData?.id || null;
 };
 
 /**

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { LunaContextType, Message } from './types';
 import { lunaAPI, EnergyCheckResponse } from '@/services/lunaAPI';
+import { authService } from '@/services/authService';
 
 // Context creation
 const LunaContext = createContext<LunaContextType | undefined>(undefined);
@@ -39,17 +40,10 @@ export function LunaProvider({
   // Context awareness for Phoenix Letters pages
   const [currentContext, setCurrentContext] = useState<LunaContextType['currentContext']>('dashboard');
 
-  // Récupérer l'utilisateur authentifié réel
+  // 🔐 Récupérer user_id depuis authService
   const getUserId = (): string | null => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return null;
-    
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.sub;
-    } catch {
-      return null;
-    }
+    const userData = authService.getUser();
+    return userData?.id || null;
   };
   
   const userId = getUserId();

@@ -10,7 +10,7 @@ export default function AubeStartPage(){
 
   // Récupérer l'utilisateur authentifié au montage
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = // 🔐 CLEANED: Was localStorage access_token - now uses HTTPOnly cookies;
     if (!token) {
       setStatus('no_auth');
       return;
@@ -39,12 +39,12 @@ export default function AubeStartPage(){
 
     setStatus('loading');
     try {
-      const token = localStorage.getItem('access_token');
+      const token = // 🔐 CLEANED: Was localStorage access_token - now uses HTTPOnly cookies;
       const response = await fetch(`${HUB}/luna/aube/assessment/start`, {
         method:'POST', 
         headers:{
           'Content-Type':'application/json',
-          'Authorization': `Bearer ${token}`
+          // 🔐 CLEANED: Auth header - use credentials: 'include' instead
         }, 
         body: JSON.stringify({})
       });
