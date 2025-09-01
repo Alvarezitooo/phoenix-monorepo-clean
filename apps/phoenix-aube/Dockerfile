@@ -8,9 +8,9 @@ FROM node:18-alpine as frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy frontend package files (créés par Bolt.new)
+# Copy frontend package files (créés par Bolt.new) - Fixed Next.js version
 COPY frontend/package.json ./
-RUN npm install --only=production && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 # Copy frontend source et build
 COPY frontend/ ./
