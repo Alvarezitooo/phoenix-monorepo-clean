@@ -34,9 +34,6 @@ COPY domain ./domain
 COPY infrastructure ./infrastructure
 COPY shared ./shared
 COPY api_main.py ./api_main.py
-COPY main.py ./main.py
-COPY backend_api_main.py ./backend_api_main.py
-COPY app_main.py ./app_main.py
 
 # Build frontend
 WORKDIR /app/front-end
