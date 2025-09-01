@@ -9,8 +9,8 @@ FROM node:18-alpine as frontend-builder
 WORKDIR /app/frontend
 
 # Copy frontend package files (créés par Bolt.new)
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
+COPY frontend/package.json ./
+RUN npm install --only=production && npm cache clean --force
 
 # Copy frontend source et build
 COPY frontend/ ./
@@ -58,7 +58,7 @@ COPY backend/ /app/backend/
 # Copy Frontend Build from Stage 1
 COPY --from=frontend-builder /app/frontend/.next /app/frontend/.next
 COPY --from=frontend-builder /app/frontend/public /app/frontend/public
-COPY --from=frontend-builder /app/frontend/package.json /app/frontend/package.json
+COPY frontend/package.json /app/frontend/package.json
 
 # Nginx Configuration for Frontend + API Proxy
 COPY <<EOF /etc/nginx/sites-available/default
@@ -129,7 +129,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
 
 # Install Frontend Dependencies for Runtime
 WORKDIR /app/frontend
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Security & Permissions
 RUN chown -R phoenix:phoenix /app && \

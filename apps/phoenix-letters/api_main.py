@@ -346,6 +346,7 @@ async def root():
     }
 
 @app.get("/health", response_model=HealthCheck)
+@app.head("/health")
 async def health_check(services_container = Depends(get_services)):
     """Health check complet de l'API"""
     ai_health = await services_container.ai_service.health_check()

@@ -92,7 +92,7 @@ const JournalPage: React.FC<JournalPageProps> = ({ userId, onClose }) => {
           return;
         }
       } catch (error) {
-        setError('Erreur d\\'authentification');
+        setError('Erreur d\'authentification');
         setLoading(false);
         return;
       }

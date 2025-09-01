@@ -55,9 +55,9 @@ RUN useradd -m appuser && \
 
 USER appuser
 
-# Health check for Railway
+# Health check for Railway (use GET method)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
+    CMD curl -f -X GET http://localhost:$PORT/health || exit 1
 
 EXPOSE $PORT
 
