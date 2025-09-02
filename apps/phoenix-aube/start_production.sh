@@ -26,10 +26,10 @@ BACKEND_PID=$!
 # Give FastAPI a moment to start
 sleep 3
 
-# Start Next.js with specific port
+# Start Next.js with specific port and host (0.0.0.0 for Docker/Railway)
 echo "🚀 Starting Next.js frontend..."
 cd /app/frontend
-NODE_ENV=production PORT=3000 npm run start &
+NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 npm run start &
 FRONTEND_PID=$!
 
 # Wait for Next.js to be ready (but don't block FastAPI)
