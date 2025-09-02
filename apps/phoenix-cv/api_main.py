@@ -421,8 +421,22 @@ async def quota_exceeded_handler(request, exc: QuotaExceededError):
 # ENDPOINTS - HEALTH & STATUS
 # =============================================================================
 
-@app.get("/health", response_model=HealthResponse, tags=["Health"])
+@app.get("/health")
 async def health_check():
+    """Railway-optimized health check - GET only"""
+    return {
+        "status": "ok",
+        "service": "phoenix-cv",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/railway-health")  
+async def railway_health_check():
+    """Dedicated Railway health endpoint - Industry Standard 2024"""
+    return {"status": "ok"}
+
+@app.get("/health-full", response_model=HealthResponse, tags=["Health"])
+async def health_check_full():
     """Health check complet des services"""
     
     health_data = {

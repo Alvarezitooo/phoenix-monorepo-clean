@@ -345,31 +345,19 @@ async def root():
         "luna_integration": "Sprint 4 ✅"
     }
 
-@app.get("/health", response_model=HealthCheck)
-@app.head("/health")
-async def health_check(services_container = Depends(get_services)):
-    """Health check complet de l'API"""
-    ai_health = await services_container.ai_service.health_check()
-    
-    # Test connectivité Luna Hub
-    luna_status = "disconnected"
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{LUNA_HUB_URL}/health")
-            luna_status = "connected" if (200 <= response.status_code < 300) else "disconnected"
-    except Exception:
-        luna_status = "disconnected"
-    
-    return HealthCheck(
-        status="healthy",
-        version="2.0.0", 
-        environment=config.app.environment,
-        ai_service=ai_health,
-        luna_hub_status=luna_status,
-        luna_hub_url=LUNA_HUB_URL,
-        timestamp=datetime.now().isoformat()
-    )
+@app.get("/health")
+async def health_check():
+    """Railway-optimized health check - GET only"""
+    return {
+        "status": "ok",
+        "service": "phoenix-letters",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/railway-health")  
+async def railway_health_check():
+    """Dedicated Railway health endpoint - Industry Standard 2024"""
+    return {"status": "ok"}
 
 @app.post("/api/letters/generate", response_model=GenerationResponse)
 async def generate_letter(

@@ -253,24 +253,20 @@ if is_production:
         app.mount("/static", StaticFiles(directory=str(frontend_dist_path)), name="static")
         logger.info("Frontend static files mounted", path=str(frontend_dist_path))
 
-# Health check endpoint (Railway monitoring)
+# Health check endpoints (Railway optimized)
 @app.get("/health")
 async def health_check():
-    """🌅 Health check endpoint pour Railway monitoring"""
+    """Railway-optimized health check - GET only"""
     return {
-        "status": "healthy",
-        "service": "phoenix-aube", 
-        "version": "1.0.0",
-        "environment": ENVIRONMENT,
-        "features": [
-            "psychological-assessment",
-            "career-matching-ml",
-            "enterprise-security",
-            "fail-secure-validation"
-        ],
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "matching_engine": "enterprise-v2"
+        "status": "ok",
+        "service": "phoenix-aube",
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+@app.get("/railway-health")  
+async def railway_health_check():
+    """Dedicated Railway health endpoint - Industry Standard 2024"""
+    return {"status": "ok"}
 
 
 # Root endpoint avec informations service
