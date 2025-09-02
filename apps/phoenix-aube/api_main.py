@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import structlog
@@ -285,10 +285,18 @@ app.include_router(aube_router)
 
 # Servir les fichiers statiques du frontend Next.js en production
 if is_production:
-    frontend_dist_path = Path(__file__).parent.parent / "frontend" / ".next" / "static"
-    if frontend_dist_path.exists():
-        app.mount("/static", StaticFiles(directory=str(frontend_dist_path)), name="static")
-        logger.info("Frontend static files mounted", path=str(frontend_dist_path))
+    frontend_dir = Path(__file__).parent / "frontend"
+    static_dir = frontend_dir / ".next" / "static"
+    
+    if static_dir.exists():
+        # Mount Next.js static files
+        app.mount("/_next/static", StaticFiles(directory=str(static_dir)), name="static")
+        logger.info("Next.js static files mounted", path=str(static_dir))
+    
+    # Serve Next.js pages (if using standalone build)
+    server_dir = frontend_dir / ".next" / "server"
+    if server_dir.exists():
+        logger.info("Next.js server files found", path=str(server_dir))
 
 # Health check endpoint (Railway optimized)
 @app.get("/health")
@@ -310,23 +318,75 @@ async def aube_health_check():
     }
 
 
-# Root endpoint avec informations service
-@app.get("/")
+# Root endpoint - Frontend HTML ou redirection
+@app.get("/", include_in_schema=False)
 async def root():
-    """🌅 Phoenix Aube API - Service de découverte carrière"""
-    return {
-        "service": "Phoenix Aube",
-        "description": "Career Discovery Service avec intelligence psychologique",
-        "version": "1.0.0",
-        "documentation": "/docs",
-        "health": "/health",
-        "features": {
-            "psychological_assessment": "/aube/assessment",
-            "career_recommendations": "/aube/recommendations/{user_id}",
-            "matching_analytics": "/aube/analytics/matching-stats"
-        },
-        "status": "operational"
-    }
+    """🌅 Phoenix Aube Frontend - Redirection ou page d'accueil"""
+    # En production, servir une page HTML simple ou rediriger
+    if is_production:
+        html_content = """
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Phoenix Aube - Découverte de Carrière</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+                .container { max-width: 800px; margin: 0 auto; text-align: center; }
+                h1 { font-size: 3rem; margin-bottom: 1rem; }
+                p { font-size: 1.2rem; margin-bottom: 2rem; }
+                .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin: 3rem 0; }
+                .feature { background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 10px; }
+                .api-link { background: rgba(255,255,255,0.2); padding: 1rem; border-radius: 5px; margin: 2rem 0; }
+                a { color: #ffd700; text-decoration: none; font-weight: bold; }
+                a:hover { text-decoration: underline; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🌅 Phoenix Aube</h1>
+                <p>Service de Découverte de Carrière avec Intelligence Psychologique</p>
+                
+                <div class="features">
+                    <div class="feature">
+                        <h3>Assessment Psychologique</h3>
+                        <p>8 dimensions d'évaluation personnalisées</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Matching Intelligent</h3>
+                        <p>+500 métiers référencés avec IA</p>
+                    </div>
+                    <div class="feature">
+                        <h3>Luna Hub Integration</h3>
+                        <p>Système d'énergie et authentification</p>
+                    </div>
+                </div>
+                
+                <div class="api-link">
+                    <p>🔗 <a href="/docs">Documentation API</a> | <a href="/health">Status Santé</a></p>
+                    <p>Version 1.0.0 | Status: Opérationnel</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
+    else:
+        # En développement, afficher les infos API
+        return {
+            "service": "Phoenix Aube",
+            "description": "Career Discovery Service avec intelligence psychologique",
+            "version": "1.0.0",
+            "documentation": "/docs",
+            "health": "/health",
+            "features": {
+                "psychological_assessment": "/aube/assessment",
+                "career_recommendations": "/aube/recommendations/{user_id}",
+                "matching_analytics": "/aube/analytics/matching-stats"
+            },
+            "status": "operational"
+        }
 
 
 # ============================================================================
