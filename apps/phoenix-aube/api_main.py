@@ -12,7 +12,6 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
-import httpx
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import structlog
@@ -286,8 +285,23 @@ app.include_router(luna_router)
 # FRONTEND STATIC FILES (Production)
 # ============================================================================
 
-# En production, Next.js tourne comme service séparé
-# Les assets statiques sont servis directement par Next.js via proxy
+# FRONTEND STATIC FILES - Architecture CV/Letters  
+# Next.js build servi par FastAPI (comme CV)
+static_dir = Path(__file__).parent / "frontend" / "dist"
+if static_dir.exists():
+    # Mount assets directory for CSS/JS files
+    assets_dir = static_dir / "_next"
+    if assets_dir.exists():
+        app.mount("/_next", StaticFiles(directory=assets_dir), name="nextjs_assets")
+        
+    # Mount static assets if they exist
+    static_assets = static_dir / "static"
+    if static_assets.exists():
+        app.mount("/static", StaticFiles(directory=static_assets), name="static_assets")
+    
+    logger.info("Next.js static build mounted", path=str(static_dir))
+else:
+    logger.warning("Next.js dist directory not found", expected_path=str(static_dir))
 
 # Health check endpoint (Railway optimized)
 @app.get("/health")
@@ -310,58 +324,24 @@ async def aube_health_check():
 
 
 # Frontend Routes - Servir Next.js SPA
-# Proxy pour assets Next.js (_next/)
-@app.get("/_next/{path:path}", include_in_schema=False)
-async def proxy_nextjs_assets(request: Request, path: str):
-    """Proxy Next.js static assets en production"""
-    if is_production:
-        try:
-            async with httpx.AsyncClient() as client:
-                url = f"http://localhost:3000/_next/{path}"
-                response = await client.get(url, timeout=10.0)
-                
-                return HTMLResponse(
-                    content=response.content,
-                    status_code=response.status_code,
-                    headers=dict(response.headers),
-                    media_type=response.headers.get("content-type", "text/plain")
-                )
-        except Exception as e:
-            logger.error("Failed to proxy Next.js assets", error=str(e), path=path)
-            raise HTTPException(status_code=404, detail="Asset not found")
-    else:
-        raise HTTPException(status_code=404, detail="Development mode - assets served by Next.js dev server")
-
-
+# Serve Next.js SPA - Architecture CV/Letters
 @app.get("/{full_path:path}", include_in_schema=False)
-async def serve_frontend(request: Request, full_path: str = ""):
-    """🌅 Serve Phoenix Aube Frontend - Next.js SPA"""
+async def serve_spa(full_path: str = ""):
+    """🌅 Serve Phoenix Aube Frontend SPA - Architecture CV/Letters"""
     
     # Routes API protégées - ne pas servir le frontend
     if full_path.startswith(("aube/", "luna/", "api/", "docs", "openapi.json", "health")):
         raise HTTPException(status_code=404, detail="API route not found")
     
+    # En production, servir Next.js static build
     if is_production:
-        # Proxy vers Next.js frontend qui tourne sur port 3000
-        try:
-            async with httpx.AsyncClient() as client:
-                # Forward request to Next.js
-                url = f"http://localhost:3000/{full_path}"
-                response = await client.get(
-                    url, 
-                    headers=dict(request.headers),
-                    timeout=10.0
-                )
-                
-                # Return Next.js response with proper content type
-                return HTMLResponse(
-                    content=response.content,
-                    status_code=response.status_code,
-                    headers=dict(response.headers)
-                )
-        except Exception as e:
-            logger.error("Failed to proxy to Next.js", error=str(e))
-            # Fallback si Next.js pas disponible
+        static_dir = Path(__file__).parent / "frontend" / "dist"
+        index_file = static_dir / "index.html"
+        
+        if index_file.exists():
+            return FileResponse(index_file)
+        else:
+            # Fallback si build Next.js manquant
             return await fallback_html_page()
     else:
         # En développement, afficher les infos API

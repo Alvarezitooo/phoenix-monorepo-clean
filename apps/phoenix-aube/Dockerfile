@@ -35,9 +35,7 @@ COPY models ./models
 COPY clients ./clients
 COPY api_main.py ./api_main.py
 
-# Copy startup script and set permissions BEFORE changing user
-COPY start_production.sh ./
-RUN chmod +x start_production.sh
+# Plus besoin de script startup - un seul serveur comme CV
 
 # Build frontend (Bolt.new Next.js)
 WORKDIR /app/frontend
@@ -69,5 +67,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
 
 EXPOSE $PORT
 
-# Railway-compatible command - Run both Next.js and FastAPI
-CMD ["./start_production.sh"]
+# Railway-compatible command - Single FastAPI server (like CV)
+CMD ["python", "api_main.py"]
