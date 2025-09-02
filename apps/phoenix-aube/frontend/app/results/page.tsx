@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { useAssessmentStore } from '@/lib/store';
 import { phoenixAubeApi, PersonalityDimension, CareerMatch } from '@/lib/api';
 
-const iconMap = {
+const iconMap: Record<string, React.ComponentType> = {
   "Orientation People vs Data": Users,
   "Créativité": Sparkles,
   "Autonomie": Target,
