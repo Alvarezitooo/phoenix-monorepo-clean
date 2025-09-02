@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 🌅 SSR Mode pour interactivité React (pas d'export statique)
-  // output: 'export',  // SUPPRIMÉ pour garder l'interactivité
-  // distDir: 'out',    // SUPPRIMÉ 
+  // 🌅 Static Export comme CV/Letters - FastAPI sert les fichiers
+  output: 'export',
+  distDir: 'dist',    // Comme CV : build dans dist/
   trailingSlash: true,
   
   // Build optimization
