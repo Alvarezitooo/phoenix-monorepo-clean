@@ -37,9 +37,7 @@ COPY api_main.py ./api_main.py
 
 # Build frontend (Bolt.new Next.js)
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
-COPY frontend/tsconfig.json ./
-COPY frontend/next.config.js ./
+COPY frontend/ ./
 
 # Install frontend dependencies with robust fallback
 RUN npm install || \
@@ -47,7 +45,14 @@ RUN npm install || \
      rm -rf node_modules package-lock.json && \
      npm install)
 
-COPY frontend/ ./
+# Debug: List files to verify structure
+RUN echo "=== Debugging frontend structure ===" && \
+    ls -la && \
+    echo "=== lib directory ===" && \
+    ls -la lib/ || echo "lib directory not found" && \
+    echo "=== tsconfig.json content ===" && \
+    cat tsconfig.json
+
 RUN npm run build
 
 # Back to main directory
