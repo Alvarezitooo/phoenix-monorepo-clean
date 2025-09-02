@@ -1,11 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Build optimization
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: { 
     unoptimized: true,
-    domains: ['localhost'] 
+    domains: ['localhost', 'railway.app'] 
+  },
+  
+  // Production build optimizations
+  swcMinify: true,
+  
+  // Webpack configuration for better module resolution
+  webpack: (config, { isServer }) => {
+    // Ensure proper path resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, '.'),
+    };
+    return config;
   },
   
   // API Proxy pour development et production
@@ -23,6 +37,11 @@ const nextConfig = {
     ] : [
       // En prod, nginx gère déjà le proxy
     ];
+  },
+  
+  // Experimental features for better builds
+  experimental: {
+    forceSwcTransforms: true,
   },
 };
 
