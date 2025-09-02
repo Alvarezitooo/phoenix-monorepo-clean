@@ -104,7 +104,6 @@ class CareerRecommendationsResponse(BaseModel):
 
 @router.get("/health", 
            response_model=HealthCheckResponse,
-           dependencies=[Depends(ensure_request_is_clean)],
            summary="Health check Phoenix Aube service")
 async def aube_health_check() -> HealthCheckResponse:
     """🌅 Health check pour Phoenix Aube - Service de découverte carrière"""

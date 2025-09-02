@@ -10,11 +10,29 @@ import logging
 import os
 import structlog
 
-import google.generativeai as genai
-from clients.luna_client import (
-    LunaClient, EventRequest, SessionRequest, 
-    LunaClientError, NarrativeContext
-)
+try:
+    import google.generativeai as genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    GENAI_AVAILABLE = False
+    logger.warning("⚠️ google-generativeai non disponible - mode dégradé")
+
+try:
+    from clients.luna_client import (
+        LunaClient, EventRequest, SessionRequest, 
+        LunaClientError, NarrativeContext
+    )
+    LUNA_CLIENT_AVAILABLE = True
+except ImportError:
+    # Créer des classes placeholder en cas d'import impossible
+    class LunaClient: pass
+    class EventRequest: pass
+    class SessionRequest: pass  
+    class LunaClientError(Exception): pass
+    class NarrativeContext: pass
+    LUNA_CLIENT_AVAILABLE = False
+    logger.warning("⚠️ Luna client non disponible - mode dégradé")
 
 logger = structlog.get_logger("aube_gemini_service")
 
@@ -94,14 +112,19 @@ class LunaGeminiService:
         self._is_configured = False
         self.luna_client = luna_client
         
-        if self.api_key:
+        if self.api_key and GENAI_AVAILABLE:
             self._configure_client()
         else:
-            logger.warning("⚠️ GOOGLE_API_KEY manquant - Luna utilisera des réponses pré-définies")
+            if not GENAI_AVAILABLE:
+                logger.warning("⚠️ google-generativeai non disponible - Luna utilisera des réponses pré-définies")
+            elif not self.api_key:
+                logger.warning("⚠️ GOOGLE_API_KEY manquant - Luna utilisera des réponses pré-définies")
     
     def _configure_client(self) -> None:
         """Configuration du client Gemini pour Luna"""
         try:
+            if not GENAI_AVAILABLE:
+                raise ImportError("google-generativeai not available")
             genai.configure(api_key=self.api_key)
             self.model = genai.GenerativeModel(
                 model_name=self.model_name,
@@ -403,6 +426,9 @@ Reste dans la tonalité {persona} et utilise des insights psychologiques fins.
 def create_luna_client() -> Optional[LunaClient]:
     """Créer client Luna Hub avec token provider"""
     try:
+        if not LUNA_CLIENT_AVAILABLE:
+            return None
+            
         def token_provider():
             # En production, récupérer depuis la session/header
             # Pour l'instant, on peut utiliser un token de service
