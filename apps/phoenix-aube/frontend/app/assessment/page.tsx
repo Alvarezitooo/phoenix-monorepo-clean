@@ -495,7 +495,8 @@ export default function AssessmentPage() {
                     <p className="text-sm text-gray-600">Cliquez pour assigner un rang (1 = le plus important) :</p>
                     <div className="space-y-2">
                       {question.options.map((option, optionIndex) => {
-                        const currentRank = answers[question.id]?.[option] || null;
+                        const answerObj = answers[question.id] as Record<string, number> | undefined;
+                        const currentRank = answerObj?.[option] || null;
                         return (
                           <div
                             key={optionIndex}
@@ -508,7 +509,7 @@ export default function AssessmentPage() {
                               value={currentRank || ''}
                               onChange={(e) => {
                                 const rank = parseInt(e.target.value);
-                                const newRanking = { ...answers[question.id] };
+                                const newRanking = { ...(answers[question.id] as Record<string, number> || {}) };
                                 
                                 // Remove this option from any previous rank
                                 Object.keys(newRanking).forEach(key => {
