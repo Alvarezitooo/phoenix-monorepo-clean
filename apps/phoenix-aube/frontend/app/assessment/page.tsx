@@ -330,7 +330,7 @@ export default function AssessmentPage() {
       
       setResults(results);
       window.location.href = '/results';
-    } catch (error) {
+    } catch (error: any) {
       console.error('Assessment submission failed:', error);
       setIsSubmitting(false);
       

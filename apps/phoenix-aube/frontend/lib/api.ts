@@ -66,7 +66,7 @@ apiClient.interceptors.request.use(
 // Interceptor pour gérer les erreurs d'énergie
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: any) => {
     if (error.response?.status === 402) {
       // Payment Required - Énergie insuffisante
       window.location.href = `${LUNA_HUB_URL}/energy/buy`;
