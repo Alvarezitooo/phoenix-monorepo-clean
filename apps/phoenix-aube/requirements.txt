@@ -1,0 +1,23 @@
+# 🌅 Phoenix Aube Backend - Clean Requirements
+# Career Discovery Service - Aligné sur écosystème Phoenix
+
+# ============================================================================
+# CORE FRAMEWORK - Aligné Phoenix ecosystem
+# ============================================================================
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# ============================================================================
+# LUNA HUB INTEGRATION
+# ============================================================================
+httpx>=0.26.0
+python-jose[cryptography]>=3.3.0
+structlog>=23.2.0
+
+# ============================================================================
+# PRODUCTION DEPLOYMENT
+# ============================================================================
+python-multipart>=0.0.9
+python-decouple>=3.8
+gunicorn>=22.0.0
