@@ -17,12 +17,23 @@ if [ ! -d ".next" ]; then
     npm run build
 fi
 
+# Start FastAPI backend FIRST (Railway needs health check)
+echo "🚀 Starting FastAPI backend first..."
+cd /app
+python api_main.py &
+BACKEND_PID=$!
+
+# Give FastAPI a moment to start
+sleep 3
+
 # Start Next.js with specific port
+echo "🚀 Starting Next.js frontend..."
+cd /app/frontend
 NODE_ENV=production PORT=3000 npm run start &
 FRONTEND_PID=$!
 
+# Wait for Next.js to be ready (but don't block FastAPI)
 echo "⏳ Waiting for Next.js to start..."
-# Wait for Next.js to be ready
 timeout=30
 count=0
 while ! curl -f http://localhost:3000/ 2>/dev/null && [ $count -lt $timeout ]; do
@@ -31,16 +42,10 @@ while ! curl -f http://localhost:3000/ 2>/dev/null && [ $count -lt $timeout ]; d
 done
 
 if [ $count -eq $timeout ]; then
-    echo "⚠️ Next.js took too long to start, continuing anyway..."
+    echo "⚠️ Next.js took too long to start, but FastAPI should handle requests"
 else
     echo "✅ Next.js is ready!"
 fi
-
-# Start FastAPI backend on Railway assigned port
-echo "🚀 Starting FastAPI backend..."
-cd /app
-python api_main.py &
-BACKEND_PID=$!
 
 # Function to gracefully stop both processes
 cleanup() {
