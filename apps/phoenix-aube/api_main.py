@@ -204,18 +204,18 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()"
     
-    # CSP adapté pour API pure
+    # CSP adapté pour React/Next.js SPA
     response.headers["Content-Security-Policy"] = (
-        "default-src 'none'; "
-        "script-src 'none'; "
-        "style-src 'none'; "
-        "img-src 'none'; "
-        "connect-src 'none'; "
-        "font-src 'none'; "
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https:; "
+        "font-src 'self' data:; "
         "object-src 'none'; "
         "frame-src 'none'; "
         "frame-ancestors 'none'; "
-        "base-uri 'none';"
+        "base-uri 'self';"
     )
     
     # Headers de service
