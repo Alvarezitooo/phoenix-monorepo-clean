@@ -35,6 +35,10 @@ COPY models ./models
 COPY clients ./clients
 COPY api_main.py ./api_main.py
 
+# Copy startup script and set permissions BEFORE changing user
+COPY start_production.sh ./
+RUN chmod +x start_production.sh
+
 # Build frontend (Bolt.new Next.js)
 WORKDIR /app/frontend
 COPY frontend/ ./
@@ -64,10 +68,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:$PORT/health || exit 1
 
 EXPOSE $PORT
-
-# Copy startup script
-COPY start_production.sh ./
-RUN chmod +x start_production.sh
 
 # Railway-compatible command - Run both Next.js and FastAPI
 CMD ["./start_production.sh"]
