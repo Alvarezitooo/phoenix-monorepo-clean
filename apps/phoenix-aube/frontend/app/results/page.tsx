@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { useAssessmentStore } from '@/lib/store';
 import { phoenixAubeApi, PersonalityDimension, CareerMatch } from '@/lib/api';
 
-const iconMap: Record<string, React.ComponentType> = {
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "Orientation People vs Data": Users,
   "Créativité": Sparkles,
   "Autonomie": Target,
