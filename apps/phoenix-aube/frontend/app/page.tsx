@@ -93,8 +93,18 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
+                {/* Luna Introduction */}
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
+                    <span className="text-xl">🌙</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-2 rounded-full border border-purple-200">
+                    <span className="text-sm text-purple-800 font-medium">Salut ! Moi c'est Luna, ton guide carrière ✨</span>
+                  </div>
+                </div>
+                
                 <Badge className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
-                  ✨ Nouvelle génération d'orientation
+                  🌙 Guidance bienveillante par IA
                 </Badge>
                 <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
                   Découvrez votre
@@ -103,23 +113,41 @@ export default function HomePage() {
                   </span>
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Assessment psychologique professionnel combiné à l'intelligence artificielle 
-                  pour révéler vos métiers de rêve et construire votre parcours sur mesure.
+                  Luna vous accompagne dans une exploration douce de vos appétences professionnelles. 
+                  Zéro pression, guidance empathique, résultats personnalisés.
                 </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/assessment">
-                  <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg transition-all duration-300 transform hover:scale-105">
-                    Commencer mon assessment
+              {/* Options Luna : Ultra-Light vs Assessment */}
+              <div className="space-y-4">
+                {/* Option principale : Ultra-Light avec Luna */}
+                <Link href="/luna-assessment">
+                  <Button size="lg" className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 transform hover:scale-105">
+                    <span className="mr-2">🌙</span>
+                    Commencer avec Luna (60s, 0 énergie)
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                <Link href="/careers">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-gray-300 hover:border-gray-400">
-                    Explorer les métiers
-                  </Button>
-                </Link>
+                
+                {/* Options secondaires */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link href="/assessment" className="flex-1">
+                    <Button variant="outline" size="lg" className="w-full border-purple-300 text-purple-700 hover:bg-purple-50">
+                      <Brain className="mr-2 w-4 h-4" />
+                      Assessment Complet
+                    </Button>
+                  </Link>
+                  <Link href="/careers" className="flex-1">
+                    <Button variant="outline" size="lg" className="w-full border-gray-300 hover:border-gray-400">
+                      Explorer Métiers
+                    </Button>
+                  </Link>
+                </div>
+                
+                {/* Message Luna encourageant */}
+                <div className="text-center text-sm text-gray-500 italic">
+                  💭 "Commence léger avec moi, on peut toujours creuser après !"
+                </div>
               </div>
 
               <div className="flex items-center space-x-6 text-sm text-gray-500">
