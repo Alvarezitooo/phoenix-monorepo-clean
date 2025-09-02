@@ -354,11 +354,6 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-@app.get("/railway-health")  
-async def railway_health_check():
-    """Dedicated Railway health endpoint - Industry Standard 2024"""
-    return {"status": "ok"}
-
 @app.post("/api/letters/generate", response_model=GenerationResponse)
 async def generate_letter(
     request: GenerateLetterRequest,

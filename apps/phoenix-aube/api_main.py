@@ -253,7 +253,7 @@ if is_production:
         app.mount("/static", StaticFiles(directory=str(frontend_dist_path)), name="static")
         logger.info("Frontend static files mounted", path=str(frontend_dist_path))
 
-# Health check endpoints (Railway optimized)
+# Health check endpoint (Railway optimized)
 @app.get("/health")
 async def health_check():
     """Railway-optimized health check - GET only"""
@@ -263,10 +263,14 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
-@app.get("/railway-health")  
-async def railway_health_check():
-    """Dedicated Railway health endpoint - Industry Standard 2024"""
-    return {"status": "ok"}
+@app.get("/aube/health")
+async def aube_health_check():
+    """Phoenix Aube specific health check for Railway configuration"""
+    return {
+        "status": "ok",
+        "service": "phoenix-aube",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 
 # Root endpoint avec informations service
