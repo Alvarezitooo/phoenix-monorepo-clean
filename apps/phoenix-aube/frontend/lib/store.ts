@@ -68,21 +68,21 @@ export const useAssessmentStore = create<AssessmentStore>()(
         
         // Conversion des réponses en format AubeSignals
         const signals: AubeSignals = {
-          people_vs_data: answers.people_data || 4,
-          detail_vs_vision: answers.detail_vision || 4,
-          work_values: answers.work_values || {},
-          work_environment: answers.work_environment || '',
-          team_size: answers.team_size || '',
-          autonomy_level: answers.autonomy_level || 4,
-          leadership: answers.leadership || 4,
-          creativity_importance: answers.creativity_importance || 4,
-          innovation_comfort: answers.innovation_comfort || '',
-          change_comfort: answers.change_comfort || 4,
-          routine_variety: answers.routine_variety || 4,
-          impact_scope: answers.impact_scope || '',
-          meaning_importance: answers.meaning_importance || 4,
-          learning_style: answers.learning_style || '',
-          career_evolution: answers.career_evolution || ''
+          people_vs_data: (answers.people_data as number) || 4,
+          detail_vs_vision: (answers.detail_vision as number) || 4,
+          work_values: (answers.work_values as Record<string, number>) || {},
+          work_environment: (answers.work_environment as string) || '',
+          team_size: (answers.team_size as string) || '',
+          autonomy_level: (answers.autonomy_level as number) || 4,
+          leadership: (answers.leadership as number) || 4,
+          creativity_importance: (answers.creativity_importance as number) || 4,
+          innovation_comfort: (answers.innovation_comfort as string) || '',
+          change_comfort: (answers.change_comfort as number) || 4,
+          routine_variety: (answers.routine_variety as number) || 4,
+          impact_scope: (answers.impact_scope as string) || '',
+          meaning_importance: (answers.meaning_importance as number) || 4,
+          learning_style: (answers.learning_style as string) || '',
+          career_evolution: (answers.career_evolution as string) || ''
         };
 
         return signals;
