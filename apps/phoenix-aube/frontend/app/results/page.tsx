@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAssessmentStore } from '@/lib/store';
-import { phoenixAubeApi, PersonalityDimension } from '@/lib/api';
+import { phoenixAubeApi, PersonalityDimension, CareerMatch } from '@/lib/api';
 
 const iconMap = {
   "Orientation People vs Data": Users,
@@ -37,7 +37,7 @@ const iconMap = {
 export default function ResultsPage() {
   const { user, results, setResults } = useAssessmentStore();
   const [isLoading, setIsLoading] = useState(!results);
-  const [selectedCareer, setSelectedCareer] = useState(null);
+  const [selectedCareer, setSelectedCareer] = useState<CareerMatch | null>(null);
 
   useEffect(() => {
     // Si pas de résultats en store, les récupérer via API
@@ -47,7 +47,7 @@ export default function ResultsPage() {
         try {
           const recommendations = await phoenixAubeApi.getRecommendations(user.id, 10, true);
           setResults(recommendations);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Failed to load results:', error);
           // Rediriger vers assessment si pas de résultats
           window.location.href = '/assessment';
@@ -75,7 +75,7 @@ export default function ResultsPage() {
           text: 'Découvrez vos métiers idéaux avec Phoenix Aube',
           url: window.location.href,
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.log('Sharing failed:', error);
       }
     } else {

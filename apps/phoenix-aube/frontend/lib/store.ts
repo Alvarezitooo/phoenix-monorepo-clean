@@ -18,13 +18,13 @@ interface AssessmentStore {
 
   // Assessment state
   currentStep: number;
-  answers: Record<string, any>;
+  answers: Record<string, unknown>;
   isSubmitting: boolean;
   results: AssessmentResults | null;
 
   // Assessment actions
   setCurrentStep: (step: number) => void;
-  setAnswer: (questionId: string, value: any) => void;
+  setAnswer: (questionId: string, value: unknown) => void;
   setIsSubmitting: (submitting: boolean) => void;
   setResults: (results: AssessmentResults | null) => void;
   resetAssessment: () => void;
@@ -48,7 +48,7 @@ export const useAssessmentStore = create<AssessmentStore>()(
 
       // Assessment actions
       setCurrentStep: (step) => set({ currentStep: step }),
-      setAnswer: (questionId, value) =>
+      setAnswer: (questionId: string, value: unknown) =>
         set((state) => ({
           answers: { ...state.answers, [questionId]: value }
         })),

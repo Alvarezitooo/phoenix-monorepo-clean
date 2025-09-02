@@ -86,7 +86,7 @@ export const phoenixAubeApi = {
     try {
       const response = await apiClient.get('/aube/health');
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Health check failed:', error);
       throw error;
     }
@@ -101,7 +101,7 @@ export const phoenixAubeApi = {
         estimated_cost: actionType === 'assessment_complet' ? 25 : 12
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Energy check failed:', error);
       throw error;
     }
@@ -116,7 +116,7 @@ export const phoenixAubeApi = {
         context
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Assessment submission failed:', error);
       throw error;
     }
@@ -127,7 +127,7 @@ export const phoenixAubeApi = {
     try {
       const response = await apiClient.get(`/aube/assessment/status/${userId}`);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to get assessment status:', error);
       throw error;
     }
@@ -140,7 +140,7 @@ export const phoenixAubeApi = {
         params: { limit, include_analysis: includeAnalysis }
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to get recommendations:', error);
       throw error;
     }
@@ -153,7 +153,7 @@ export const phoenixAubeApi = {
         params: { category, limit }
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to get careers database:', error);
       throw error;
     }
@@ -166,7 +166,7 @@ export const phoenixAubeApi = {
       // Cette méthode peut être utilisée pour prévisualiser l'état
       const status = await this.getAssessmentStatus(userId);
       return status;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to check user energy:', error);
       throw error;
     }

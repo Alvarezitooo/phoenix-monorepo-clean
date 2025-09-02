@@ -82,7 +82,7 @@ export default function CareersPage() {
 
         setCareers(enrichedCareers);
         setFilteredCareers(enrichedCareers);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Failed to load careers:', error);
         // Utiliser données de fallback si API échoue
         setCareers([]);

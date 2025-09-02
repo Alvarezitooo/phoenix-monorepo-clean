@@ -32,7 +32,7 @@ export default function ProfilePage() {
           const status = await phoenixAubeApi.getAssessmentStatus(user.id);
           // TODO: Adapter selon la réponse API réelle
           setAssessmentHistory(status.history || []);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Failed to load assessment history:', error);
         }
       }
@@ -76,7 +76,7 @@ export default function ProfilePage() {
         };
         setUser(updatedUser);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Luna Hub sync failed:', error);
     } finally {
       setIsLoading(false);
