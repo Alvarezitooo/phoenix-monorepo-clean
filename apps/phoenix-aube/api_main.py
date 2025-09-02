@@ -77,7 +77,11 @@ else:
 if is_production:
     ALLOWED_HOSTS = [
         "phoenix-aube-backend.up.railway.app",
-        "aube-api.phoenix-ia.com"  # Domain API futur
+        "aube-api.phoenix-ia.com",  # Domain API futur
+        "localhost",  # Railway internal health checks
+        "127.0.0.1",  # Railway internal health checks
+        "0.0.0.0",    # Railway internal health checks
+        "*"           # Temporary fix for Railway health checks
     ]
 else:
     ALLOWED_HOSTS = ["*"]  # Développement permissif
