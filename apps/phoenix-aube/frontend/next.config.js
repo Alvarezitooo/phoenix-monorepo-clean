@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 🌅 Static Export pour serving FastAPI
+  output: 'export',
+  distDir: 'out',
+  trailingSlash: true,
+  
   // Build optimization
   eslint: {
     ignoreDuringBuilds: true,
