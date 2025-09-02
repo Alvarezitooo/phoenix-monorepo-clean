@@ -7,6 +7,7 @@ Production-ready FastAPI server with enterprise security
 import os
 import sys
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -82,6 +83,37 @@ else:
     ALLOWED_HOSTS = ["*"]  # Développement permissif
 
 # ============================================================================
+# LIFESPAN EVENTS (Modern FastAPI)
+# ============================================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Modern FastAPI lifespan management"""
+    # Startup
+    logger.info("Phoenix Aube starting up",
+               version="1.0.0",
+               environment=ENVIRONMENT,
+               port=PORT,
+               is_production=is_production)
+    
+    # TODO: Initialisation connexions DB/Cache si nécessaire
+    # TODO: Chargement base de données métiers
+    # TODO: Validation configuration algorithme matching
+    
+    logger.info("Phoenix Aube startup completed")
+    
+    yield  # Application runs here
+    
+    # Shutdown
+    logger.info("Phoenix Aube shutting down")
+    
+    # TODO: Fermeture connexions propres
+    # TODO: Sauvegarde état si nécessaire
+    
+    logger.info("Phoenix Aube shutdown completed")
+
+
+# ============================================================================
 # CONFIGURATION FASTAPI
 # ============================================================================
 
@@ -120,7 +152,8 @@ app = FastAPI(
     license_info={
         "name": "Proprietary",
         "identifier": "Phoenix-Enterprise-License"
-    }
+    },
+    lifespan=lifespan
 )
 
 # ============================================================================
@@ -333,37 +366,6 @@ async def global_exception_handler(request: Request, exc: Exception):
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
     )
-
-
-# ============================================================================
-# STARTUP & SHUTDOWN EVENTS
-# ============================================================================
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialisation au démarrage de Phoenix Aube"""
-    logger.info("Phoenix Aube starting up",
-               version="1.0.0",
-               environment=ENVIRONMENT,
-               port=PORT,
-               is_production=is_production)
-    
-    # TODO: Initialisation connexions DB/Cache si nécessaire
-    # TODO: Chargement base de données métiers
-    # TODO: Validation configuration algorithme matching
-    
-    logger.info("Phoenix Aube startup completed")
-
-
-@app.on_event("shutdown") 
-async def shutdown_event():
-    """Nettoyage à l'arrêt du service"""
-    logger.info("Phoenix Aube shutting down")
-    
-    # TODO: Fermeture connexions propres
-    # TODO: Sauvegarde état si nécessaire
-    
-    logger.info("Phoenix Aube shutdown completed")
 
 
 # ============================================================================
