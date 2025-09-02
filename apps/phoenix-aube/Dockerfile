@@ -65,5 +65,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 EXPOSE $PORT
 
-# Railway-compatible command - Clean Architecture with Luna Hub integration
-CMD ["python", "api_main.py"]
+# Copy startup script
+COPY start_production.sh ./
+RUN chmod +x start_production.sh
+
+# Railway-compatible command - Run both Next.js and FastAPI
+CMD ["./start_production.sh"]

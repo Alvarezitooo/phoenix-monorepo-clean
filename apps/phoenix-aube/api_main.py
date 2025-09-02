@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+import httpx
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import structlog
@@ -285,25 +286,8 @@ app.include_router(luna_router)
 # FRONTEND STATIC FILES (Production)
 # ============================================================================
 
-# Servir les fichiers statiques du frontend Next.js exporté
-if is_production:
-    frontend_dir = Path(__file__).parent / "frontend"
-    static_dir = frontend_dir / "out"  # Next.js export output
-    
-    if static_dir.exists():
-        # Mount Next.js exported static files
-        assets_dir = static_dir / "_next"
-        if assets_dir.exists():
-            app.mount("/_next", StaticFiles(directory=str(assets_dir)), name="nextjs_assets")
-            
-        # Mount other static assets
-        static_assets = static_dir / "static"
-        if static_assets.exists():
-            app.mount("/static", StaticFiles(directory=str(static_assets)), name="static_assets")
-            
-        logger.info("Next.js static export mounted", path=str(static_dir))
-    else:
-        logger.warning("Next.js export directory not found", expected_path=str(static_dir))
+# En production, Next.js tourne comme service séparé
+# Les assets statiques sont servis directement par Next.js via proxy
 
 # Health check endpoint (Railway optimized)
 @app.get("/health")
@@ -326,6 +310,29 @@ async def aube_health_check():
 
 
 # Frontend Routes - Servir Next.js SPA
+# Proxy pour assets Next.js (_next/)
+@app.get("/_next/{path:path}", include_in_schema=False)
+async def proxy_nextjs_assets(request: Request, path: str):
+    """Proxy Next.js static assets en production"""
+    if is_production:
+        try:
+            async with httpx.AsyncClient() as client:
+                url = f"http://localhost:3000/_next/{path}"
+                response = await client.get(url, timeout=10.0)
+                
+                return HTMLResponse(
+                    content=response.content,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.headers.get("content-type", "text/plain")
+                )
+        except Exception as e:
+            logger.error("Failed to proxy Next.js assets", error=str(e), path=path)
+            raise HTTPException(status_code=404, detail="Asset not found")
+    else:
+        raise HTTPException(status_code=404, detail="Development mode - assets served by Next.js dev server")
+
+
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_frontend(request: Request, full_path: str = ""):
     """🌅 Serve Phoenix Aube Frontend - Next.js SPA"""
@@ -335,15 +342,26 @@ async def serve_frontend(request: Request, full_path: str = ""):
         raise HTTPException(status_code=404, detail="API route not found")
     
     if is_production:
-        frontend_dir = Path(__file__).parent / "frontend"
-        static_dir = frontend_dir / "out"
-        index_file = static_dir / "index.html"
-        
-        # Servir le frontend Next.js si disponible
-        if index_file.exists():
-            return FileResponse(index_file)
-        else:
-            # Fallback : page HTML simple si export Next.js manquant
+        # Proxy vers Next.js frontend qui tourne sur port 3000
+        try:
+            async with httpx.AsyncClient() as client:
+                # Forward request to Next.js
+                url = f"http://localhost:3000/{full_path}"
+                response = await client.get(
+                    url, 
+                    headers=dict(request.headers),
+                    timeout=10.0
+                )
+                
+                # Return Next.js response with proper content type
+                return HTMLResponse(
+                    content=response.content,
+                    status_code=response.status_code,
+                    headers=dict(response.headers)
+                )
+        except Exception as e:
+            logger.error("Failed to proxy to Next.js", error=str(e))
+            # Fallback si Next.js pas disponible
             return await fallback_html_page()
     else:
         # En développement, afficher les infos API
