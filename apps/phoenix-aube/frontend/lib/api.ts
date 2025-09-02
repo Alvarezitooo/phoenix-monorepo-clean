@@ -92,6 +92,21 @@ export const phoenixAubeApi = {
     }
   },
 
+  // Vérification énergie Luna Hub
+  async checkEnergy(userId: string, actionType: string) {
+    try {
+      const response = await apiClient.post('/aube/energy/check', {
+        user_id: userId,
+        action_type: actionType,
+        estimated_cost: actionType === 'assessment_complet' ? 25 : 12
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Energy check failed:', error);
+      throw error;
+    }
+  },
+
   // Assessment complet
   async submitAssessment(userId: string, signals: AubeSignals, context?: object): Promise<AssessmentResults> {
     try {
