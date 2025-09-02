@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 🌅 Static Export pour serving FastAPI
-  output: 'export',
-  distDir: 'out',
+  // 🌅 SSR Mode pour interactivité React (pas d'export statique)
+  // output: 'export',  // SUPPRIMÉ pour garder l'interactivité
+  // distDir: 'out',    // SUPPRIMÉ 
   trailingSlash: true,
   
   // Build optimization
