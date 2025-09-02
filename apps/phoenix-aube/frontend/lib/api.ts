@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const LUNA_HUB_URL = process.env.NEXT_PUBLIC_LUNA_HUB_URL || 'https://luna-hub-backend-unified-production.up.railway.app';
 
 // Types pour l'API

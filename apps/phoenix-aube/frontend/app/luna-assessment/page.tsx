@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAssessmentStore } from '@/lib/store';
 import { phoenixAubeApi } from '@/lib/api';
+import { lunaApi } from '@/lib/luna-api';
 import LunaChat from '@/components/luna/LunaChat';
 import { MoodCheck, DuoEclair, TerritoryCards } from '@/components/luna/MicroExercises';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,8 @@ interface LunaResults {
   duos: Record<string, string>;
   territories: string[];
   recommendations: string[];
+  lunaInsights?: string;
+  lunaEncouragement?: string;
   escalationSuggested?: 'court' | 'profond';
 }
 
@@ -108,30 +111,51 @@ export default function LunaAssessmentPage() {
     }
   };
 
-  // Génération recommandations rapides (algorithme local, pas Luna Hub)
+  // Génération recommandations avec Luna AI
   const generateQuickRecommendations = async (data: Partial<LunaResults>): Promise<string[]> => {
-    // Simulation algorithme local basé sur les réponses
-    const { duos, territories } = data;
-    
-    let recommendations: string[] = [];
-    
-    // Logique simplifiée basée sur les choix
-    if (duos?.people_data === 'people' && territories?.includes('design_humain')) {
-      recommendations.push('UX Designer', 'Product Manager', 'Service Designer');
+    try {
+      const analysis = await lunaApi.getLunaCareerAnalysis({
+        user_signals: {
+          mood: data.mood,
+          duos: data.duos,
+          territories: data.territories
+        },
+        persona,
+        depth: 'ultra_light'
+      });
+      
+      // Mettre à jour les insights Luna
+      setLunaResults(prev => ({
+        ...prev,
+        lunaInsights: analysis.luna_insights,
+        lunaEncouragement: analysis.luna_encouragement
+      }));
+      
+      return analysis.career_matches.map(match => match.title);
+      
+    } catch (error) {
+      console.error('Luna AI analysis failed:', error);
+      
+      // Fallback algorithme local
+      const { duos, territories } = data;
+      let recommendations: string[] = [];
+      
+      if (duos?.people_data === 'people' && territories?.includes('design_humain')) {
+        recommendations.push('UX Designer', 'Product Manager', 'Service Designer');
+      }
+      if (duos?.people_data === 'data' && territories?.includes('produit_data')) {
+        recommendations.push('Data Analyst', 'Product Analyst', 'Business Intelligence');
+      }
+      if (territories?.includes('ops_organisation')) {
+        recommendations.push('Product Operations', 'Project Manager', 'Business Analyst');
+      }
+      
+      if (recommendations.length === 0) {
+        recommendations = ['Product Manager', 'UX Designer', 'Data Analyst'];
+      }
+      
+      return recommendations.slice(0, 3);
     }
-    if (duos?.people_data === 'data' && territories?.includes('produit_data')) {
-      recommendations.push('Data Analyst', 'Product Analyst', 'Business Intelligence');
-    }
-    if (territories?.includes('ops_organisation')) {
-      recommendations.push('Product Operations', 'Project Manager', 'Business Analyst');
-    }
-    
-    // Fallbacks génériques
-    if (recommendations.length === 0) {
-      recommendations = ['Product Manager', 'UX Designer', 'Data Analyst'];
-    }
-    
-    return recommendations.slice(0, 3); // Top 3 pour Ultra-Light
   };
 
   const determineEscalation = (mood: string, timePreference: string): 'court' | 'profond' | undefined => {
@@ -255,6 +279,19 @@ export default function LunaAssessmentPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      {/* Luna insights */}
+                      {lunaResults.lunaInsights && (
+                        <div className="p-4 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg border border-purple-300 mb-4">
+                          <div className="flex items-start space-x-2">
+                            <span className="text-lg">🌙</span>
+                            <div>
+                              <p className="text-sm text-purple-800 font-medium">Analyse Luna</p>
+                              <p className="text-sm text-purple-700 mt-1">{lunaResults.lunaInsights}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {lunaResults.recommendations.map((job, index) => (
                         <div key={index} className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
                           <div className="flex items-center justify-between">
@@ -268,6 +305,19 @@ export default function LunaAssessmentPage() {
                           </div>
                         </div>
                       ))}
+
+                      {/* Luna encouragement */}
+                      {lunaResults.lunaEncouragement && (
+                        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 mt-4">
+                          <div className="flex items-start space-x-2">
+                            <span className="text-lg">✨</span>
+                            <div>
+                              <p className="text-sm text-green-800 font-medium">Message de Luna</p>
+                              <p className="text-sm text-green-700 mt-1">{lunaResults.lunaEncouragement}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Escalation suggestion */}
                       {lunaResults.escalationSuggested && (
@@ -299,6 +349,11 @@ export default function LunaAssessmentPage() {
             <LunaChat 
               persona={persona}
               currentStep={currentStep}
+              userSignals={{
+                mood: lunaResults.mood,
+                duos: lunaResults.duos,
+                territories: lunaResults.territories
+              }}
               onEscalation={(level) => handleEscalation(level as 'court' | 'profond')}
             />
             

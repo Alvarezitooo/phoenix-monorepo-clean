@@ -22,7 +22,7 @@ interface TerritoryCardsProps {
 }
 
 // 🌙 Micro-Exercise 1: Humeur & Temps (état du jour)
-export const MoodCheck: React.FC<MoodCheckProps> = ({ onResponse, className }) => {
+const MoodCheck: React.FC<MoodCheckProps> = ({ onResponse, className }) => {
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
 
@@ -133,7 +133,7 @@ export const MoodCheck: React.FC<MoodCheckProps> = ({ onResponse, className }) =
 };
 
 // 🌙 Micro-Exercise 2: Duos éclair (ce qui t'énergise)
-export const DuoEclair: React.FC<DuoEclairProps> = ({ onResponse, className }) => {
+const DuoEclair: React.FC<DuoEclairProps> = ({ onResponse, className }) => {
   const [selections, setSelections] = useState<Record<string, string>>({});
 
   const duos = [
@@ -236,7 +236,7 @@ export const DuoEclair: React.FC<DuoEclairProps> = ({ onResponse, className }) =
 };
 
 // 🌙 Micro-Exercise 3: Territoires (domaines qui t'attirent)
-export const TerritoryCards: React.FC<TerritoryCardsProps> = ({ onResponse, className }) => {
+const TerritoryCards: React.FC<TerritoryCardsProps> = ({ onResponse, className }) => {
   const [selectedTerritories, setSelectedTerritories] = useState<string[]>([]);
 
   const territories = [

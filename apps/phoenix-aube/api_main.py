@@ -22,6 +22,7 @@ current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
 from api.aube_endpoints import router as aube_router
+from api.routes.luna import router as luna_router
 from core.security import ensure_request_is_clean
 
 # Configuration structlog
@@ -276,8 +277,9 @@ async def request_logging_middleware(request: Request, call_next):
 # ROUTES PRINCIPALES
 # ============================================================================
 
-# Inclusion du router principal Aube
+# Inclusion des routers
 app.include_router(aube_router)
+app.include_router(luna_router)
 
 # ============================================================================
 # FRONTEND STATIC FILES (Production)

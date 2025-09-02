@@ -62,6 +62,43 @@ class ConsumeResponse:
     new_energy_balance: Optional[int] = None
     transaction_id: Optional[str] = None
 
+@dataclass
+class EventRequest:
+    """Requête pour créer un événement dans l'Event Store"""
+    user_id: str
+    event_type: str
+    app_source: str = "phoenix_aube"
+    event_data: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+@dataclass
+class EventResponse:
+    """Réponse création événement"""
+    success: bool
+    event_id: Optional[str] = None
+
+@dataclass
+class SessionRequest:
+    """Requête pour démarrer une session Aube"""
+    user_id: str
+    level: str  # "ultra_light", "court", "profond"
+    context: Optional[Dict[str, Any]] = None
+
+@dataclass
+class SessionResponse:
+    """Réponse création session"""
+    success: bool
+    session_id: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+
+@dataclass
+class NarrativeContext:
+    """Capital narratif utilisateur récupéré"""
+    user_profile: Dict[str, Any]
+    usage_analytics: Dict[str, Any]
+    professional_journey: Dict[str, Any]
+    ai_insights: Dict[str, Any]
+
 class LunaClient:
     """
     Client Luna Hub pour Phoenix Aube
@@ -145,6 +182,135 @@ class LunaClient:
         except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
             logger.error("Luna Hub connection failed", error=str(e))
             raise LunaClientError(f"Connection failed: {e}")
+
+    def track_event(self, request: EventRequest) -> EventResponse:
+        """📊 Event Sourcing - Créer événement immutable"""
+        try:
+            response = self._client.post(
+                f"{LUNA_BASE_URL}/luna/events",
+                json={
+                    "user_id": request.user_id,
+                    "event_type": request.event_type,
+                    "app_source": request.app_source,
+                    "event_data": request.event_data or {},
+                    "metadata": request.metadata or {}
+                },
+                headers=self._get_headers()
+            )
+            
+            if response.status_code == 401:
+                raise LunaAuthError("Authentication failed")
+            elif response.status_code != 201:
+                raise LunaContractError(f"Event creation failed: {response.status_code}")
+                
+            data = response.json()
+            return EventResponse(
+                success=data.get("success", True),
+                event_id=data.get("event_id")
+            )
+            
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+            logger.error("Event tracking failed", error=str(e))
+            # Event sourcing graceful degradation
+            return EventResponse(success=False)
+
+    def get_narrative_context(self, user_id: str) -> Optional[NarrativeContext]:
+        """🧠 Capital Narratif - Récupérer mémoire utilisateur"""
+        try:
+            response = self._client.get(
+                f"{LUNA_BASE_URL}/luna/narrative/{user_id}",
+                headers=self._get_headers()
+            )
+            
+            if response.status_code == 401:
+                raise LunaAuthError("Authentication failed")
+            elif response.status_code == 404:
+                logger.info("No narrative context found", user_id=user_id)
+                return None
+            elif response.status_code != 200:
+                raise LunaContractError(f"Narrative fetch failed: {response.status_code}")
+                
+            data = response.json()
+            capital = data.get("capital_narratif", {})
+            
+            return NarrativeContext(
+                user_profile=capital.get("user_profile", {}),
+                usage_analytics=capital.get("usage_analytics", {}),
+                professional_journey=capital.get("professional_journey", {}),
+                ai_insights=capital.get("ai_insights", {})
+            )
+            
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+            logger.warning("Narrative context unavailable", error=str(e))
+            return None
+
+    def start_aube_session(self, request: SessionRequest) -> SessionResponse:
+        """🎯 Session Aube - Démarrer assessment avec contexte"""
+        try:
+            response = self._client.post(
+                f"{LUNA_BASE_URL}/luna/aube/assessment/start",
+                json={
+                    "user_id": request.user_id,
+                    "level": request.level,
+                    "context": request.context or {}
+                },
+                headers=self._get_headers()
+            )
+            
+            if response.status_code == 401:
+                raise LunaAuthError("Authentication failed")
+            elif response.status_code == 402:
+                raise LunaInsufficientEnergy()
+            elif response.status_code != 201:
+                raise LunaContractError(f"Session start failed: {response.status_code}")
+                
+            data = response.json()
+            return SessionResponse(
+                success=data.get("success", True),
+                session_id=data.get("session_id"),
+                context=data.get("context")
+            )
+            
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+            logger.error("Session start failed", error=str(e))
+            raise LunaClientError(f"Connection failed: {e}")
+
+    def update_aube_session(self, session_id: str, signals: Dict[str, Any], step: str) -> bool:
+        """🔄 Update session avec nouveaux signaux"""
+        try:
+            response = self._client.post(
+                f"{LUNA_BASE_URL}/luna/aube/assessment/update",
+                json={
+                    "session_id": session_id,
+                    "signals": signals,
+                    "completed_step": step
+                },
+                headers=self._get_headers()
+            )
+            
+            return response.status_code == 200
+            
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+            logger.warning("Session update failed", error=str(e))
+            return False
+
+    def get_aube_recommendations(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """🎯 Recommandations finales avec Luna Hub"""
+        try:
+            response = self._client.post(
+                f"{LUNA_BASE_URL}/luna/aube/recommendations/{session_id}",
+                headers=self._get_headers()
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.warning("Recommendations failed", status=response.status_code)
+                return None
+                
+        except (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout) as e:
+            logger.warning("Recommendations unavailable", error=str(e))
+            return None
 
     def __del__(self):
         """Cleanup HTTP client"""

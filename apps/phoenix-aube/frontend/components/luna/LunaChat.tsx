@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Sparkles, Heart, ArrowRight } from 'lucide-react';
+import { lunaApi } from '@/lib/luna-api';
 
 // Types pour les messages Luna
 interface LunaMessage {
@@ -18,6 +19,7 @@ interface LunaMessage {
 interface LunaChatProps {
   persona?: 'reconversion' | 'jeune_diplome' | 'pivot_tech' | 'ops_data' | 'reprise';
   currentStep?: string;
+  userSignals?: Record<string, any>;
   onResponse?: (response: string) => void;
   onEscalation?: (nextLevel: string) => void;
   className?: string;
@@ -60,6 +62,7 @@ const LUNA_SCRIPTS = {
 const LunaChat: React.FC<LunaChatProps> = ({ 
   persona = 'jeune_diplome',
   currentStep,
+  userSignals,
   onResponse,
   onEscalation,
   className 
@@ -112,8 +115,8 @@ const LunaChat: React.FC<LunaChatProps> = ({
     }, 1500 + Math.random() * 1000); // Timing humain variable
   };
 
-  // Gestion réponse utilisateur
-  const handleUserResponse = (response: string) => {
+  // Gestion réponse utilisateur avec IA
+  const handleUserResponse = async (response: string) => {
     const userMessage: LunaMessage = {
       id: `user-${Date.now()}`,
       type: 'user', 
@@ -124,19 +127,53 @@ const LunaChat: React.FC<LunaChatProps> = ({
     setMessages(prev => [...prev, userMessage]);
     onResponse?.(response);
     
-    // Luna donne un miroir empathique
-    setTimeout(() => {
+    // Luna génère un miroir empathique via IA
+    setIsTyping(true);
+    
+    try {
+      const mirrorResponse = await lunaApi.getLunaMirrorResponse({
+        user_response: response,
+        persona,
+        context: {
+          step: currentStep,
+          signals: userSignals,
+          mood: 'neutre'
+        }
+      });
+      
+      setTimeout(() => {
+        const aiMirror: LunaMessage = {
+          id: `luna-${Date.now()}`,
+          type: 'mirror',
+          content: mirrorResponse,
+          timestamp: new Date(),
+          persona,
+          tone: script.tone
+        };
+        
+        setMessages(prev => [...prev, aiMirror]);
+        setIsTyping(false);
+        
+        // Parfois proposer escalation
+        if (Math.random() > 0.7 && !showEscalation) {
+          setTimeout(() => setShowEscalation(true), 2000);
+        }
+      }, 1000 + Math.random() * 800);
+      
+    } catch (error) {
+      console.error('Erreur Luna mirror:', error);
+      // Fallback sur réponses pré-définies
       const mirrors = [
-        "Merci 🙏 J'entends que tu valorises la créativité et l'autonomie.",
-        "Intéressant ! Tu penches people + innovation. Je note ça ✨",
-        "Ok, tu as un profil analytique avec une sensibilité humaine forte.",
-        "Je vois ! L'impact social est important pour toi. C'est précieux.",
-        "Merci pour ta transparence. Ça m'aide à personnaliser tes pistes 🎯"
+        "Merci 🙏 J'entends ce que tu me dis. Continue !",
+        "Intéressant ! Je note ça pour tes pistes ✨",
+        "Ok, ça m'aide à mieux te cerner 🎯"
       ];
       
-      const randomMirror = mirrors[Math.floor(Math.random() * mirrors.length)];
-      addLunaResponse(randomMirror, 'mirror');
-    }, 800);
+      setTimeout(() => {
+        const fallbackMirror = mirrors[Math.floor(Math.random() * mirrors.length)];
+        addLunaResponse(fallbackMirror, 'mirror');
+      }, 800);
+    }
   };
 
   return (
