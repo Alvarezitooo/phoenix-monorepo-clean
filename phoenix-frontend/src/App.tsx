@@ -9,7 +9,9 @@ import { AuthProvider } from "./context/AuthContext";
 import AubePage from "./pages/AubePage";
 import LoginPage from "./pages/LoginPage";
 import CVPage from "./pages/CVPage";
-import LettersPage from "./pages/LettersPage"; // Import the new Letters page
+import LettersPage from "./pages/LettersPage";
+import LunaFloatingWidget from "./components/LunaFloatingWidget";
+import LunaEnergyBar from "./components/LunaEnergyBar";
 
 function App() {
   return (
@@ -30,10 +32,14 @@ function App() {
               <Route path="/" element={<h1>Welcome to the new Phoenix Frontend!</h1>} />
               <Route path="/aube" element={<AubePage />} />
               <Route path="/cv" element={<CVPage />} />
-              <Route path="/letters" element={<LettersPage />} /> {/* Use the new component */}
+              <Route path="/letters" element={<LettersPage />} />
               <Route path="/login" element={<LoginPage />} />
             </Routes>
           </main>
+          
+          {/* 🌙 Luna Components - Global */}
+          <LunaEnergyBar />
+          <LunaFloatingWidget />
         </div>
       </BrowserRouter>
     </AuthProvider>
