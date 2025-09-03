@@ -1,3 +1,235 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');
+
+:root {
+  --phoenix-primary: #ff4500;
+  --phoenix-secondary: #ff6b35;
+  --phoenix-accent: #ff8c42;
+  --luna-primary: #6366f1;
+  --luna-secondary: #8b5cf6;
+  --luna-accent: #06b6d4;
+  --phoenix-success: #10b981;
+  --phoenix-warning: #f59e0b;
+  --phoenix-gradient: linear-gradient(135deg, #ff4500 0%, #ff6b35 50%, #ff8c42 100%);
+  --luna-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  line-height: 1.6;
+  color: #1e293b;
+  background-color: #ffffff;
+}
+
+/* Custom animations */
+@keyframes energy-glow {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg);
+    filter: hue-rotate(0deg);
+  }
+  25% { 
+    transform: scale(1.05) rotate(1deg);
+    filter: hue-rotate(10deg);
+  }
+  50% { 
+    transform: scale(1.1) rotate(-1deg);
+    filter: hue-rotate(-10deg);
+  }
+  75% { 
+    transform: scale(1.05) rotate(0.5deg);
+    filter: hue-rotate(5deg);
+  }
+}
+
+@keyframes luna-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-5px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    transform: translateX(0%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes gradient-y {
+  0%, 100% {
+    transform: translateY(0%);
+  }
+  50% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes gradient-xy {
+  0%, 100% {
+    transform: translate(0%, 0%);
+  }
+  25% {
+    transform: translate(100%, 0%);
+  }
+  50% {
+    transform: translate(100%, 100%);
+  }
+  75% {
+    transform: translate(0%, 100%);
+  }
+}
+
+/* Animation delays */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+/* Custom utility classes */
+.energy-animate {
+  animation: energy-glow 2s ease-in-out infinite;
+}
+
+.luna-rise {
+  animation: luna-rise 0.6s ease-out forwards;
+}
+
+.text-shadow-glow {
+  text-shadow: 0 0 20px rgba(255, 69, 0, 0.5);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #ff4500, #ff6b35);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #ff6b35, #ff8c42);
+}
+
+/* Custom gradient backgrounds */
+.bg-phoenix-gradient {
+  background: linear-gradient(135deg, #ff4500 0%, #ff6b35 50%, #ff8c42 100%);
+}
+
+.bg-luna-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+}
+
+.bg-phoenix-dark-gradient {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+/* Energy button hover effects */
+.energy-btn-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.energy-btn-hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.energy-btn-hover:hover::before {
+  left: 100%;
+}
+
+/* Glass morphism effects */
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Luna energy particle effect */
+.energy-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #6366f1;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: energy-rise 2s ease-out infinite;
+}
+
+@keyframes energy-rise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-100px) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Responsive design helpers */
+@media (max-width: 640px) {
+  .text-responsive {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+  }
+}
+
+/* Focus states for accessibility */
+.focus-energy:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.5);
+}
+
+/* Loading states */
+.loading-luna {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: loading-shimmer 2s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
