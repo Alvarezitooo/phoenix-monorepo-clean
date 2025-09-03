@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 
-from app.clients.hub_client import hub_client, HubClient
+from app.clients.hub_client import get_hub_client, HubClient
 from app.clients.gemini_client import gemini_client, GeminiClient
 from app.dependencies import get_current_user_id
 
@@ -29,7 +29,7 @@ class AnalyzeCareerTransitionRequest(BaseModel):
 async def generate_letter(
     request: GenerateLetterRequest,
     user_id: str = Depends(get_current_user_id),
-    hub: HubClient = Depends(hub_client),
+    hub: HubClient = Depends(get_hub_client),
     gemini: GeminiClient = Depends(gemini_client)
 ):
     """
@@ -64,7 +64,7 @@ async def generate_letter(
 async def analyze_career_transition(
     request: AnalyzeCareerTransitionRequest,
     user_id: str = Depends(get_current_user_id),
-    hub: HubClient = Depends(hub_client),
+    hub: HubClient = Depends(get_hub_client),
     gemini: GeminiClient = Depends(gemini_client)
 ):
     """

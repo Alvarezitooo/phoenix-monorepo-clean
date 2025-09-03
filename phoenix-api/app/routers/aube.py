@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import httpx
 
-from app.clients.hub_client import hub_client, HubClient
+from app.clients.hub_client import get_hub_client, HubClient
 from app.dependencies import get_current_user_id
 
 router = APIRouter()
@@ -17,7 +17,7 @@ class ChatRequest(BaseModel):
 async def chat_with_luna(
     request: ChatRequest,
     user_id: str = Depends(get_current_user_id),
-    hub: HubClient = Depends(hub_client)
+    hub: HubClient = Depends(get_hub_client)
 ):
     """
     Hub-centric architecture: Delegate AI interactions to Luna Hub

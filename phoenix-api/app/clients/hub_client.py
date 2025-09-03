@@ -103,3 +103,7 @@ class HubClient:
 
 
 hub_client = HubClient()
+
+def get_hub_client() -> HubClient:
+    """FastAPI dependency to get HubClient instance"""
+    return hub_client
