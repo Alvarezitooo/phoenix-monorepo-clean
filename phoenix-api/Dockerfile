@@ -14,5 +14,5 @@ COPY . .
 # Railway provides PORT via environment variable
 EXPOSE 8000
 
-# Run the application with Railway's dynamic port (Railway will override)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+# Run the application with Railway compatibility
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'"]
