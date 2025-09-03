@@ -1,8 +1,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    # Luna Hub configuration
-    LUNA_HUB_URL: str = "http://localhost:8003" # Default for local dev
+    # Luna Hub configuration - Railway will override via env vars
+    LUNA_HUB_URL: str = "https://luna-hub-production.up.railway.app"
     LUNA_HUB_INTERNAL_API_KEY: str = "your-internal-secret-key"
 
     # AI Services configuration
