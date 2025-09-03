@@ -1,0 +1,164 @@
+{
+  "name": "Phoenix Multi-SPA Production",
+  "description": "JAMstack Architecture: Frontend SPA + API Gateway + Central Hub",
+  "version": "2.0.0",
+  "services": [
+    {
+      "name": "phoenix-frontend-unified",
+      "description": "🚀 Frontend SPA unifiée - Multi-SPA routing via Nginx",
+      "type": "web",
+      "dockerfile": "./phoenix-frontend/Dockerfile",
+      "context": "./phoenix-frontend",
+      "port": 80,
+      "domains": [
+        "phoenix.ai",
+        "www.phoenix.ai"
+      ],
+      "environment": {
+        "NODE_ENV": "production",
+        "VITE_API_URL": "https://phoenix.ai/api",
+        "VITE_HUB_URL": "https://phoenix.ai/hub"
+      },
+      "resources": {
+        "memory": "512Mi",
+        "cpu": "0.5"
+      },
+      "healthcheck": {
+        "path": "/health",
+        "interval": "30s",
+        "timeout": "10s"
+      }
+    },
+    {
+      "name": "phoenix-api-gateway",
+      "description": "🎯 API Gateway - Pure orchestration vers Luna Hub",
+      "type": "web",
+      "dockerfile": "./phoenix-api/Dockerfile", 
+      "context": "./phoenix-api",
+      "port": 8000,
+      "domains": [
+        "api.phoenix.ai"
+      ],
+      "environment": {
+        "ENVIRONMENT": "production",
+        "LUNA_HUB_URL": "https://hub.phoenix.ai",
+        "LUNA_HUB_INTERNAL_API_KEY": "${{LUNA_HUB_INTERNAL_API_KEY}}",
+        "ALLOWED_ORIGINS": "https://phoenix.ai,https://www.phoenix.ai"
+      },
+      "resources": {
+        "memory": "1Gi",
+        "cpu": "1"
+      },
+      "healthcheck": {
+        "path": "/health", 
+        "interval": "30s",
+        "timeout": "10s"
+      }
+    },
+    {
+      "name": "luna-hub-central",
+      "description": "🌙 Luna Hub Central - AI Engine + Auth + Energy Management",
+      "type": "web",
+      "dockerfile": "./luna-hub/Dockerfile",
+      "context": "./luna-hub", 
+      "port": 8000,
+      "domains": [
+        "hub.phoenix.ai"
+      ],
+      "environment": {
+        "ENVIRONMENT": "production",
+        "DATABASE_URL": "${{DATABASE_URL}}",
+        "SUPABASE_URL": "${{SUPABASE_URL}}", 
+        "SUPABASE_ANON_KEY": "${{SUPABASE_ANON_KEY}}",
+        "SUPABASE_SERVICE_ROLE_KEY": "${{SUPABASE_SERVICE_ROLE_KEY}}",
+        "GEMINI_API_KEY": "${{GEMINI_API_KEY}}",
+        "STRIPE_SECRET_KEY": "${{STRIPE_SECRET_KEY}}",
+        "STRIPE_WEBHOOK_SECRET": "${{STRIPE_WEBHOOK_SECRET}}",
+        "JWT_SECRET_KEY": "${{JWT_SECRET_KEY}}",
+        "INTERNAL_API_KEY": "${{LUNA_HUB_INTERNAL_API_KEY}}",
+        "ALLOWED_ORIGINS": "https://phoenix.ai,https://www.phoenix.ai,https://api.phoenix.ai"
+      },
+      "resources": {
+        "memory": "2Gi", 
+        "cpu": "2"
+      },
+      "healthcheck": {
+        "path": "/health",
+        "interval": "30s", 
+        "timeout": "10s"
+      }
+    }
+  ],
+  "databases": [
+    {
+      "name": "phoenix-postgres",
+      "type": "postgresql",
+      "version": "15",
+      "resources": {
+        "memory": "1Gi",
+        "cpu": "0.5",
+        "storage": "10Gi"
+      }
+    },
+    {
+      "name": "phoenix-redis",
+      "type": "redis", 
+      "version": "7",
+      "resources": {
+        "memory": "256Mi",
+        "cpu": "0.25",
+        "storage": "1Gi"
+      }
+    }
+  ],
+  "networks": [
+    {
+      "name": "phoenix-internal",
+      "type": "private"
+    }
+  ],
+  "deployment": {
+    "strategy": "rolling",
+    "maxUnavailable": 1,
+    "maxSurge": 1
+  },
+  "monitoring": {
+    "enabled": true,
+    "alerts": [
+      {
+        "name": "High CPU Usage",
+        "condition": "cpu > 80%",
+        "duration": "5m"
+      },
+      {
+        "name": "High Memory Usage", 
+        "condition": "memory > 90%",
+        "duration": "5m"
+      },
+      {
+        "name": "Service Unhealthy",
+        "condition": "health_check_failed",
+        "duration": "1m"
+      }
+    ]
+  },
+  "architecture": {
+    "pattern": "JAMstack",
+    "principles": [
+      "Hub = Roi (Central Authority)",
+      "Single Frontend SPA with Multi-routing", 
+      "API Gateway Pattern",
+      "Microservices Communication",
+      "Event Sourcing",
+      "Hub-centric AI Orchestration"
+    ],
+    "flow": [
+      "User → phoenix.ai (Nginx)",
+      "Static Assets → CDN Cache",
+      "/api/* → phoenix-api (orchestration)", 
+      "/hub/* → luna-hub (central engine)",
+      "phoenix-api → luna-hub (delegation)",
+      "luna-hub → AI/Database/Auth"
+    ]
+  }
+}

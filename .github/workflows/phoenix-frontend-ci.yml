@@ -1,0 +1,41 @@
+name: Phoenix Frontend CI/CD
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'phoenix-frontend/**'
+  pull_request:
+    paths:
+      - 'phoenix-frontend/**'
+
+jobs:
+  test-lint-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./phoenix-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Run linting
+        run: npm run lint
+      - name: Build project
+        run: npm run build
+
+  deploy-railway:
+    needs: test-lint-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: railway/cli-action@v1
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          # IMPORTANT: Set the Railway Service ID in your project settings
+          # Example: railway_service: "phoenix-frontend"

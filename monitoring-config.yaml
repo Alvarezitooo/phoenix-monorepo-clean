@@ -1,0 +1,380 @@
+# 🔍 Phoenix Production Monitoring & Observability Configuration
+# Configuration complète pour surveillance production de l'architecture JAMstack
+
+version: "3.8"
+
+# Monitoring Stack Configuration
+monitoring:
+  enabled: true
+  environment: production
+  retention_days: 30
+  
+  # Health Check Configuration
+  health_checks:
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    
+    endpoints:
+      phoenix_frontend:
+        url: "https://phoenix.ai/health"
+        expected_status: 200
+        expected_content: "healthy"
+        
+      phoenix_api:
+        url: "https://phoenix.ai/api/health"
+        expected_status: 200
+        expected_content: "ok"
+        
+      luna_hub:
+        url: "https://phoenix.ai/hub/monitoring/health"
+        expected_status: 200
+        expected_content: "healthy"
+
+  # Metrics Collection
+  metrics:
+    # Application Performance Monitoring
+    apm:
+      enabled: true
+      sample_rate: 0.1 # 10% sampling in production
+      
+      # Custom metrics
+      custom_metrics:
+        - name: "ai_generation_duration"
+          type: "histogram"
+          description: "Time taken for AI content generation"
+          labels: ["service", "model", "user_tier"]
+          
+        - name: "energy_consumption_rate"
+          type: "gauge"
+          description: "Luna energy consumption per minute"
+          labels: ["user_id", "service"]
+          
+        - name: "api_request_rate"
+          type: "counter"
+          description: "Total API requests per endpoint"
+          labels: ["endpoint", "method", "status"]
+          
+        - name: "user_journey_completion"
+          type: "histogram"
+          description: "Time to complete user journeys"
+          labels: ["journey_type", "user_persona"]
+    
+    # Infrastructure Metrics
+    infrastructure:
+      cpu_usage_threshold: 80
+      memory_usage_threshold: 85
+      disk_usage_threshold: 90
+      network_latency_threshold: 500ms
+      
+    # Business Metrics
+    business:
+      - name: "daily_active_users"
+        query: "count(distinct user_id) by (date)"
+        
+      - name: "ai_service_utilization" 
+        query: "sum(ai_requests) by (service, date)"
+        
+      - name: "energy_revenue"
+        query: "sum(energy_consumed * energy_price) by (date)"
+        
+      - name: "conversion_funnel"
+        stages:
+          - visit: "page_views"
+          - signup: "user_registrations" 
+          - first_ai_use: "first_ai_interaction"
+          - retention_7d: "users_active_7days"
+
+  # Alerting Configuration
+  alerts:
+    channels:
+      email: "ops@phoenix.ai"
+      slack: "#phoenix-alerts"
+      webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+    
+    rules:
+      # Critical Infrastructure Alerts
+      - name: "Service Down"
+        condition: "up == 0"
+        for: "1m"
+        severity: "critical"
+        message: "🚨 Service {{ $labels.service }} is DOWN"
+        
+      - name: "High CPU Usage"
+        condition: "cpu_usage > 85"
+        for: "5m"
+        severity: "warning"
+        message: "⚠️ High CPU usage on {{ $labels.service }}: {{ $value }}%"
+        
+      - name: "High Memory Usage"
+        condition: "memory_usage > 90"
+        for: "5m" 
+        severity: "critical"
+        message: "🚨 Critical memory usage on {{ $labels.service }}: {{ $value }}%"
+        
+      - name: "API Latency High"
+        condition: "api_latency_p95 > 2000"
+        for: "3m"
+        severity: "warning"
+        message: "⚠️ High API latency: {{ $value }}ms (P95)"
+      
+      # AI Services Specific Alerts  
+      - name: "AI Generation Failures"
+        condition: "ai_generation_error_rate > 0.1"
+        for: "2m"
+        severity: "warning"
+        message: "⚠️ High AI generation failure rate: {{ $value }}%"
+        
+      - name: "Energy System Issues"
+        condition: "energy_transaction_failures > 10"
+        for: "1m"
+        severity: "critical"
+        message: "🚨 Energy system failures detected: {{ $value }} failed transactions"
+        
+      - name: "Rate Limit Exceeded"
+        condition: "rate_limit_exceeded_count > 100"
+        for: "1m"
+        severity: "warning"
+        message: "⚠️ High rate limiting activity: {{ $value }} requests blocked"
+      
+      # Business Critical Alerts
+      - name: "Revenue Impact"
+        condition: "hourly_revenue < previous_week_avg * 0.5"
+        for: "30m"
+        severity: "critical"
+        message: "🚨 Significant revenue drop detected: -{{ $value }}%"
+        
+      - name: "User Experience Degradation"
+        condition: "user_session_error_rate > 0.05"
+        for: "5m"
+        severity: "warning"
+        message: "⚠️ User experience issues: {{ $value }}% error rate"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  structured: true
+  format: "json"
+  
+  # Log Aggregation
+  aggregation:
+    enabled: true
+    retention_days: 30
+    
+    # Log Categories
+    categories:
+      application:
+        - "ai_interactions"
+        - "user_actions" 
+        - "api_calls"
+        - "energy_transactions"
+        
+      security:
+        - "auth_attempts"
+        - "rate_limit_violations"
+        - "suspicious_activity"
+        - "security_guardian_blocks"
+        
+      performance:
+        - "slow_queries"
+        - "cache_misses"
+        - "ai_generation_times"
+        - "api_latencies"
+  
+  # Sensitive Data Protection
+  sanitization:
+    enabled: true
+    fields_to_mask:
+      - "password"
+      - "token"
+      - "api_key"
+      - "email"
+      - "credit_card"
+      - "ssn"
+    
+    replacement_pattern: "[REDACTED]"
+
+# Tracing Configuration  
+tracing:
+  enabled: true
+  sample_rate: 0.05 # 5% sampling for performance
+  
+  # Trace important user journeys
+  traced_operations:
+    - "user_registration"
+    - "ai_chat_interaction"
+    - "cv_analysis_complete"
+    - "letter_generation_complete"
+    - "energy_purchase"
+    - "subscription_upgrade"
+  
+  # Custom trace attributes
+  custom_attributes:
+    - "user_id"
+    - "user_tier"
+    - "ai_model_used"
+    - "energy_consumed"
+    - "request_source"
+
+# Dashboard Configuration
+dashboards:
+  # Executive Dashboard
+  executive:
+    refresh_interval: "5m"
+    widgets:
+      - type: "kpi"
+        title: "Daily Active Users"
+        query: "daily_active_users"
+        
+      - type: "kpi" 
+        title: "AI Services Revenue"
+        query: "sum(energy_revenue) by (date)"
+        
+      - type: "chart"
+        title: "User Journey Conversion"
+        query: "conversion_funnel"
+        
+      - type: "chart"
+        title: "AI Service Utilization"
+        query: "ai_service_utilization"
+  
+  # Technical Dashboard
+  technical:
+    refresh_interval: "30s"
+    widgets:
+      - type: "status"
+        title: "Service Health"
+        services: ["phoenix_frontend", "phoenix_api", "luna_hub"]
+        
+      - type: "chart"
+        title: "API Response Times"
+        query: "api_latency_percentiles"
+        
+      - type: "chart"
+        title: "AI Generation Performance"
+        query: "ai_generation_duration"
+        
+      - type: "heatmap"
+        title: "Error Rate by Endpoint"
+        query: "error_rate_by_endpoint"
+  
+  # Business Dashboard  
+  business:
+    refresh_interval: "1m"
+    widgets:
+      - type: "kpi"
+        title: "Revenue per Hour"
+        query: "hourly_revenue"
+        
+      - type: "funnel"
+        title: "User Conversion Funnel"
+        stages: ["visit", "signup", "first_ai_use", "retention_7d"]
+        
+      - type: "chart"
+        title: "AI Service Adoption"
+        query: "ai_service_usage_by_type"
+        
+      - type: "table"
+        title: "Top Revenue Generating Features"
+        query: "revenue_by_feature"
+
+# Performance Optimization
+performance:
+  # Caching Strategy
+  caching:
+    redis:
+      enabled: true
+      ttl: 
+        api_responses: 300s  # 5 minutes
+        ai_results: 3600s    # 1 hour for similar requests
+        user_sessions: 86400s # 24 hours
+        static_content: 2592000s # 30 days
+    
+    cdn:
+      enabled: true
+      cache_rules:
+        - pattern: "*.js,*.css,*.png,*.jpg,*.svg"
+          ttl: "1y"
+          
+        - pattern: "/api/health"
+          ttl: "30s"
+          
+        - pattern: "/ai/*"
+          ttl: "0" # Never cache AI responses
+  
+  # Database Optimization
+  database:
+    connection_pool_size: 20
+    query_timeout: 30s
+    slow_query_threshold: 2s
+    
+    indexes:
+      - table: "events"
+        columns: ["user_id", "created_at"]
+        
+      - table: "energy_transactions"
+        columns: ["user_id", "transaction_date"]
+        
+      - table: "ai_interactions"
+        columns: ["user_id", "service", "created_at"]
+  
+  # Rate Limiting
+  rate_limiting:
+    enabled: true
+    
+    limits:
+      anonymous: "10/minute"
+      authenticated: "100/minute" 
+      premium: "500/minute"
+      
+    ai_specific:
+      aube_chat: "20/hour"
+      cv_analysis: "10/hour"
+      letter_generation: "15/hour"
+
+# Security Monitoring
+security:
+  # Threat Detection
+  threat_detection:
+    enabled: true
+    
+    rules:
+      - name: "Brute Force Attack"
+        condition: "failed_auth_attempts > 10 in 5m from same IP"
+        action: "block_ip_1hour"
+        
+      - name: "Unusual API Usage"
+        condition: "api_requests > 1000 in 1m from same user"
+        action: "rate_limit_strict"
+        
+      - name: "Energy System Abuse"
+        condition: "energy_purchase_attempts > 20 in 1h from same user"
+        action: "flag_for_review"
+  
+  # Compliance
+  compliance:
+    gdpr_enabled: true
+    data_retention_days: 2555 # 7 years
+    
+    audit_logging:
+      - "user_data_access"
+      - "admin_actions"
+      - "data_exports"
+      - "user_deletions"
+
+# Backup & Recovery
+backup:
+  enabled: true
+  schedule: "0 2 * * *" # Daily at 2 AM
+  
+  retention:
+    daily: 7
+    weekly: 4 
+    monthly: 12
+    
+  validation:
+    enabled: true
+    test_restore_frequency: "weekly"
+
+# This configuration should be adapted based on your specific monitoring tools
+# (DataDog, New Relic, Prometheus, etc.)
