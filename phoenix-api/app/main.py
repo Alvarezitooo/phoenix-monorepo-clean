@@ -16,11 +16,13 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 is_production = ENVIRONMENT == "production"
 
 if is_production:
-    # Production: Strict domain whitelist
+    # Production: Railway domains + custom domains
     allowed_origins = [
         "https://phoenix.ai",
-        "https://www.phoenix.ai",
-        "https://hub.phoenix.ai"  # Luna Hub communication
+        "https://www.phoenix.ai", 
+        "https://hub.phoenix.ai",
+        "https://phoenix-front-end-production.up.railway.app",
+        "https://luna-hub-production.up.railway.app"
     ]
 else:
     # Development: Local origins
@@ -48,6 +50,7 @@ if is_production:
             "phoenix.ai",
             "www.phoenix.ai", 
             "api.phoenix.ai",
+            "phoenix-api-production.up.railway.app",
             "*.railway.app"  # Railway internal communication
         ]
     )
