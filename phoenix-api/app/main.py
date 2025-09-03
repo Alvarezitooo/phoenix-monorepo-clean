@@ -43,18 +43,18 @@ app.add_middleware(
     max_age=600  # Cache preflight for 10min
 )
 
-# 🛡️ Security: Trusted hosts in production
-if is_production:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=[
-            "phoenix.ai",
-            "www.phoenix.ai", 
-            "api.phoenix.ai",
-            "phoenix-api-production.up.railway.app",
-            "*.railway.app"  # Railway internal communication
-        ]
-    )
+# 🛡️ Security: Trusted hosts in production - DISABLED FOR DEBUG
+# if is_production:
+#     app.add_middleware(
+#         TrustedHostMiddleware,
+#         allowed_hosts=[
+#             "phoenix.ai",
+#             "www.phoenix.ai", 
+#             "api.phoenix.ai",
+#             "phoenix-api-production.up.railway.app",
+#             "*.railway.app"  # Railway internal communication
+#         ]
+#     )
 
 # Include routers for each business domain
 app.include_router(cv.router, prefix="/api/v1/cv", tags=["CV"])
