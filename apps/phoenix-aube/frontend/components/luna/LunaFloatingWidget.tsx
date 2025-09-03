@@ -9,6 +9,8 @@ interface LunaFloatingWidgetProps {
   isOpen: boolean;
   onToggle: () => void;
   persona?: 'reconversion' | 'jeune_diplome' | 'pivot_tech' | 'ops_data' | 'reprise';
+  userId?: string | null;
+  userEmail?: string | null;
   className?: string;
 }
 
@@ -16,6 +18,8 @@ const LunaFloatingWidget: React.FC<LunaFloatingWidgetProps> = ({
   isOpen,
   onToggle,
   persona = 'jeune_diplome',
+  userId,
+  userEmail,
   className
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
@@ -167,6 +171,8 @@ const LunaFloatingWidget: React.FC<LunaFloatingWidgetProps> = ({
               <div className="h-full overflow-hidden">
                 <LunaChat
                   persona={persona}
+                  userId={userId}
+                  userEmail={userEmail}
                   onResponse={(response) => {
                     console.log('Luna response:', response);
                   }}

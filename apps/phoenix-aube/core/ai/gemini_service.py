@@ -11,6 +11,16 @@ import os
 import structlog
 
 try:
+    from models.energy_costs import AubeAction, get_action_cost
+    ENERGY_COSTS_AVAILABLE = True
+except ImportError:
+    class AubeAction: 
+        LUNA_MIRROR_RESPONSE = "luna_mirror_response"
+        LUNA_CONSEIL_RAPIDE = "luna_conseil_rapide"
+    def get_action_cost(action): return 5  # Fallback cost
+    ENERGY_COSTS_AVAILABLE = False
+
+try:
     import google.generativeai as genai
     GENAI_AVAILABLE = True
 except ImportError:
@@ -21,13 +31,15 @@ except ImportError:
 try:
     from clients.luna_client import (
         LunaClient, EventRequest, SessionRequest, 
-        LunaClientError, NarrativeContext
+        LunaClientError, NarrativeContext, CheckRequest, ConsumeRequest
     )
     LUNA_CLIENT_AVAILABLE = True
 except ImportError:
     # Créer des classes placeholder en cas d'import impossible
     class LunaClient: pass
     class EventRequest: pass
+    class CheckRequest: pass
+    class ConsumeRequest: pass
     class SessionRequest: pass  
     class LunaClientError(Exception): pass
     class NarrativeContext: pass
@@ -155,10 +167,35 @@ class LunaGeminiService:
             user_response: Réponse de l'utilisateur
             persona: Type de persona (reconversion, jeune_diplome, etc.)
             context: Contexte additionnel (étape, signaux précédents)
+            user_id: ID utilisateur pour gestion énergie et narratif
         
         Returns:
             Miroir empathique personnalisé
+            
+        Raises:
+            LunaClientError: Si énergie insuffisante ou erreur auth
         """
+        
+        # 🔋 Vérification et consommation énergétique
+        if user_id and self.luna_client and ENERGY_COSTS_AVAILABLE:
+            try:
+                # Check énergie avant traitement
+                energy_check = self.luna_client.check_energy(
+                    CheckRequest(user_id=user_id, action_name=AubeAction.LUNA_MIRROR_RESPONSE.value)
+                )
+                
+                if not energy_check.can_perform:
+                    logger.info("Énergie insuffisante pour miroir Luna", 
+                              user_id=user_id, 
+                              required=energy_check.energy_required)
+                    raise LunaClientError("insufficient_energy")
+                    
+            except LunaClientError:
+                # Re-raise les erreurs énergie/auth
+                raise
+            except Exception as e:
+                logger.warning("Energy check failed, continuing", error=str(e))
+        
         if not self._is_configured:
             # Fallback sur réponses pré-définies
             return self._fallback_mirror_response(user_response, persona)
@@ -207,6 +244,19 @@ Exemple format : "Merci 🙏 J'entends que tu valorises [insight]. Je note ça p
             response = await self.model.generate_content_async(prompt)
             luna_response = response.text.strip()
             
+            # 🔋 Consommation énergie après succès
+            if user_id and self.luna_client and ENERGY_COSTS_AVAILABLE:
+                try:
+                    energy_consume = self.luna_client.consume_energy(
+                        ConsumeRequest(user_id=user_id, action_name=AubeAction.LUNA_MIRROR_RESPONSE.value)
+                    )
+                    logger.debug("Énergie consommée pour miroir Luna", 
+                               user_id=user_id,
+                               success=energy_consume.success,
+                               remaining=energy_consume.new_energy_balance)
+                except Exception as e:
+                    logger.warning("Energy consumption failed", error=str(e))
+            
             # 📊 Event Sourcing - Tracker l'interaction Luna
             if user_id and self.luna_client:
                 try:
@@ -220,7 +270,8 @@ Exemple format : "Merci 🙏 J'entends que tu valorises [insight]. Je note ça p
                                 "persona": persona,
                                 "user_response_length": len(user_response),
                                 "luna_response_length": len(luna_response),
-                                "step": context.get('step', 'unknown')
+                                "step": context.get('step', 'unknown'),
+                                "energy_cost": get_action_cost(AubeAction.LUNA_MIRROR_RESPONSE)
                             }
                         )
                     )

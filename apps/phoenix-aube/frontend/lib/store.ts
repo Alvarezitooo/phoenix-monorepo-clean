@@ -1,12 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AubeSignals, AssessmentResults } from './api';
+import { AuthService, LunaUser } from './auth';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  lunaHubEnergy: number;
+// Utilisation de LunaUser standardisé pour cohérence
+interface User extends LunaUser {
   assessmentStatus: 'not_started' | 'in_progress' | 'completed';
   lastAssessmentDate?: string;
 }
@@ -15,6 +13,11 @@ interface AssessmentStore {
   // User state
   user: User | null;
   setUser: (user: User | null) => void;
+  
+  // Auth methods with modern AuthService
+  loadCurrentUser: () => Promise<void>;
+  refreshUserEnergy: () => Promise<void>;
+  logout: () => Promise<void>;
 
   // Assessment state
   currentStep: number;
@@ -45,6 +48,50 @@ export const useAssessmentStore = create<AssessmentStore>()(
 
       // User actions
       setUser: (user) => set({ user }),
+
+      // Modern auth methods
+      loadCurrentUser: async () => {
+        try {
+          const lunaUser = await AuthService.getCurrentUser();
+          if (lunaUser) {
+            const user: User = {
+              ...lunaUser,
+              assessmentStatus: 'not_started', // Default, sera mis à jour selon historique
+              name: lunaUser.name || lunaUser.email.split('@')[0]
+            };
+            set({ user });
+          } else {
+            set({ user: null });
+          }
+        } catch (error) {
+          console.error('Failed to load current user:', error);
+          set({ user: null });
+        }
+      },
+
+      refreshUserEnergy: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          const updatedUser = await AuthService.getCurrentUser();
+          if (updatedUser) {
+            set({
+              user: {
+                ...user,
+                luna_energy: updatedUser.luna_energy
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Failed to refresh energy:', error);
+        }
+      },
+
+      logout: async () => {
+        await AuthService.logout();
+        set({ user: null });
+      },
 
       // Assessment actions
       setCurrentStep: (step) => set({ currentStep: step }),

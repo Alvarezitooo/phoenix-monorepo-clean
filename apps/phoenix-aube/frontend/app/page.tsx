@@ -62,7 +62,7 @@ const features = [
 
 export default function HomePage() {
   const [hoveredCareer, setHoveredCareer] = useState<number | null>(null);
-  const { isOpen, toggleWidget, openWidget, persona } = useLunaWidget('jeune_diplome');
+  const { isOpen, toggleWidget, openWidget, persona, userId, userEmail, requiresAuth } = useLunaWidget('jeune_diplome');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -126,11 +126,15 @@ export default function HomePage() {
                 {/* Option principale : Ultra-Light avec Luna */}
                 <Button 
                   size="lg" 
-                  onClick={openWidget}
+                  onClick={() => {
+                    // Vérifier authentification avant d'ouvrir
+                    if (requiresAuth()) return;
+                    openWidget();
+                  }}
                   className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 transform hover:scale-105"
                 >
                   <span className="mr-2">🌙</span>
-                  Commencer avec Luna (60s, 0 énergie)
+                  Commencer avec Luna (60s, 3 énergie)
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
                 
@@ -389,6 +393,8 @@ export default function HomePage() {
         isOpen={isOpen}
         onToggle={toggleWidget}
         persona={persona}
+        userId={userId}
+        userEmail={userEmail}
       />
     </div>
   );

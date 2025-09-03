@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { useAssessmentStore } from '@/lib/store';
 
 interface UseLunaWidgetReturn {
   isOpen: boolean;
@@ -9,11 +10,18 @@ interface UseLunaWidgetReturn {
   toggleWidget: () => void;
   persona: 'reconversion' | 'jeune_diplome' | 'pivot_tech' | 'ops_data' | 'reprise';
   setPersona: (persona: 'reconversion' | 'jeune_diplome' | 'pivot_tech' | 'ops_data' | 'reprise') => void;
+  userId: string | null;
+  userEmail: string | null;
+  isAuthenticated: boolean;
+  requiresAuth: () => boolean;
 }
 
 export const useLunaWidget = (initialPersona: 'reconversion' | 'jeune_diplome' | 'pivot_tech' | 'ops_data' | 'reprise' = 'jeune_diplome'): UseLunaWidgetReturn => {
   const [isOpen, setIsOpen] = useState(false);
   const [persona, setPersona] = useState<'reconversion' | 'jeune_diplome' | 'pivot_tech' | 'ops_data' | 'reprise'>(initialPersona);
+  
+  // Récupération de l'utilisateur depuis le store
+  const { user } = useAssessmentStore();
 
   const openWidget = useCallback(() => {
     setIsOpen(true);
@@ -21,10 +29,11 @@ export const useLunaWidget = (initialPersona: 'reconversion' | 'jeune_diplome' |
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'luna_widget_opened', {
         persona,
+        user_id: user?.id,
         timestamp: new Date().toISOString()
       });
     }
-  }, [persona]);
+  }, [persona, user?.id]);
 
   const closeWidget = useCallback(() => {
     setIsOpen(false);
@@ -83,13 +92,27 @@ export const useLunaWidget = (initialPersona: 'reconversion' | 'jeune_diplome' |
     }
   }, [isOpen, closeWidget]);
 
+  // Fonctions d'authentification
+  const requiresAuth = useCallback(() => {
+    if (!user) {
+      // Rediriger vers login si pas authentifié
+      window.location.href = '/login';
+      return true;
+    }
+    return false;
+  }, [user]);
+
   return {
     isOpen,
     openWidget,
     closeWidget,
     toggleWidget,
     persona,
-    setPersona
+    setPersona,
+    userId: user?.id || null,
+    userEmail: user?.email || null,
+    isAuthenticated: !!user,
+    requiresAuth
   };
 };
 

@@ -20,6 +20,8 @@ interface LunaChatProps {
   persona?: 'reconversion' | 'jeune_diplome' | 'pivot_tech' | 'ops_data' | 'reprise';
   currentStep?: string;
   userSignals?: Record<string, any>;
+  userId?: string | null;
+  userEmail?: string | null;
   onResponse?: (response: string) => void;
   onEscalation?: (nextLevel: string) => void;
   className?: string;
@@ -63,6 +65,8 @@ const LunaChat: React.FC<LunaChatProps> = ({
   persona = 'jeune_diplome',
   currentStep,
   userSignals,
+  userId,
+  userEmail,
   onResponse,
   onEscalation,
   className 
@@ -134,6 +138,7 @@ const LunaChat: React.FC<LunaChatProps> = ({
       const mirrorResponse = await lunaApi.getLunaMirrorResponse({
         user_response: response,
         persona,
+        user_id: userId, // Ajout ID utilisateur pour narratif
         context: {
           step: currentStep,
           signals: userSignals,

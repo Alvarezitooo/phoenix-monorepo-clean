@@ -9,7 +9,7 @@ import { EnergyMeter } from '@/components/assessment/EnergyMeter';
 import { Brain, User, Settings, TrendingUp, Calendar, ExternalLink, RefreshCw, Download, Edit3, Bell, Shield, FolderSync as Sync } from 'lucide-react';
 import Link from 'next/link';
 import { useAssessmentStore } from '@/lib/store';
-import { phoenixAubeApi, lunaHubHelpers } from '@/lib/api';
+import { phoenixAubeApi } from '@/lib/api';
 
 interface AssessmentHistory {
   date: string;
@@ -19,7 +19,7 @@ interface AssessmentHistory {
 }
 
 export default function ProfilePage() {
-  const { user, results, setUser } = useAssessmentStore();
+  const { user, results, refreshUserEnergy } = useAssessmentStore();
   const [activeTab, setActiveTab] = useState('overview');
   const [assessmentHistory, setAssessmentHistory] = useState<AssessmentHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,16 +66,8 @@ export default function ProfilePage() {
     
     setIsLoading(true);
     try {
-      // TODO: Implémenter sync avec Luna Hub
-      const token = localStorage.getItem('luna_hub_token');
-      if (token) {
-        // Simulation mise à jour énergie
-        const updatedUser = {
-          ...user,
-          lunaHubEnergy: Math.min(user.lunaHubEnergy + 10, 100)
-        };
-        setUser(updatedUser);
-      }
+      // Rafraîchir l'énergie via AuthService moderne
+      await refreshUserEnergy();
     } catch (error: unknown) {
       console.error('Luna Hub sync failed:', error);
     } finally {

@@ -9,44 +9,43 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, ExternalLink, ArrowRight, Mail, Lock, User, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { lunaHubHelpers } from '@/lib/api';
+import { AuthService } from '@/lib/auth';
 import { useAssessmentStore } from '@/lib/store';
 
 export default function LoginPage() {
-  const { setUser } = useAssessmentStore();
+  const { loadCurrentUser } = useAssessmentStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [authMethod, setAuthMethod] = useState<'luna' | 'local'>('luna');
 
-  // Vérifier token Luna Hub au chargement
+  // Vérifier authentification Luna Hub au chargement
   useEffect(() => {
-    const checkLunaHubAuth = async () => {
-      const token = lunaHubHelpers.extractTokenFromCallback();
-      if (token) {
-        const isValid = await lunaHubHelpers.validateToken(token);
-        if (isValid) {
-          // TODO: Récupérer profil utilisateur depuis Luna Hub
-          const mockUser = {
-            id: 'user-123',
-            name: 'Utilisateur Luna Hub',
-            email: 'user@luna-hub.com',
-            lunaHubEnergy: 85,
-            assessmentStatus: 'not_started' as const,
-          };
-          setUser(mockUser);
-          window.location.href = '/profile';
-        }
+    const checkAuthCallback = async () => {
+      // Gestion callback authentification
+      const user = await AuthService.handleAuthCallback();
+      if (user) {
+        await loadCurrentUser();
+        window.location.href = '/profile';
+        return;
+      }
+
+      // Vérifier si déjà authentifié
+      const isAuth = await AuthService.isAuthenticated();
+      if (isAuth) {
+        await loadCurrentUser();
+        window.location.href = '/profile';
       }
     };
 
-    checkLunaHubAuth();
-  }, [setUser]);
+    checkAuthCallback();
+  }, [loadCurrentUser]);
 
   const handleLunaHubLogin = () => {
-    const currentUrl = encodeURIComponent(window.location.origin + '/login');
-    window.location.href = `https://luna-hub.phoenix-ia.com/auth/login?redirect=${currentUrl}`;
+    setIsLoading(true);
+    setAuthMethod('luna');
+    AuthService.redirectToLogin();
   };
 
   const handleLocalLogin = async (e: React.FormEvent) => {
@@ -57,19 +56,12 @@ export default function LoginPage() {
       // TODO: Intégrer avec NextAuth ou API locale
       console.log('Local login attempt:', { email, password });
       
-      // Simulation pour démo
+      // Note: Local auth est désactivé - redirect vers Luna Hub
       setTimeout(() => {
-        const mockUser = {
-          id: 'local-user-123',
-          name: email.split('@')[0],
-          email,
-          lunaHubEnergy: 50,
-          assessmentStatus: 'not_started' as const,
-        };
-        setUser(mockUser);
         setIsLoading(false);
-        window.location.href = '/profile';
-      }, 1500);
+        alert('Pour utiliser Phoenix Aube, veuillez vous connecter via Luna Hub');
+        handleLunaHubLogin();
+      }, 1000);
     } catch (error) {
       console.error('Login failed:', error);
       setIsLoading(false);
@@ -84,19 +76,12 @@ export default function LoginPage() {
       // TODO: Intégrer avec NextAuth ou API locale
       console.log('Local signup attempt:', { name, email, password });
       
-      // Simulation pour démo
+      // Note: Local signup est désactivé - redirect vers Luna Hub
       setTimeout(() => {
-        const mockUser = {
-          id: 'new-user-123',
-          name,
-          email,
-          lunaHubEnergy: 100, // Énergie de bienvenue
-          assessmentStatus: 'not_started' as const,
-        };
-        setUser(mockUser);
         setIsLoading(false);
-        window.location.href = '/assessment';
-      }, 1500);
+        alert('Pour créer un compte, veuillez passer par Luna Hub');
+        handleLunaHubLogin();
+      }, 1000);
     } catch (error) {
       console.error('Signup failed:', error);
       setIsLoading(false);

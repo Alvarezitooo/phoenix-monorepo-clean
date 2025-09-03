@@ -45,35 +45,35 @@ export interface AssessmentResults {
   insights: string[];
 }
 
-// Configuration axios avec interceptors
+// Configuration axios moderne avec HTTPOnly cookies
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+  withCredentials: true, // HTTPOnly cookies support
 });
 
-// Interceptor pour ajouter le token Luna Hub
+// Interceptor pour ajouter headers standardisés
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('luna_hub_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Headers standardisés Phoenix
+    config.headers['Content-Type'] = 'application/json';
+    config.headers['X-Service'] = 'phoenix-aube';
+    config.headers['X-Request-ID'] = crypto.randomUUID();
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Interceptor pour gérer les erreurs d'énergie
+// Interceptor moderne pour gestion d'erreurs standardisée
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: any) => {
-    if (error.response?.status === 402) {
-      // Payment Required - Énergie insuffisante
-      window.location.href = `${LUNA_HUB_URL}/energy/buy`;
-    } else if (error.response?.status === 401) {
-      // Unauthorized - Token expiré
-      localStorage.removeItem('luna_hub_token');
+  async (error: any) => {
+    if (error.response?.status === 401) {
+      // Unauthorized - Redirection vers login
       window.location.href = '/login';
+    } else if (error.response?.status === 402) {
+      // Payment Required - Énergie insuffisante
+      window.open(`${LUNA_HUB_URL}/energy/buy`, '_blank');
     }
     return Promise.reject(error);
   }
@@ -173,40 +173,6 @@ export const phoenixAubeApi = {
   }
 };
 
-// Helpers Luna Hub
-export const lunaHubHelpers = {
-  // Redirection vers Luna Hub
-  redirectToEnergyPurchase() {
-    window.open(`${LUNA_HUB_URL}/energy/buy`, '_blank');
-  },
-
-  redirectToLogin() {
-    window.location.href = `${LUNA_HUB_URL}/auth/login?redirect=${encodeURIComponent(window.location.origin)}`;
-  },
-
-  // Récupération token depuis URL callback
-  extractTokenFromCallback(): string | null {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    if (token) {
-      localStorage.setItem('luna_hub_token', token);
-      // Nettoyer l'URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    return token;
-  },
-
-  // Vérification token validité
-  async validateToken(token: string): Promise<boolean> {
-    try {
-      const response = await axios.get(`${LUNA_HUB_URL}/api/auth/validate`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      return response.status === 200;
-    } catch {
-      return false;
-    }
-  }
-};
+// DEPRECATED: Legacy helpers removed - Use AuthService for all Luna Hub interactions
 
 export default apiClient;

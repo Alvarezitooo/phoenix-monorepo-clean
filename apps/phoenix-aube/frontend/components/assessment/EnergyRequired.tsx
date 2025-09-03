@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, ExternalLink, Battery } from 'lucide-react';
-import { lunaHubHelpers } from '@/lib/api';
+// Energy purchase handled directly
 
 interface EnergyRequiredProps {
   required: number;
@@ -17,7 +17,8 @@ export function EnergyRequired({ required, current, actionName, onRecharge }: En
     if (onRecharge) {
       onRecharge();
     } else {
-      lunaHubHelpers.redirectToEnergyPurchase();
+      const LUNA_HUB_URL = process.env.NEXT_PUBLIC_LUNA_HUB_URL || 'https://luna-hub-backend-unified-production.up.railway.app';
+      window.open(`${LUNA_HUB_URL}/energy/buy`, '_blank');
     }
   };
 

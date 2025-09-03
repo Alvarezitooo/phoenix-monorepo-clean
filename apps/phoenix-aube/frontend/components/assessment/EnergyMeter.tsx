@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Battery, ExternalLink, AlertTriangle } from 'lucide-react';
-import { lunaHubHelpers } from '@/lib/api';
+// Energy purchase handled via interceptors now
 import { cn } from '@/lib/utils';
 
 interface EnergyMeterProps {
@@ -91,7 +91,10 @@ export function EnergyMeter({ current, required, className }: EnergyMeterProps) 
 
         {current < 20 && (
           <Button 
-            onClick={lunaHubHelpers.redirectToEnergyPurchase}
+            onClick={() => {
+              const LUNA_HUB_URL = process.env.NEXT_PUBLIC_LUNA_HUB_URL || 'https://luna-hub-backend-unified-production.up.railway.app';
+              window.open(`${LUNA_HUB_URL}/energy/buy`, '_blank');
+            }}
             className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
