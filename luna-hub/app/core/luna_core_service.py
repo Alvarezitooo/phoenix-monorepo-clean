@@ -99,3 +99,7 @@ class LunaCore:
 
 # Instance globale
 luna_core = LunaCore()
+
+def get_luna_core() -> LunaCore:
+    """🌙 Obtenir l'instance Luna Core"""
+    return luna_core
