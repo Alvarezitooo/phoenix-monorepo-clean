@@ -42,8 +42,8 @@ energy_manager = EnergyManager()
 @router.post("/aube/chat", response_model=AIChatResponse)
 async def aube_chat_interaction(
     request: AubeChatRequest,
-    current_user: dict = Depends(get_current_user_dependency()),
     http_request: Request,
+    current_user: dict = Depends(get_current_user_dependency()),
     _: None = Depends(ensure_request_is_clean)
 ):
     """
@@ -244,8 +244,8 @@ class CVAnalysisResponse(BaseModel):
 @router.post("/cv/analyze", response_model=CVAnalysisResponse)
 async def cv_ai_analysis(
     request: CVAnalysisRequest,
-    current_user: dict = Depends(get_current_user_dependency()),
     http_request: Request,
+    current_user: dict = Depends(get_current_user_dependency()),
     _: None = Depends(ensure_request_is_clean)
 ):
     """
@@ -431,8 +431,8 @@ class LetterGenerationResponse(BaseModel):
 @router.post("/letters/generate", response_model=LetterGenerationResponse)
 async def letters_ai_generation(
     request: LetterGenerationRequest,
-    current_user: dict = Depends(get_current_user_dependency()),
     http_request: Request,
+    current_user: dict = Depends(get_current_user_dependency()),
     _: None = Depends(ensure_request_is_clean)
 ):
     """
