@@ -34,3 +34,7 @@ class GeminiClient:
 
 # Singleton instance of the client
 gemini_client = GeminiClient()
+
+def get_gemini_client() -> GeminiClient:
+    """FastAPI dependency to get GeminiClient instance"""
+    return gemini_client
