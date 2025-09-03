@@ -16,13 +16,14 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 is_production = ENVIRONMENT == "production"
 
 if is_production:
-    # Production: Railway domains + custom domains
+    # Production: Railway domains + custom domains + allow direct API access
     allowed_origins = [
         "https://phoenix.ai",
         "https://www.phoenix.ai", 
         "https://hub.phoenix.ai",
         "https://phoenix-front-end-production.up.railway.app",
-        "https://luna-hub-production.up.railway.app"
+        "https://luna-hub-production.up.railway.app",
+        "*"  # Allow direct API access for testing/integration
     ]
 else:
     # Development: Local origins
