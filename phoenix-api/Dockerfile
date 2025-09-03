@@ -14,5 +14,5 @@ COPY . .
 # Railway provides PORT via environment variable
 EXPOSE 8000
 
-# Run the application with Railway compatibility
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'"]
+# Run the application with Railway compatibility + timeout fix
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*' --timeout-keep-alive=65"]
