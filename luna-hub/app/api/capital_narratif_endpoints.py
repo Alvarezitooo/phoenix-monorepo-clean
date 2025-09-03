@@ -478,3 +478,67 @@ def _generate_recommendations(actions: Dict[str, int], skills: set) -> List[str]
         recommendations.append("Continuez à utiliser Phoenix pour développer votre Capital Narratif")
     
     return recommendations[:3]  # Limite à 3 recommandations
+
+
+async def get_narrative_context(user_id: str) -> Dict[str, Any]:
+    """
+    🧠 Récupère le contexte narratif pour l'IA
+    Used by AI endpoints to get user context
+    """
+    try:
+        # Get recent events for narrative context
+        events = await event_store.get_user_events(user_id, limit=20)
+        
+        if not events:
+            return {
+                "recent_events": [],
+                "user_profile": {"user_id": user_id, "new_user": True},
+                "context_summary": "Nouvel utilisateur Phoenix"
+            }
+        
+        # Build narrative context optimized for AI
+        recent_events = []
+        for event in events[-10:]:  # Last 10 events
+            event_data = event.get("event_data", {})
+            if event_data.get("action"):
+                recent_events.append({
+                    "action": event_data.get("action"),
+                    "content": event_data.get("context", {}).get("summary", ""),
+                    "timestamp": event.get("created_at"),
+                    "app_source": event.get("app_source")
+                })
+        
+        # Basic user profile for personalization
+        user_profile = {
+            "user_id": user_id,
+            "total_interactions": len(events),
+            "most_used_app": _get_most_used_app(events),
+            "engagement_level": "active" if len(events) > 5 else "new"
+        }
+        
+        return {
+            "recent_events": recent_events,
+            "user_profile": user_profile,
+            "context_summary": f"Utilisateur actif avec {len(events)} interactions Phoenix"
+        }
+        
+    except Exception as e:
+        logger.error("Failed to get narrative context", user_id=user_id, error=str(e))
+        return {
+            "recent_events": [],
+            "user_profile": {"user_id": user_id, "error": True},
+            "context_summary": "Contexte indisponible"
+        }
+
+
+def _get_most_used_app(events: List[Dict]) -> str:
+    """Trouve l'app la plus utilisée"""
+    app_counts = {}
+    for event in events:
+        app = event.get("app_source", "unknown")
+        app_counts[app] = app_counts.get(app, 0) + 1
+    
+    if not app_counts:
+        return "none"
+    
+    return max(app_counts.items(), key=lambda x: x[1])[0]
