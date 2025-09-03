@@ -148,7 +148,9 @@ async def aube_chat_interaction(
         
         conversation_context = ""
         if recent_interactions:
-            conversation_context = f"\nHISTORIQUE RÉCENT:\n{chr(10).join([f'- {event.get(\"content\", \"\")}' for event in recent_interactions[-3:]])}\n"
+            newline = chr(10)
+            interaction_list = [f'- {event.get("content", "")}' for event in recent_interactions[-3:]]
+            conversation_context = f"\nHISTORIQUE RÉCENT:\n{newline.join(interaction_list)}\n"
         
         user_prompt = f"""MESSAGE UTILISATEUR: "{request.message}"
         {conversation_context}
