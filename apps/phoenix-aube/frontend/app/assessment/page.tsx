@@ -352,7 +352,7 @@ export default function AssessmentPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
         <EnergyRequired
           required={energyCheck.required}
-          current={user?.lunaHubEnergy || 0}
+          current={user?.luna_energy || 0}
           actionName="l'assessment complet"
           onRecharge={() => {
             setShowEnergyModal(false);

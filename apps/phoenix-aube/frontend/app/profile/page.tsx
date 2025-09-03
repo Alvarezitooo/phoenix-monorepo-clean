@@ -297,7 +297,7 @@ export default function ProfilePage() {
 
           <TabsContent value="energy" className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              <EnergyMeter current={user.lunaHubEnergy} />
+              <EnergyMeter current={user.luna_energy} />
 
               {/* Energy Usage Guide */}
               <Card className="shadow-lg">

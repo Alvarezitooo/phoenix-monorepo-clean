@@ -25,7 +25,6 @@ export class AuthService {
   static async isAuthenticated(): Promise<boolean> {
     try {
       const response = await axios.get(`${LUNA_HUB_URL}/api/auth/me`, {
-        credentials: 'include',
         withCredentials: true,
         timeout: 5000
       });
@@ -42,7 +41,6 @@ export class AuthService {
   static async getCurrentUser(): Promise<LunaUser | null> {
     try {
       const response = await axios.get(`${LUNA_HUB_URL}/api/auth/me`, {
-        credentials: 'include',
         withCredentials: true,
         timeout: 8000
       });
@@ -72,7 +70,6 @@ export class AuthService {
   static async logout(): Promise<void> {
     try {
       await axios.post(`${LUNA_HUB_URL}/api/auth/logout`, {}, {
-        credentials: 'include',
         withCredentials: true
       });
     } catch (error) {
@@ -118,7 +115,6 @@ export class AuthService {
       const response = await axios.post(`${LUNA_HUB_URL}/api/luna/energy/can-perform`, {
         action_name: actionName
       }, {
-        credentials: 'include',
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +151,6 @@ export class AuthService {
         action_name: actionName,
         context
       }, {
-        credentials: 'include',
         withCredentials: true,
         headers: {
           'Content-Type': 'application/json',

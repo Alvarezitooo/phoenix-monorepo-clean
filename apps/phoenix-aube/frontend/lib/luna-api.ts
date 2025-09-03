@@ -3,6 +3,7 @@ import { API_BASE_URL } from './api';
 interface LunaMirrorRequest {
   user_response: string;
   persona?: string;
+  user_id?: string | null; // ID utilisateur pour capital narratif
   context?: {
     step?: string;
     signals?: Record<string, any>;
