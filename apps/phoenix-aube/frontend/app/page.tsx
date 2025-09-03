@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Star, Users, TrendingUp, Brain, Target, Heart } from 'lucide-react';
 import Link from 'next/link';
+import LunaFloatingWidget from '@/components/luna/LunaFloatingWidget';
+import { useLunaWidget } from '@/hooks/useLunaWidget';
 
 const testimonials = [
   {
@@ -60,6 +62,7 @@ const features = [
 
 export default function HomePage() {
   const [hoveredCareer, setHoveredCareer] = useState<number | null>(null);
+  const { isOpen, toggleWidget, openWidget, persona } = useLunaWidget('jeune_diplome');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -121,13 +124,15 @@ export default function HomePage() {
               {/* Options Luna : Ultra-Light vs Assessment */}
               <div className="space-y-4">
                 {/* Option principale : Ultra-Light avec Luna */}
-                <Link href="/luna-assessment">
-                  <Button size="lg" className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 transform hover:scale-105">
-                    <span className="mr-2">🌙</span>
-                    Commencer avec Luna (60s, 0 énergie)
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </Link>
+                <Button 
+                  size="lg" 
+                  onClick={openWidget}
+                  className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-300 transform hover:scale-105"
+                >
+                  <span className="mr-2">🌙</span>
+                  Commencer avec Luna (60s, 0 énergie)
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
                 
                 {/* Options secondaires */}
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -378,6 +383,13 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Luna Floating Widget */}
+      <LunaFloatingWidget
+        isOpen={isOpen}
+        onToggle={toggleWidget}
+        persona={persona}
+      />
     </div>
   );
 }
