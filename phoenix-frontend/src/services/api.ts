@@ -3,15 +3,15 @@ import axios from 'axios';
 // 🚀 Multi-SPA Architecture - Dynamic URLs
 const isDevelopment = import.meta.env.MODE === 'development';
 
-// API Gateway URL (phoenix-api)
+// API Gateway URL (phoenix-api) - Railway handles dynamic ports
 const API_BASE_URL = isDevelopment 
   ? 'http://localhost:8000'
-  : '/api'; // Proxy via Nginx in production
+  : 'https://phoenix-api-production.up.railway.app';
 
-// Luna Hub URL (central AI + Auth)  
+// Luna Hub URL (central AI + Auth) - Railway handles dynamic ports  
 const LUNA_HUB_URL = isDevelopment
   ? 'http://localhost:8003'
-  : '/hub'; // Proxy via Nginx in production
+  : 'https://luna-hub-production.up.railway.app';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -59,7 +59,19 @@ export const loginUser = async (email: string, pass: string) => {
       email: email,
       password: pass
     });
-    return response.data; // Should contain the token
+    
+    // After successful login, get complete user profile
+    const authData = response.data;
+    const profileResponse = await axios.get(`${LUNA_HUB_URL}/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${authData.access_token}`
+      }
+    });
+    
+    return {
+      ...authData,
+      profile: profileResponse.data
+    };
   } catch (error) {
      if (axios.isAxiosError(error)) {
       console.error('Login Error:', error.response?.data);

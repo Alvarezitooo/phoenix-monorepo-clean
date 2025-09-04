@@ -482,6 +482,7 @@ export default function HomePage() {
         onCancel={() => setShowConfirmation(false)}
         isOpen={showConfirmation}
       />
+      
     </div>
   );
 }

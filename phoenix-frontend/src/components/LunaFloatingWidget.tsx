@@ -6,13 +6,18 @@ interface Message {
   text: string;
 }
 
-export default function LunaFloatingWidget() {
+interface Props {
+  onAuthRequest?: () => void;
+}
+
+export default function LunaFloatingWidget({ onAuthRequest }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { sender: 'luna', text: '🌙 Salut ! Je suis Luna, ton copilote IA. Comment puis-je t\'aider aujourd\'hui ?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showWelcomeTooltip, setShowWelcomeTooltip] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,25 +124,70 @@ export default function LunaFloatingWidget() {
         </div>
       )}
 
-      {/* Floating Button */}
+      {/* Enhanced Floating Button */}
       <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 flex items-center justify-center"
-        >
-          {isOpen ? (
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-lg">🌙</span>
+        {/* Welcome Tooltip */}
+        {showWelcomeTooltip && !isOpen && (
+          <div className="absolute bottom-20 right-0 bg-white rounded-xl shadow-2xl p-4 w-64 border border-indigo-100 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-start space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-sm">🌙</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-800 mb-1">Salut ! Je suis Luna ✨</p>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Ton copilote IA pour la transformation professionnelle. Clique pour commencer !
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowWelcomeTooltip(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+              >
+                ×
+              </button>
             </div>
-          )}
-        </button>
-        {/* Notification Dot (quand Luna a des suggestions) */}
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+            <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-indigo-100 transform rotate-45"></div>
+          </div>
+        )}
+
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowWelcomeTooltip(false);
+              if (onAuthRequest && !isOpen) {
+                onAuthRequest();
+              } else {
+                setIsOpen(!isOpen);
+              }
+            }}
+            onMouseEnter={() => setTimeout(() => setShowWelcomeTooltip(false), 3000)}
+            className="group relative w-20 h-20 bg-gradient-to-r from-indigo-500 via-purple-600 to-cyan-500 text-white rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-110 transition-all duration-300 flex items-center justify-center overflow-hidden"
+          >
+            {/* Background Animation */}
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-400/30 to-purple-400/30 animate-spin-slow"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer"></div>
+            
+            {/* Icon */}
+            <div className="relative z-10">
+              {isOpen ? (
+                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  <span className="text-2xl animate-bounce">🌙</span>
+                </div>
+              )}
+            </div>
+          </button>
+
+          {/* Active Notification Dot */}
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+          </div>
+
+          {/* Pulse Ring Animation */}
+          <div className="absolute inset-0 rounded-full border-4 border-indigo-400 animate-ping opacity-20"></div>
         </div>
       </div>
     </>
