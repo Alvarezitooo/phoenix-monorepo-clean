@@ -155,11 +155,11 @@ export default function LunaFloatingWidget({ onAuthRequest }: Props) {
             onClick={() => {
               console.log('🌙 Luna widget clicked!', { onAuthRequest, isOpen });
               setShowWelcomeTooltip(false);
-              if (onAuthRequest && !isOpen) {
+              if (onAuthRequest) {
                 console.log('🚀 Calling onAuthRequest');
                 onAuthRequest();
               } else {
-                console.log('📱 Toggling chat window');
+                console.log('📱 Toggling chat window - fallback mode');
                 setIsOpen(!isOpen);
               }
             }}
