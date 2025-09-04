@@ -32,7 +32,7 @@ function AppContent() {
       
       {/* 🌙 Luna Components - Global */}
       <LunaEnergyBar />
-      <LunaFloatingWidget onAuthRequest={luna.openAuthChat} />
+      <LunaFloatingWidget />
       
       {/* Luna Auth Chat */}
       <LunaAuthChat

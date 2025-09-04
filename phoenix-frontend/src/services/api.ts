@@ -53,6 +53,27 @@ export const sendChatMessage = async (requestData: ChatRequest): Promise<ChatRes
   }
 };
 
+export const registerUser = async (name: string, email: string, password: string, objective: string) => {
+  try {
+    const response = await axios.post(`${LUNA_HUB_URL}/auth/register`, {
+      name: name,
+      email: email,
+      password: password,
+      objective: objective
+    });
+    
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Registration Error:', error.response?.data);
+      throw new Error(error.response?.data?.detail || 'Registration failed');
+    } else {
+      console.error('Generic Registration Error:', error);
+      throw new Error('An unexpected error occurred during registration');
+    }
+  }
+};
+
 export const loginUser = async (email: string, pass: string) => {
   try {
     const response = await axios.post(`${LUNA_HUB_URL}/auth/login`, {

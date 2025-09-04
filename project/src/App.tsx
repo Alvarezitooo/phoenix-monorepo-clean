@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useLuna } from '../context/LunaContext';
 import { 
   Flame, 
   Zap, 
@@ -26,17 +25,16 @@ import {
   Brain,
   Lightbulb
 } from 'lucide-react';
-import LunaEnergyGauge from './LunaEnergyGauge';
-import PhoenixButton from './PhoenixButton';
-import AppCard from './AppCard';
-import PricingCard from './PricingCard';
-import AnimatedGradient from './AnimatedGradient';
-import LunaAvatar from './LunaAvatar';
-import EnergyConsumptionGuide from './EnergyConsumptionGuide';
-import ActionConfirmation from './ActionConfirmation';
+import LunaEnergyGauge from './components/LunaEnergyGauge';
+import PhoenixButton from './components/PhoenixButton';
+import AppCard from './components/AppCard';
+import PricingCard from './components/PricingCard';
+import AnimatedGradient from './components/AnimatedGradient';
+import LunaAvatar from './components/LunaAvatar';
+import EnergyConsumptionGuide from './components/EnergyConsumptionGuide';
+import ActionConfirmation from './components/ActionConfirmation';
 
-export default function HomePage() {
-  const luna = useLuna();
+function App() {
   const [lunaEnergy, setLunaEnergy] = useState(85);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [hasFirstPurchaseBonus, setHasFirstPurchaseBonus] = useState(true);
@@ -105,7 +103,7 @@ export default function HomePage() {
               variant="primary" 
               size="large"
               icon={<Coffee className="h-5 w-5" />}
-              onClick={luna.openAuthChat}
+              onClick={() => setLunaEnergy(prev => Math.min(100, prev + 15))}
             >
               ☕ Commencer avec Luna (Session découverte offerte)
             </PhoenixButton>
@@ -445,7 +443,7 @@ export default function HomePage() {
             variant="primary" 
             size="large"
             icon={<Coffee className="h-5 w-5" />}
-            onClick={luna.openAuthChat}
+            onClick={() => setLunaEnergy(prev => Math.min(100, prev + 15))}
           >
             ☕ Commencer avec Luna (Session découverte offerte)
           </PhoenixButton>
@@ -484,7 +482,8 @@ export default function HomePage() {
         onCancel={() => setShowConfirmation(false)}
         isOpen={showConfirmation}
       />
-      
     </div>
   );
 }
+
+export default App;

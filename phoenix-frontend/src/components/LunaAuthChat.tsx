@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Moon, Send } from 'lucide-react';
-import { loginUser } from '../services/api';
+import { registerUser, loginUser } from '../services/api';
 
 interface AuthMessage {
   id: string;
@@ -132,12 +132,33 @@ export default function LunaAuthChat({ isOpen, onClose, onAuthSuccess }: Props) 
         
         setTimeout(async () => {
           try {
-            // Simulate login after registration
-            const loginResult = await loginUser(finalProfile.email, finalProfile.password);
+            // First, try to login (for existing users like admin)
+            console.log('🔐 Trying to login existing user:', finalProfile.email);
+            let loginResult;
+            
+            try {
+              loginResult = await loginUser(finalProfile.email, finalProfile.password);
+              console.log('✅ Existing user logged in successfully:', loginResult);
+            } catch (loginError: any) {
+              console.log('⚠️ Login failed, trying registration for new user');
+              
+              // If login fails, try to register (for new users)
+              console.log('🚀 Registering new user:', finalProfile);
+              await registerUser(finalProfile.name, finalProfile.email, finalProfile.password, objective);
+              console.log('✅ New user registered successfully');
+              
+              // Then login the newly registered user
+              console.log('🔐 Logging in newly registered user');
+              loginResult = await loginUser(finalProfile.email, finalProfile.password);
+              console.log('✅ New user logged in successfully:', loginResult);
+            }
+            
             onAuthSuccess(loginResult);
             setCurrentStep({ step: 'complete' });
-          } catch (error) {
-            addLunaMessage("Oops ! Un petit souci technique lors de la connexion. Tout va bien, on va réessayer !");
+          } catch (error: any) {
+            console.error('❌ Auth error:', error);
+            const errorMessage = error.message || "Un petit souci technique lors de la connexion";
+            addLunaMessage(`Oops ! ${errorMessage}. Tout va bien, on va réessayer !`);
           }
           setIsLoading(false);
         }, 2000);
