@@ -12,7 +12,7 @@ from app.core.energy_manager import energy_manager, InsufficientEnergyError, Ene
 from app.models.user_energy import EnergyPackType
 from app.core.security_guardian import SecurityGuardian, SecureUserIdValidator, SecureActionValidator
 from app.core.luna_core_service import get_luna_core
-from app.core.narrative_analyzer import narrative_analyzer
+from app.core.narrative_analyzer_optimized import narrative_analyzer_optimized as narrative_analyzer
 from app.models.journal_dto import (
     JournalDTO, EnergyPreviewRequest, EnergyPreviewResponse,
     JournalExportRequest, JournalExportResponse

@@ -11,7 +11,7 @@ import json
 import structlog
 import statistics
 
-from app.core.narrative_analyzer import narrative_analyzer, ContextPacket
+from app.core.narrative_analyzer_optimized import narrative_analyzer_optimized as narrative_analyzer, ContextPacket
 from app.core.energy_manager import energy_manager
 from app.core.supabase_client import event_store
 from app.models.user_energy import ENERGY_COSTS

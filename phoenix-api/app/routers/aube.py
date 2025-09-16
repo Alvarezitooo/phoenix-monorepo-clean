@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
-import httpx
 
 from app.clients.hub_client import get_hub_client, HubClient
 from app.clients.gemini_client import get_gemini_client, GeminiClient

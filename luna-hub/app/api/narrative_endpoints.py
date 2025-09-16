@@ -14,7 +14,7 @@ import structlog
 
 # Imports Luna Hub
 from ..core.journal_service import journal_service
-from ..core.narrative_analyzer import narrative_analyzer
+from ..core.narrative_analyzer_optimized import narrative_analyzer_optimized as narrative_analyzer
 from ..core.events import create_event
 from ..core.supabase_client import event_store
 from .luna_endpoints import get_current_user_id

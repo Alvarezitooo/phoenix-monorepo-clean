@@ -253,8 +253,11 @@ async def direct_specialist_conversation(
         }
         
         session_id = conversation_request.session_id or str(uuid.uuid4())
-        
-        # Déléguer à l'orchestrateur Luna Central 
+
+        # Extract token from authorization header
+        central_token = authorization.replace("Bearer ", "") if authorization and authorization.startswith("Bearer ") else None
+
+        # Déléguer à l'orchestrateur Luna Central
         orchestrator_response = await luna_orchestrator.handle_user_message(
             user_message=conversation_request.message,
             user_context=user_context,

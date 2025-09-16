@@ -1,15 +1,15 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    # Luna Hub configuration - Railway will override via env vars
-    LUNA_HUB_URL: str = "https://luna-hub-production.up.railway.app"
-    LUNA_HUB_INTERNAL_API_KEY: str = "your-internal-secret-key"
+    # Luna Hub configuration - MUST be set via environment variables
+    LUNA_HUB_URL: str
+    LUNA_HUB_INTERNAL_API_KEY: str
 
-    # AI Services configuration
-    GEMINI_API_KEY: str = "YOUR_GEMINI_API_KEY_HERE"
+    # AI Services configuration - MUST be set via environment variables
+    GEMINI_API_KEY: str
 
-    # JWT settings - Must match Luna Hub for token validation
-    JWT_SECRET_KEY: str = "phoenix_luna_session_zero_enterprise_auth_system_jwt_secret_2024"
+    # JWT settings - MUST be set via environment variables to match Luna Hub
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding='utf-8')

@@ -3,10 +3,7 @@
 Service central pour la personnalité Luna unifiée avec Capital Narratif
 """
 
-import os
-import json
 from typing import Dict, Any, Optional
-from datetime import datetime, timezone
 import google.generativeai as genai
 import structlog
 

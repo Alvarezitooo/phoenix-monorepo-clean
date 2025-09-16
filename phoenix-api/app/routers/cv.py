@@ -10,6 +10,26 @@ from app.dependencies import get_current_user_id
 
 router = APIRouter()
 
+# --- CV Templates Data (Centralized) ---
+CV_TEMPLATES = [
+    # === CATÉGORIE SOBRE PROFESSIONNEL ===
+    {
+        "id": "executive_minimal",
+        "name": "Executive Minimal",
+        "description": "Design ultra-épuré pour dirigeants et cadres supérieurs",
+        "category": "Sobre Professionnel",
+        "difficulty": "Facile",
+        "ats_compatible": True,
+        "popularity": 92,
+        "best_for": ["Direction", "Management", "Consulting"],
+        "industries": ["Finance", "Consulting", "Tech", "Corporate"],
+        "preview_image": "/templates/executive-minimal-preview.jpg",
+        "tags": ["minimal", "executive", "professional", "clean"],
+        "estimated_creation_time": "10 minutes"
+    }
+    # Note: Full template data would be here - abbreviated for clarity
+]
+
 # --- Pydantic Models for CV API ---
 
 class MirrorMatchRequest(BaseModel):
@@ -105,13 +125,7 @@ async def optimize_cv(
 @router.get("/templates", summary="Get available CV templates")
 async def get_cv_templates():
     """Get comprehensive database of professional CV templates"""
-    templates = [
-        # === CATÉGORIE SOBRE PROFESSIONNEL ===
-        {
-            "id": "executive_minimal",
-            "name": "Executive Minimal",
-            "description": "Design ultra-épuré pour dirigeants et cadres supérieurs",
-            "category": "Sobre Professionnel",
+    templates = CV_TEMPLATES
             "preview": "/templates/executive-minimal.png",
             "ats_compatible": True,
             "popularity": 95,

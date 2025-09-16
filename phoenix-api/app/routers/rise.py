@@ -63,9 +63,11 @@ async def start_interview_simulation(
             "user_id": user_id
         }
         
-        # Appeler Luna Hub pour générer la simulation
-        simulation_response = await hub.generate_interview_simulation(
+        # Appeler Luna Hub pour générer la simulation via AI chat
+        simulation_response = await hub.ai_chat_interaction(
             user_id=user_id,
+            specialist="rise",
+            message=f"Generate interview simulation for {context['position']} position with {context['company']} company",
             context=simulation_context
         )
         
@@ -96,12 +98,16 @@ async def mock_interview_response(
     Coût énergétique: 5 unités par interaction
     """
     try:
-        # Analyser la réponse avec Luna
-        analysis = await hub.analyze_interview_response(
+        # Analyser la réponse avec Luna via AI chat
+        analysis = await hub.ai_chat_interaction(
             user_id=user_id,
-            scenario=request.scenario,
-            response=request.user_response,
-            session_id=request.session_id
+            specialist="rise",
+            message=f"Analyze this interview response: {request.user_response}",
+            context={
+                "scenario": request.scenario,
+                "session_id": request.session_id,
+                "analysis_type": "interview_response"
+            }
         )
         
         return {

@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLuna, ModuleCard } from '../luna';
+import { useLuna } from '../luna';
 import { PhoenixNavigation } from '../shared';
-import AnimatedGradient from '../shared/AnimatedGradient';
+import { AnimatedGradient } from '../shared/components/AnimatedGradient';
 import ActionConfirmation from '../shared/ActionConfirmation';
-import { 
-  Sparkles, 
-  Brain, 
-  Lightbulb,
-  Heart,
-  Crown,
+import {
+  Sparkles,
   Moon
 } from 'lucide-react';
 
@@ -18,12 +14,6 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // 🔍 DEBUG: Log état authentification
-  console.log('🔍 HomePage DEBUG:', {
-    isAuthenticated: !!luna.authenticatedUser,
-    user: luna.authenticatedUser,
-    energy: luna.lunaEnergy
-  });
 
   const handleCTAClick = () => {
     if (luna.authenticatedUser) {

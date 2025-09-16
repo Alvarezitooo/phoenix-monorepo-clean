@@ -57,7 +57,6 @@ export default function ModuleCard({
   const colors = colorClasses[color];
 
   const handleModuleClick = () => {
-    console.log(`🌙 Luna: Switching to ${name} module`);
     navigate(path);
   };
 
