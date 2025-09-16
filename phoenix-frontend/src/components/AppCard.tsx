@@ -1,6 +1,6 @@
-import React, { ReactNode } from 'react';
-import { ExternalLink, Clock, Moon, Zap } from 'lucide-react';
-import PhoenixButton from './PhoenixButton';
+import { ReactNode } from 'react';
+import { ExternalLink, Clock, Moon } from 'lucide-react';
+import PhoenixButton from '../shared/PhoenixButton';
 
 interface AppCardProps {
   icon: ReactNode;

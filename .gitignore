@@ -91,3 +91,46 @@ logs/
 *.key
 *.pem
 secrets/
+
+# Development & Testing (Keep repo professional)
+test-*.js
+test-*.py
+test-*.sh
+**/tests/
+**/*test*
+**/*spec*
+pytest.ini
+.coverage
+htmlcov/
+.pytest_cache/
+coverage.xml
+*.coverage
+security_report.json
+reset_admin*.py
+
+# Development artifacts
+cache_bust.txt
+.rebuild_trigger
+.luna_rebuild_trigger
+DOCKERFILE_REBUILD_TRIGGER.txt
+RAILWAY_FORCE_DETECT.txt
+version.txt
+.api_keys_metadata.json
+
+# Internal documentation (not for public)
+JOURNAL_CLAUDE.md
+*_AUDIT_*.md
+*_PRESENTATION_*.md
+directives_*.md
+horizon_*.md
+
+# Images & Media (development)
+*.png
+*.jpg
+*.jpeg
+*.gif
+create-template-images.py
+
+# SQL scripts (development)
+smart_auth_supabase.sql
+reset_*.sql

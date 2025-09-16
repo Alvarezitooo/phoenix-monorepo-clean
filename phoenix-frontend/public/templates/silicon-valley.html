@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; }
+        .container { background: white; margin: 20px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 32px; font-weight: 600; margin: 0; }
+        .header .role { font-size: 18px; opacity: 0.9; margin: 10px 0; }
+        .header .contact { font-size: 14px; opacity: 0.8; }
+        .content { padding: 30px; display: grid; grid-template-columns: 2fr 1fr; gap: 40px; }
+        .section h2 { color: #667eea; font-weight: 600; margin-bottom: 15px; }
+        .tech-stack { display: flex; flex-wrap: gap; gap: 8px; margin: 15px 0; }
+        .tech-badge { background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+        .metric { background: #f8fafc; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #667eea; }
+        .metric .number { font-size: 24px; font-weight: bold; color: #667eea; }
+        .metric .label { font-size: 12px; color: #666; }
+        .project { background: #f1f5f9; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .sidebar { background: #f8fafc; padding: 20px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Alex TECHLEADER</h1>
+            <div class="role">Senior Product Engineer | Scaling 0→1M users</div>
+            <div class="contact">alex.tech@startup.io | San Francisco, CA</div>
+        </div>
+        
+        <div class="content">
+            <div class="main">
+                <div class="section">
+                    <h2>🚀 IMPACT & METRICS</h2>
+                    <div class="metric">
+                        <div class="number">1.2M+</div>
+                        <div class="label">Active Users</div>
+                    </div>
+                    <div class="metric">
+                        <div class="number">40%</div>
+                        <div class="label">Performance Improvement</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>💻 STACK TECHNIQUE</h2>
+                    <div class="tech-stack">
+                        <span class="tech-badge">React</span>
+                        <span class="tech-badge">TypeScript</span>
+                        <span class="tech-badge">Node.js</span>
+                        <span class="tech-badge">GraphQL</span>
+                        <span class="tech-badge">AWS</span>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>🏗️ PROJETS PHARES</h2>
+                    <div class="project">
+                        <strong>AI-Powered Analytics Platform</strong><br>
+                        Architecture microservices, 99.9% uptime
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="section">
+                    <h2>📊 KPIs</h2>
+                    <div class="metric">
+                        <div class="number">$2.5M</div>
+                        <div class="label">Revenue Impact</div>
+                    </div>
+                    <div class="metric">
+                        <div class="number">15+</div>
+                        <div class="label">Team Size</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

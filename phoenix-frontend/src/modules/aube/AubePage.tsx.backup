@@ -1,0 +1,791 @@
+import React, { useState, useCallback, lazy, Suspense, memo } from 'react';
+import { PhoenixNavigation } from "../../shared";
+import { useLuna } from "../../luna";
+// Import removed - using custom div components instead
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { AnimatedGradient } from '../../shared/components/AnimatedGradient';
+import { 
+  Sunrise, 
+  Moon, 
+  Target, 
+  ArrowRight, 
+  TrendingUp, 
+  Zap, 
+  Brain, 
+  Search, 
+  Route, 
+  Star,
+  Users,
+  GraduationCap,
+  BarChart3,
+  Network,
+  Sparkles
+} from 'lucide-react';
+
+// Lazy load components for performance
+const PersonalityAssessmentTab = lazy(() => import('./components/PersonalityAssessmentTab'));
+const MarketIntelligenceTab = lazy(() => import('./components/MarketIntelligenceTab'));
+const SuccessPredictionTab = lazy(() => import('./components/SuccessPredictionTab'));
+const NetworkingStrategyTab = lazy(() => import('./components/NetworkingStrategyTab'));
+const LearningPathTab = lazy(() => import('./components/LearningPathTab'));
+const TransitionRoadmapTab = lazy(() => import('./components/TransitionRoadmapTab'));
+
+// Keep original discovery tab for backward compatibility
+interface DiscoveryFormData {
+  currentJob: string;
+  currentSector: string;
+  experience: string;
+  interests: string;
+}
+
+interface AnalysisFormData {
+  currentJob: string;
+  targetJob: string;
+}
+
+const AubeTabSuspense = memo(({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={
+    <Card className="relative h-[600px] overflow-hidden">
+      <AnimatedGradient className="absolute inset-0 opacity-5" />
+      <CardContent className="flex items-center justify-center h-full">
+        <div className="text-center space-y-6">
+          <LoadingSpinner className="mx-auto w-12 h-12" />
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold text-gray-800">Chargement du module...</h3>
+            <p className="text-gray-600">Luna prépare votre expérience Aube</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  }>
+    {children}
+  </Suspense>
+));
+
+export default function AubePage() {
+  const luna = useLuna();
+  const [activeTab, setActiveTab] = useState('home');
+  
+  // Legacy states for existing functionality
+  const [discoveryForm, setDiscoveryForm] = useState<DiscoveryFormData>({
+    currentJob: '',
+    currentSector: '',
+    experience: '',
+    interests: ''
+  });
+  const [discoveryResults, setDiscoveryResults] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const [analysisForm, setAnalysisForm] = useState<AnalysisFormData>({
+    currentJob: '',
+    targetJob: ''
+  });
+  const [analysisResults, setAnalysisResults] = useState(null);
+  const [isAnalyzingSkills, setIsAnalyzingSkills] = useState(false);
+
+  // Enhanced Aube Tools Configuration with new modules
+  const aubeTools = [
+    {
+      id: 'personality',
+      title: 'Profil Psychométrique',
+      description: 'Évaluation Big Five pour découvrir votre personnalité professionnelle',
+      icon: Brain,
+      color: 'from-purple-500 to-indigo-600',
+      energyCost: 20,
+      badge: 'NEW',
+      gradient: 'bg-gradient-to-br from-purple-50 via-indigo-50 to-purple-100'
+    },
+    {
+      id: 'discovery',
+      title: 'Découverte Carrière',
+      description: 'Identifiez les métiers compatibles avec votre profil actuel',
+      icon: Search,
+      color: 'from-emerald-500 to-green-600',
+      energyCost: 15,
+      gradient: 'bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100'
+    },
+    {
+      id: 'analysis',
+      title: 'Analyse Compétences',
+      description: 'Analysez vos compétences transférables vers un nouveau métier',
+      icon: Target,
+      color: 'from-blue-500 to-cyan-600',
+      energyCost: 25,
+      badge: 'GOLD',
+      gradient: 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100'
+    },
+    {
+      id: 'market',
+      title: 'Market Intelligence',
+      description: 'Tendances sectorielles et opportunités émergentes du marché',
+      icon: TrendingUp,
+      color: 'from-orange-500 to-red-600',
+      energyCost: 20,
+      badge: 'NEW',
+      gradient: 'bg-gradient-to-br from-orange-50 via-red-50 to-orange-100'
+    },
+    {
+      id: 'prediction',
+      title: 'Success Prediction',
+      description: 'Prédiction IA de vos chances de succès pour un poste cible',
+      icon: BarChart3,
+      color: 'from-violet-500 to-purple-600',
+      energyCost: 30,
+      badge: 'AI',
+      gradient: 'bg-gradient-to-br from-violet-50 via-purple-50 to-violet-100'
+    },
+    {
+      id: 'networking',
+      title: 'Networking Strategy',
+      description: 'Stratégie personnalisée pour développer votre réseau professionnel',
+      icon: Network,
+      color: 'from-teal-500 to-cyan-600',
+      energyCost: 20,
+      badge: 'NEW',
+      gradient: 'bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-100'
+    },
+    {
+      id: 'learning',
+      title: 'Learning Path',
+      description: 'Parcours d\'apprentissage personnalisé avec formations ciblées',
+      icon: GraduationCap,
+      color: 'from-pink-500 to-rose-600',
+      energyCost: 25,
+      badge: 'NEW',
+      gradient: 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100'
+    },
+    {
+      id: 'roadmap',
+      title: 'Plan de Transition',
+      description: 'Créez votre roadmap personnalisée de reconversion complète',
+      icon: Route,
+      color: 'from-amber-500 to-orange-600',
+      energyCost: 40,
+      badge: 'PREMIUM',
+      gradient: 'bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100'
+    }
+  ];
+
+  // Legacy career matching function (kept for backward compatibility)
+  const generateCareerSuggestions = useCallback((form: DiscoveryFormData) => {
+    const jobSuggestions = [
+      {
+        title: "Product Manager",
+        compatibility: 94,
+        sector: "Tech/SaaS",
+        description: "Gérez le cycle de vie des produits numériques",
+        skills: ["Vision produit", "Gestion d'équipe", "Analyse de données", "Communication"],
+        salaryRange: "55k-80k€",
+        demand: "Forte",
+        transitionTime: "6-12 mois"
+      },
+      {
+        title: "UX Designer",
+        compatibility: 87,
+        sector: "Design/Tech",
+        description: "Concevez des expériences utilisateur exceptionnelles",
+        skills: ["Design thinking", "Prototypage", "Recherche utilisateur", "Wireframing"],
+        salaryRange: "45k-65k€",
+        demand: "Très forte",
+        transitionTime: "8-15 mois"
+      },
+      {
+        title: "Data Analyst",
+        compatibility: 82,
+        sector: "Data/Analytics",
+        description: "Transformez les données en insights business",
+        skills: ["SQL", "Power BI", "Excel avancé", "Storytelling data"],
+        salaryRange: "50k-70k€",
+        demand: "Forte",
+        transitionTime: "4-9 mois"
+      },
+      {
+        title: "Scrum Master",
+        compatibility: 89,
+        sector: "IT/Agile",
+        description: "Facilitez la collaboration d'équipes agiles",
+        skills: ["Méthodologies agiles", "Facilitation", "Coaching d'équipe", "Gestion conflits"],
+        salaryRange: "50k-75k€",
+        demand: "Forte",
+        transitionTime: "3-6 mois"
+      }
+    ];
+
+    // Basic customization logic
+    if (form.interests.toLowerCase().includes('design')) {
+      jobSuggestions[1].compatibility += 8;
+    }
+    if (form.interests.toLowerCase().includes('data')) {
+      jobSuggestions[2].compatibility += 10;
+    }
+    if (form.experience === '6-10 ans' || form.experience === '10+ ans') {
+      jobSuggestions[0].compatibility += 5;
+    }
+
+    return jobSuggestions.sort((a, b) => b.compatibility - a.compatibility).slice(0, 3);
+  }, []);
+
+  const handleCareerDiscovery = useCallback(async () => {
+    if (!discoveryForm.currentJob || !discoveryForm.currentSector) {
+      alert('Veuillez remplir au moins le poste et secteur actuels');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    
+    setTimeout(() => {
+      const results = generateCareerSuggestions(discoveryForm);
+      setDiscoveryResults({
+        suggestions: results,
+        analysisDate: new Date().toLocaleDateString('fr-FR'),
+        userProfile: {...discoveryForm}
+      });
+      
+      const currentEnergy = luna.lunaEnergy || 100;
+      luna.updateEnergy(Math.max(0, currentEnergy - 15));
+      
+      setIsAnalyzing(false);
+    }, 2000);
+  }, [discoveryForm, generateCareerSuggestions, luna]);
+
+  const handleSkillsAnalysis = useCallback(async () => {
+    if (!analysisForm.currentJob || !analysisForm.targetJob) {
+      alert('Veuillez remplir le métier actuel et le métier visé');
+      return;
+    }
+
+    setIsAnalyzingSkills(true);
+    
+    setTimeout(() => {
+      // Simplified analysis for demo
+      const compatibility = Math.round(70 + Math.random() * 25);
+      
+      const simpleResults = {
+        compatibility: Math.min(compatibility, 95),
+        transitionTimeline: compatibility > 80 ? "4-8 mois" : "8-12 mois",
+        aiInsight: `Transition ${analysisForm.currentJob} → ${analysisForm.targetJob} : ${compatibility > 80 ? 'Très prometteuse' : 'Réalisable avec préparation'} !`,
+        analysisDate: new Date().toLocaleDateString('fr-FR'),
+        userProfile: {...analysisForm},
+        sourceSkills: ['Communication', 'Organisation', 'Gestion'],
+        targetSkills: ['Leadership', 'Stratégie', 'Innovation'],
+        transferableSkills: ['Communication', 'Organisation'],
+        missingSkills: ['Leadership', 'Stratégie']
+      };
+      
+      setAnalysisResults(simpleResults);
+      
+      const currentEnergy = luna.lunaEnergy || 100;
+      luna.updateEnergy(Math.max(0, currentEnergy - 25));
+      
+      setIsAnalyzingSkills(false);
+    }, 2500);
+  }, [analysisForm, luna]);
+
+  const renderTabContent = useCallback(() => {
+    switch (activeTab) {
+      case 'personality':
+        return (
+          <AubeTabSuspense>
+            <PersonalityAssessmentTab />
+          </AubeTabSuspense>
+        );
+        
+      case 'market':
+        return (
+          <AubeTabSuspense>
+            <MarketIntelligenceTab />
+          </AubeTabSuspense>
+        );
+        
+      case 'prediction':
+        return (
+          <AubeTabSuspense>
+            <SuccessPredictionTab />
+          </AubeTabSuspense>
+        );
+        
+      case 'networking':
+        return (
+          <AubeTabSuspense>
+            <NetworkingStrategyTab />
+          </AubeTabSuspense>
+        );
+        
+      case 'learning':
+        return (
+          <AubeTabSuspense>
+            <LearningPathTab />
+          </AubeTabSuspense>
+        );
+        
+      case 'discovery':
+        return (
+          <div className="space-y-6">
+            <Card className="border-emerald-200">
+              <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50">
+                <h3 className="font-semibold text-emerald-800 flex items-center space-x-2">
+                  <Search className="h-5 w-5" />
+                  <span>Découverte de Carrière (15⚡)</span>
+                </h3>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Poste actuel</label>
+                    <input 
+                      type="text" 
+                      value={discoveryForm.currentJob}
+                      onChange={(e) => setDiscoveryForm({...discoveryForm, currentJob: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                      placeholder="ex: Développeur Web" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Secteur actuel</label>
+                    <input 
+                      type="text" 
+                      value={discoveryForm.currentSector}
+                      onChange={(e) => setDiscoveryForm({...discoveryForm, currentSector: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                      placeholder="ex: Tech/Startup" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Années d'expérience</label>
+                    <select 
+                      value={discoveryForm.experience}
+                      onChange={(e) => setDiscoveryForm({...discoveryForm, experience: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    >
+                      <option value="">Sélectionnez</option>
+                      <option value="0-2 ans">0-2 ans</option>
+                      <option value="3-5 ans">3-5 ans</option>
+                      <option value="6-10 ans">6-10 ans</option>
+                      <option value="10+ ans">10+ ans</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Centres d'intérêt</label>
+                    <input 
+                      type="text" 
+                      value={discoveryForm.interests}
+                      onChange={(e) => setDiscoveryForm({...discoveryForm, interests: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" 
+                      placeholder="ex: Design, Management, Data" 
+                    />
+                  </div>
+                </div>
+                <button 
+                  onClick={handleCareerDiscovery}
+                  disabled={isAnalyzing}
+                  className="mt-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 flex items-center space-x-2 disabled:opacity-50"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <LoadingSpinner className="w-5 h-5" />
+                      <span>Luna analyse votre profil...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-5 w-5" />
+                      <span>Découvrir mes métiers compatibles</span>
+                    </>
+                  )}
+                </button>
+              </CardContent>
+            </Card>
+            
+            {/* Results Display */}
+            {discoveryResults && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
+                      <Star className="h-6 w-6 text-amber-500" />
+                      <span>Métiers recommandés pour vous</span>
+                    </h3>
+                    <div className="text-sm text-gray-500">
+                      Analyse du {discoveryResults.analysisDate}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {discoveryResults.suggestions.map((job, index) => (
+                      <div key={index} className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg border border-emerald-200 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold">
+                              #{index + 1}
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-semibold text-gray-800">{job.title}</h4>
+                              <p className="text-sm text-gray-600">{job.sector}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-emerald-600">{job.compatibility}%</div>
+                            <div className="text-xs text-gray-500">Compatibilité</div>
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-700 mb-4">{job.description}</p>
+                        
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div>
+                            <h5 className="font-medium text-gray-700 mb-2">Compétences clés</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {job.skills.map((skill, skillIndex) => (
+                                <span key={skillIndex} className="bg-white text-emerald-700 px-2 py-1 rounded-full text-xs border border-emerald-200">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Salaire:</span>
+                              <span className="font-medium">{job.salaryRange}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Demande marché:</span>
+                              <span className="font-medium text-green-600">{job.demand}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Temps transition:</span>
+                              <span className="font-medium">{job.transitionTime}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
+
+      case 'analysis':
+        return (
+          <div className="space-y-6">
+            <Card className="border-blue-200">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
+                <h3 className="font-semibold text-blue-800 flex items-center space-x-2">
+                  <Target className="h-5 w-5" />
+                  <span>Analyse IA des Compétences Transférables (25⚡) - GOLD</span>
+                </h3>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Métier actuel</label>
+                    <input 
+                      type="text" 
+                      value={analysisForm.currentJob}
+                      onChange={(e) => setAnalysisForm({...analysisForm, currentJob: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                      placeholder="ex: Chef de Projet IT" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Métier visé</label>
+                    <input 
+                      type="text" 
+                      value={analysisForm.targetJob}
+                      onChange={(e) => setAnalysisForm({...analysisForm, targetJob: e.target.value})}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                      placeholder="ex: Product Manager" 
+                    />
+                  </div>
+                </div>
+                <button 
+                  onClick={handleSkillsAnalysis}
+                  disabled={isAnalyzingSkills}
+                  className="mt-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-cyan-700 transition-all duration-200 flex items-center space-x-2 disabled:opacity-50"
+                >
+                  {isAnalyzingSkills ? (
+                    <>
+                      <LoadingSpinner className="w-5 h-5" />
+                      <span>Luna analyse vos compétences... (GOLD)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-5 w-5" />
+                      <span>Analyser mes compétences transférables</span>
+                    </>
+                  )}
+                </button>
+              </CardContent>
+            </Card>
+
+            {analysisResults && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-gray-800 flex items-center space-x-2">
+                      <Star className="h-6 w-6 text-amber-500" />
+                      <span>Analyse de vos compétences transférables</span>
+                    </h3>
+                    <div className="text-sm text-gray-500">
+                      Analyse du {analysisResults.analysisDate}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold text-gray-800">
+                          Transition: {analysisResults.userProfile.currentJob} → {analysisResults.userProfile.targetJob}
+                        </h4>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-blue-600">{analysisResults.compatibility}%</div>
+                          <div className="text-xs text-gray-500">Compatibilité</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <Card className="bg-green-50 border-green-200">
+                          <CardHeader className="pb-3">
+                            <h5 className="font-semibold text-green-800">✅ Compétences transférables</h5>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              {analysisResults.transferableSkills?.map((skill, index) => (
+                                <div key={index} className="text-sm text-green-700 flex items-center space-x-2">
+                                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                  <span>{skill}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <Card className="bg-orange-50 border-orange-200">
+                          <CardHeader className="pb-3">
+                            <h5 className="font-semibold text-orange-800">🎯 À développer</h5>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              {analysisResults.missingSkills?.map((skill, index) => (
+                                <div key={index} className="text-sm text-orange-700 flex items-center space-x-2">
+                                  <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                  <span>{skill}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                    
+                    <Card className="bg-indigo-50 border-indigo-200">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Moon className="h-5 w-5 text-indigo-500" />
+                          <span className="font-semibold text-indigo-700">Résumé Luna</span>
+                        </div>
+                        <p className="text-indigo-600">
+                          {analysisResults.aiInsight} Temps estimé: <strong>{analysisResults.transitionTimeline}</strong>
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
+
+      case 'roadmap':
+        return (
+          <AubeTabSuspense>
+            <TransitionRoadmapTab />
+          </AubeTabSuspense>
+        );
+
+      case 'home':
+      default:
+        // HOME VIEW: Retour à l'écran d'accueil avec grille des modules
+        return null; // Le contenu est géré dans la structure conditionnelle principale
+    }
+  }, [activeTab, discoveryForm, analysisForm, isAnalyzing, isAnalyzingSkills, discoveryResults, analysisResults, handleCareerDiscovery, handleSkillsAnalysis]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-indigo-50">
+      <PhoenixNavigation />
+      
+      <div className="pt-24 pb-16 px-4">
+        <div className="max-w-7xl mx-auto">
+          {activeTab === 'home' ? (
+            <>
+              {/* Hero Section */}
+              <div className="text-center mb-12">
+                <div className="flex items-center justify-center mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full blur-lg opacity-30 animate-pulse"></div>
+                    <div className="relative p-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full">
+                      <Sunrise className="h-12 w-12 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                  Luna <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">Aube</span>
+                  <Sparkles className="inline-block h-8 w-8 text-purple-500 ml-2 animate-bounce" />
+                </h1>
+                <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-8">
+                  🌅 Votre écosystème complet de reconversion professionnelle avec intelligence artificielle
+                </p>
+                <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl p-6 max-w-4xl mx-auto mb-8 border border-indigo-200">
+                  <div className="flex items-center justify-center space-x-2 mb-3">
+                    <Moon className="h-6 w-6 text-indigo-500" />
+                    <span className="font-semibold text-indigo-700 text-lg">Luna vous accompagne :</span>
+                  </div>
+                  <p className="text-indigo-600 text-lg">
+                    "Je suis votre consultant en reconversion avec 8 modules spécialisés. De l'analyse psychométrique au plan d'apprentissage, je vous guide à chaque étape !"
+                  </p>
+                </div>
+              </div>
+
+              {/* Enhanced Navigation Grid - GRILLE PRINCIPALE DES 8 MODULES */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                {aubeTools.map((tool) => (
+                  <div
+                    key={tool.id}
+                    onClick={() => setActiveTab(tool.id)}
+                    className="relative group cursor-pointer transition-all duration-300 hover:scale-105"
+                  >
+                    <Card className="relative bg-white/80 backdrop-blur-sm border-2 transition-all duration-300 border-gray-200 hover:border-purple-200 hover:shadow-lg">
+                      {tool.badge && (
+                        <div className={`absolute -top-2 -right-2 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg transform rotate-12 ${
+                          tool.badge === 'NEW' ? 'bg-gradient-to-r from-green-500 to-emerald-600 animate-pulse' :
+                          tool.badge === 'GOLD' ? 'bg-gradient-to-r from-amber-500 to-yellow-600 animate-pulse' :
+                          tool.badge === 'AI' ? 'bg-gradient-to-r from-violet-500 to-purple-600 animate-pulse' :
+                          'bg-gradient-to-r from-pink-500 to-rose-600 animate-pulse'
+                        }`}>
+                          {tool.badge}
+                        </div>
+                      )}
+                      
+                      <CardContent className="p-6">
+                        <div className="flex items-start space-x-4 mb-4">
+                          <div className={`p-3 bg-gradient-to-r ${tool.color} rounded-xl shadow-lg`}>
+                            <tool.icon className="h-6 w-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-gray-800 text-lg mb-1 truncate">{tool.title}</h3>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <Zap className="h-4 w-4" />
+                              <span className="font-medium">{tool.energyCost}⚡</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-600 text-sm mb-4 leading-relaxed">{tool.description}</p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                            Disponible
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Navigation Back Button */}
+              <div className="flex items-center mb-6">
+                <button
+                  onClick={() => setActiveTab('home')}
+                  className="flex items-center space-x-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                >
+                  <ArrowRight className="h-4 w-4 rotate-180" />
+                  <span>Retour aux modules</span>
+                </button>
+              </div>
+
+              {/* Enhanced Active Tool Interface */}
+              <div className="relative">
+                <AnimatedGradient className="absolute inset-0 rounded-3xl opacity-5" />
+                <Card className="relative bg-white/90 backdrop-blur-sm shadow-2xl border border-purple-200">
+                  <CardHeader className="bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border-b border-purple-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl">
+                          <Moon className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-800">
+                            {aubeTools.find(tool => tool.id === activeTab)?.title || 'Module Aube'}
+                          </h2>
+                          <p className="text-gray-600">
+                            {aubeTools.find(tool => tool.id === activeTab)?.description || 'Accompagnement personnalisé'}
+                          </p>
+                        </div>
+                      </div>
+                      {luna.authenticatedUser && (
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500 mb-1">Votre énergie</div>
+                          <div className="text-2xl font-bold text-indigo-600 flex items-center space-x-1">
+                            <Zap className="h-6 w-6" />
+                            <span>{luna.lunaEnergy || 100}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-8">
+                    {renderTabContent()}
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+
+          {/* Enhanced Luna Info Section */}
+          <div className="mt-12">
+            <Card className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-indigo-200">
+              <CardHeader>
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
+                    <Moon className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800">Luna Conversationnelle</h2>
+                    <p className="text-gray-600">Discutez directement avec votre conseiller IA personnalisé</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-6 animate-bounce">💬</div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                    Activez la sidebar Luna pour une expérience conversationnelle
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Cliquez sur le bouton de conversation à droite de votre écran
+                  </p>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 max-w-md mx-auto border border-indigo-200">
+                    <p className="text-sm text-indigo-700 font-medium">
+                      💡 Luna est maintenant context-aware et adapte ses réponses selon le module Aube que vous utilisez !
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

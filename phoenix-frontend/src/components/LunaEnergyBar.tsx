@@ -1,9 +1,25 @@
-import { useLuna } from '../hooks/useLuna';
+import { useLuna } from '../luna/LunaContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function LunaEnergyBar() {
-  const { energy, maxEnergy, getEnergyColor, getEnergyBarColor } = useLuna();
+  const luna = useLuna();
+  const navigate = useNavigate();
   
+  const energy = luna.lunaEnergy || 0;
+  const maxEnergy = 100;
   const percentage = (energy / maxEnergy) * 100;
+  
+  const getEnergyColor = () => {
+    if (percentage > 66) return 'text-green-500';
+    if (percentage > 33) return 'text-yellow-500';
+    return 'text-red-500';
+  };
+
+  const getEnergyBarColor = () => {
+    if (percentage > 66) return 'bg-gradient-to-r from-green-400 to-green-500';
+    if (percentage > 33) return 'bg-gradient-to-r from-yellow-400 to-yellow-500';
+    return 'bg-gradient-to-r from-red-400 to-red-500';
+  };
 
   return (
     <div className="fixed top-4 right-4 bg-white rounded-lg shadow-lg p-3 z-40 min-w-[200px]">
@@ -50,11 +66,17 @@ export default function LunaEnergyBar() {
       
       {/* Quick Actions */}
       <div className="mt-2 flex space-x-1">
-        <button className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200 transition-colors">
+        <button 
+          onClick={() => navigate('/energy')}
+          className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200 transition-colors"
+        >
           Recharger
         </button>
-        <button className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors">
-          Détails
+        <button 
+          onClick={() => navigate('/journal')}
+          className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
+        >
+          Journal
         </button>
       </div>
     </div>

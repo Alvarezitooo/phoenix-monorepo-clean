@@ -156,6 +156,16 @@ ENERGY_COSTS = {
     "luna_optimisation": 12,             # Optimisations guidées
     "luna_analyse": 15,                  # Analyses approfondies
     "luna_strategie": 25,                # Conseils stratégiques
+    
+    # Actions Phoenix API (pour hub.can_perform)
+    "AUBE_SKILL_TRANSFER": 25,           # Analyse transfert compétences
+    "AUBE_CAREER_DISCOVERY": 15,         # Découverte métiers compatibles
+    "AUBE_TRANSITION_ROADMAP": 40,       # Roadmap transition carrière
+    "CV_MIRROR_MATCH": 25,               # Mirror match CV
+    "CV_OPTIMIZE": 12,                   # Optimisation CV
+    "CV_BUILD": 20,                      # Construction CV
+    "LETTERS_GENERATE": 15,              # Génération lettres
+    "LETTERS_ANALYZE_TRANSITION": 18,    # Analyse transition lettres
 }
 
 # Configuration des packs d'énergie
@@ -168,14 +178,14 @@ ENERGY_PACKS = {
     },
     EnergyPackType.PETIT_DEJ_LUNA: {
         "price_euro": 5.99,
-        "energy_amount": 100.0,
+        "energy_amount": 220.0,  # 220% énergie (2.2x)
         "bonus_first_purchase": 0.0,
         "name": "Petit-déj Luna",
         "popular": True
     },
     EnergyPackType.REPAS_LUNA: {
         "price_euro": 9.99,
-        "energy_amount": 100.0,
+        "energy_amount": 400.0,  # 400% énergie (4x)
         "bonus_first_purchase": 0.0,
         "name": "Repas Luna",
         "best_deal": True

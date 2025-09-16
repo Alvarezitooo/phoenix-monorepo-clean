@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from app.routers import cv, letters, aube
+from app.routers import cv, letters, aube, rise
 
 # 🚀 Phoenix API Gateway - Multi-SPA Architecture
 app = FastAPI(
@@ -60,6 +60,7 @@ if is_production:
 app.include_router(cv.router, prefix="/api/v1/cv", tags=["CV"])
 app.include_router(letters.router, prefix="/api/v1/letters", tags=["Letters"])  
 app.include_router(aube.router, prefix="/api/v1/aube", tags=["Aube"])
+app.include_router(rise.router, prefix="/api/v1/rise", tags=["Rise"])
 
 @app.get("/", tags=["Health"])
 async def read_root():

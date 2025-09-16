@@ -14,6 +14,7 @@ import statistics
 
 from app.core.supabase_client import event_store
 from app.core.energy_manager import energy_manager
+from app.core.nlp_service import nlp_service
 
 logger = structlog.get_logger("narrative_analyzer")
 
@@ -57,13 +58,14 @@ class ProgressMetrics:
 
 @dataclass
 class ContextPacket:
-    """Context Packet v1.5 - Sortie structurée du Narrative Analyzer"""
+    """Context Packet v2.0 - Sortie structurée du Narrative Analyzer avec NLP"""
     user: UserMeta
     usage: UsagePattern
     progress: ProgressMetrics
     last_emotion_or_doubt: Optional[str] = None
     confidence: float = 0.0
     generated_at: str = ""
+    nlp_insights: Optional[Dict[str, Any]] = None  # 🧠 Phase 1 NLP upgrade
     
     def to_dict(self) -> Dict[str, Any]:
         """Conversion pour injection dans le prompt Luna"""
@@ -119,6 +121,9 @@ class NarrativeAnalyzer:
             progress_metrics = self._analyze_progress_metrics(events, windows)
             last_emotion = self._extract_last_emotion_or_doubt(events)
             
+            # 🧠 2.5. PHASE 1 NLP UPGRADE - Enrichissement sémantique
+            nlp_enrichment = self._enrich_with_nlp_analysis(events, user_id)
+            
             # 3. Calcul confiance globale
             confidence = self._calculate_confidence(events, user_meta, usage_pattern, progress_metrics)
             
@@ -129,7 +134,8 @@ class NarrativeAnalyzer:
                 progress=progress_metrics,
                 last_emotion_or_doubt=last_emotion,
                 confidence=confidence,
-                generated_at=datetime.now(timezone.utc).isoformat()
+                generated_at=datetime.now(timezone.utc).isoformat(),
+                nlp_insights=nlp_enrichment.get("nlp_enrichment")  # 🧠 Phase 1 NLP data
             )
             
             logger.info(
@@ -220,6 +226,89 @@ class NarrativeAnalyzer:
         except Exception as e:
             logger.error("Erreur récupération événements", user_id=user_id, error=str(e))
             return []
+    
+    def _enrich_with_nlp_analysis(self, events: List[Dict[str, Any]], user_id: str) -> Dict[str, Any]:
+        """
+        🧠 PHASE 1 NLP UPGRADE - Enrichissement sémantique des événements
+        Analyse avancée du contenu textuel pour enrichir le Capital Narratif
+        """
+        try:
+            # Extraction de tout le contenu textuel des événements
+            text_content = []
+            for event in events:
+                payload = event.get('payload', {})
+                
+                # Récupération de texte de différentes sources
+                if isinstance(payload, dict):
+                    # Texte explicite dans les formulaires
+                    for key, value in payload.items():
+                        if isinstance(value, str) and len(value) > 10:
+                            text_content.append(value)
+                    
+                    # Contenu spécialisé par type d'événement
+                    event_type = event.get('event_type', '')
+                    if 'career_discovery' in event_type:
+                        form_data = payload.get('form_data', {})
+                        if isinstance(form_data, dict):
+                            for field in ['currentJob', 'interests', 'experience']:
+                                if form_data.get(field):
+                                    text_content.append(str(form_data[field]))
+            
+            if not text_content:
+                return {"nlp_enrichment": None, "text_analysis_status": "no_text_content"}
+            
+            # Combinaison de tout le texte pour analyse globale
+            combined_text = " ".join(text_content)
+            
+            # Analyse NLP avancée
+            text_insights = nlp_service.analyze_text(combined_text, context="career_narrative")
+            
+            # Génération des métadonnées narratives
+            user_context = {"user_id": user_id, "recent_activity": len(events)}
+            narrative_metadata = nlp_service.extract_narrative_metadata(combined_text, user_context)
+            
+            # Enrichissement spécialisé
+            nlp_enrichment = {
+                "semantic_analysis": {
+                    "dominant_themes": text_insights.themes,
+                    "career_indicators": text_insights.career_indicators,
+                    "keywords": text_insights.keywords[:8],  # Top 8 keywords
+                    "complexity_score": text_insights.complexity_score,
+                    "readability_score": text_insights.readability_score
+                },
+                "emotional_analysis": {
+                    "sentiment_polarity": text_insights.sentiment.polarity,
+                    "dominant_emotion": text_insights.sentiment.dominant_emotion,
+                    "confidence": text_insights.sentiment.confidence,
+                    "intensity": text_insights.sentiment.intensity
+                },
+                "narrative_intelligence": narrative_metadata.get("narrative_enrichment", {}),
+                "personalization_hints": narrative_metadata.get("personalization_hints", {}),
+                "analysis_metadata": {
+                    "text_chunks_analyzed": len(text_content),
+                    "total_text_length": len(combined_text),
+                    "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            }
+            
+            logger.info("🧠 NLP enrichment completed", 
+                       user_id=user_id,
+                       themes_count=len(text_insights.themes),
+                       sentiment=text_insights.sentiment.dominant_emotion,
+                       career_indicators_count=len(text_insights.career_indicators))
+            
+            return {
+                "nlp_enrichment": nlp_enrichment,
+                "text_analysis_status": "success"
+            }
+            
+        except Exception as e:
+            logger.error("🧠 NLP enrichment failed", user_id=user_id, error=str(e))
+            return {
+                "nlp_enrichment": None,
+                "text_analysis_status": "error",
+                "error_details": str(e)
+            }
     
     async def _analyze_user_meta(self, user_id: str, events: List[Dict[str, Any]]) -> UserMeta:
         """Analyse les métadonnées utilisateur"""

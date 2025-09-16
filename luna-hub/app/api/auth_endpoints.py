@@ -14,6 +14,7 @@ import logging
 # Internal imports
 from ..models.auth import UserRegistrationIn, UserRegistrationOut, User, LoginRequest
 from ..core.jwt_manager import hash_password, verify_password, create_jwt_token, get_bearer_token, extract_user_from_token
+from ..core.specialist_token_manager import SpecialistTokenManager
 from ..core.refresh_token_manager import refresh_manager
 from ..core.rate_limiter import rate_limiter, RateLimitScope, RateLimitResult
 from ..core.security_guardian import ensure_request_is_clean
@@ -22,6 +23,51 @@ from ..core.logging_config import logger
 from ..core.events import create_event
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+@router.get("/check-user/{email}")
+async def check_user_status(
+    email: str,
+    request: Request,
+    _: None = Depends(ensure_request_is_clean)  # Security Guardian
+):
+    """
+    Check user status for smart authentication
+    
+    Returns user type: 'new', 'first_time', or 'returning'
+    """
+    try:
+        # Execute the Supabase function
+        result = sb.rpc('check_user_status', {'user_email': email}).execute()
+        
+        if result.data and len(result.data) > 0:
+            user_status = result.data[0]
+            return {
+                "user_exists": user_status.get("user_exists", False),
+                "user_type": user_status.get("user_type", "new"),
+                "last_login": user_status.get("last_login"),
+                "login_count": user_status.get("login_count", 0),
+                "needs_onboarding": user_status.get("needs_onboarding", True)
+            }
+        else:
+            # Fallback if function fails
+            return {
+                "user_exists": False,
+                "user_type": "new",
+                "last_login": None,
+                "login_count": 0,
+                "needs_onboarding": True
+            }
+            
+    except Exception as e:
+        logger.error(f"Error checking user status: {str(e)}")
+        # Fallback on error
+        return {
+            "user_exists": False,
+            "user_type": "new",
+            "last_login": None,
+            "login_count": 0,
+            "needs_onboarding": True
+        }
 
 @router.post("/register", response_model=UserRegistrationOut, status_code=status.HTTP_201_CREATED)
 async def register_user(
@@ -682,3 +728,172 @@ async def check_session_status(
         "session_type": "httponly" if has_cookie else "bearer",
         "secure": True
     }
+
+# 🌙 LUNA MICROSERVICES AUTHENTICATION ENDPOINTS
+
+@router.post("/luna/delegate-specialist")
+async def delegate_specialist_token(
+    delegation_request: dict,
+    authorization: Optional[str] = Header(None),
+    current_user: dict = Depends(get_current_user_dependency()),
+    _: None = Depends(ensure_request_is_clean)
+):
+    """
+    🎪 Délégation de token à un spécialiste Luna
+    
+    Permet à Luna Central de créer des tokens spécialisés pour les microservices.
+    Réutilise l'infrastructure JWT existante.
+    """
+    try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authorization header required for delegation"
+            )
+        
+        # Extraire token central
+        central_token = get_bearer_token(authorization)
+        if not central_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization format"
+            )
+        
+        # Valider requête de délégation
+        specialist_name = delegation_request.get("specialist")
+        target_module = delegation_request.get("module") 
+        user_intent = delegation_request.get("intent", "conversation")
+        
+        if not specialist_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Specialist name required (luna-aube, luna-cv, luna-letters, luna-rise)"
+            )
+        
+        # Valider format spécialiste
+        if not specialist_name.startswith("luna-"):
+            specialist_name = f"luna-{specialist_name}"
+            
+        valid_specialists = ["luna-aube", "luna-cv", "luna-letters", "luna-rise"]
+        if specialist_name not in valid_specialists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid specialist. Must be one of: {', '.join(valid_specialists)}"
+            )
+        
+        # Contexte de délégation
+        delegation_context = {
+            "target_module": target_module or specialist_name.split("-")[1],
+            "journey_step": delegation_request.get("journey_step", "specialist_consultation"),
+            "reason": f"user_intent_{user_intent}",
+            "frontend_context": delegation_request.get("frontend_context", {})
+        }
+        
+        # Créer token spécialisé
+        specialist_token = SpecialistTokenManager.create_specialist_token(
+            parent_token=central_token,
+            specialist_name=specialist_name,
+            delegation_context=delegation_context
+        )
+        
+        if not specialist_token:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create specialist token"
+            )
+        
+        # Event sourcing
+        await create_event({
+            "type": "specialist_token_delegated",
+            "actor_user_id": current_user["id"],
+            "payload": {
+                "specialist": specialist_name,
+                "target_module": delegation_context["target_module"],
+                "delegation_reason": delegation_context["reason"],
+                "parent_session": current_user.get("session_id"),
+                "frontend_context": delegation_context.get("frontend_context", {})
+            }
+        })
+        
+        logger.info(f"Specialist token delegated", 
+                   user_id=current_user["id"],
+                   specialist=specialist_name,
+                   module=target_module)
+        
+        return {
+            "success": True,
+            "specialist_token": specialist_token,
+            "specialist": specialist_name,
+            "target_module": delegation_context["target_module"],
+            "valid_for_minutes": SpecialistTokenManager.SPECIALIST_SCOPES.get(specialist_name, {}).get("session_duration_minutes", 60),
+            "permissions": SpecialistTokenManager.SPECIALIST_SCOPES.get(specialist_name, {}).get("permissions", []),
+            "energy_limit": SpecialistTokenManager.SPECIALIST_SCOPES.get(specialist_name, {}).get("energy_cost_limit", 0)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Specialist delegation error", 
+                    user_id=current_user.get("id", "unknown"),
+                    specialist=delegation_request.get("specialist"),
+                    error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during specialist delegation"
+        )
+
+@router.post("/luna/validate-specialist")
+async def validate_specialist_token(
+    validation_request: dict,
+    _: None = Depends(ensure_request_is_clean)
+):
+    """
+    🛡️ Validation d'un token spécialisé
+    
+    Endpoint pour que les microservices Luna valident leurs tokens reçus.
+    """
+    try:
+        specialist_token = validation_request.get("token")
+        required_specialist = validation_request.get("specialist")
+        required_permissions = validation_request.get("permissions", [])
+        
+        if not specialist_token or not required_specialist:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token and specialist name required"
+            )
+        
+        # Valider le token
+        validated_payload = SpecialistTokenManager.validate_specialist_token(
+            token=specialist_token,
+            required_specialist=required_specialist,
+            required_permissions=required_permissions
+        )
+        
+        if not validated_payload:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired specialist token"
+            )
+        
+        # Extraire contexte pour le microservice
+        delegation_context = SpecialistTokenManager.extract_delegation_context(specialist_token)
+        
+        return {
+            "valid": True,
+            "user_id": validated_payload.get("sub"),
+            "specialist": required_specialist,
+            "permissions": validated_payload.get("specialist_permissions", []),
+            "luna_context": validated_payload.get("luna_context", {}),
+            "delegation_context": delegation_context,
+            "energy_limit": delegation_context.get("energy_limit", 0)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Specialist validation error", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during token validation"
+        )

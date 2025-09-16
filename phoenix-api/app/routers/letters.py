@@ -25,6 +25,15 @@ class AnalyzeCareerTransitionRequest(BaseModel):
 
 # --- API Endpoints ---
 
+@router.get("/", summary="Letters Module status")
+async def letters_status():
+    return {
+        "module": "Letters",
+        "status": "active",
+        "features": ["generate", "analyze-transition", "tone-adaptation"], 
+        "version": "2.0.0"
+    }
+
 @router.post("/generate", summary="Generate a cover letter")
 async def generate_letter(
     request: GenerateLetterRequest,

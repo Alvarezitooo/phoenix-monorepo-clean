@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phoenix CV Template - Designer Portfolio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            line-height: 1.6;
+            color: #2c2c2c;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 210mm; /* A4 width */
+            min-height: 297mm; /* A4 height */
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+            opacity: 0.1;
+            z-index: 1;
+        }
+        
+        /* HEADER - Creative asymmetric design */
+        .header {
+            background: linear-gradient(135deg, #2c2c2c 0%, #434343 100%);
+            color: white;
+            padding: 50px 40px;
+            position: relative;
+            z-index: 2;
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+            margin-bottom: -20px;
+        }
+        
+        .header-content {
+            max-width: 70%;
+            position: relative;
+            z-index: 3;
+        }
+        
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1.2;
+        }
+        
+        .header .tagline {
+            font-size: 18px;
+            font-weight: 300;
+            opacity: 0.9;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        
+        .header .contact {
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.8;
+        }
+        
+        .header .contact a {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s;
+        }
+        
+        .header .contact a:hover {
+            border-bottom-color: rgba(255, 255, 255, 0.8);
+            opacity: 1;
+        }
+        
+        /* CONTENT - Asymmetric grid */
+        .content {
+            padding: 60px 40px 40px;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 60px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* MAIN CONTENT */
+        .main-content {
+            position: relative;
+        }
+        
+        /* SIDEBAR - Creative floating style */
+        .sidebar {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 35px 30px;
+            border-radius: 20px;
+            height: fit-content;
+            position: relative;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            border-radius: 22px;
+            z-index: -1;
+            opacity: 0.1;
+        }
+        
+        /* SECTIONS */
+        .section {
+            margin-bottom: 45px;
+            position: relative;
+        }
+        
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c2c2c;
+            margin-bottom: 25px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+        
+        /* PROFESSIONAL SUMMARY - Creative quote style */
+        .creative-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 5px solid #667eea;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #495057;
+            font-style: italic;
+        }
+        
+        .creative-summary::before {
+            content: '"';
+            font-size: 60px;
+            color: #667eea;
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-family: 'Playfair Display', serif;
+            opacity: 0.3;
+        }
+        
+        .creative-summary .quote-content {
+            margin-left: 20px;
+        }
+        
+        /* EXPERIENCE - Modern card style */
+        .experience-item {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .experience-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+        
+        .experience-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 0 0 0 15px;
+        }
+        
+        .experience-header {
+            margin-bottom: 18px;
+        }
+        
+        .experience-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c2c2c;
+            margin-bottom: 8px;
+        }
+        
+        .experience-company {
+            font-size: 16px;
+            color: #667eea;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        
+        .experience-dates {
+            font-size: 13px;
+            color: #6c757d;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .experience-description {
+            color: #495057;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        
+        /* PORTFOLIO PROJECTS - Visual emphasis */
+        .portfolio-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            position: relative;
+            border: 1px solid #dee2e6;
+        }
+        
+        .portfolio-item::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            opacity: 0.1;
+        }
+        
+        .portfolio-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c2c2c;
+            margin-bottom: 10px;
+        }
+        
+        .portfolio-description {
+            color: #495057;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        
+        .portfolio-tech {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .tech-tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        
+        /* SIDEBAR SPECIFIC STYLES */
+        .sidebar .section {
+            margin-bottom: 35px;
+        }
+        
+        .sidebar .section-title {
+            font-size: 18px;
+            color: #495057;
+            margin-bottom: 20px;
+        }
+        
+        .sidebar .section-title::after {
+            background: linear-gradient(90deg, #495057, #6c757d);
+        }
+        
+        /* SKILLS - Creative circular progress */
+        .skills-category {
+            margin-bottom: 25px;
+        }
+        
+        .skill-category-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .skill-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .skill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            font-size: 13px;
+        }
+        
+        .skill-name {
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .skill-level {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        
+        /* TOOLS & SOFTWARE - Grid layout */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+        }
+        
+        .tool-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 10px 8px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.2s;
+        }
+        
+        .tool-item:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        /* EDUCATION - Minimalist */
+        .education-item {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .education-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        
+        .education-degree {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2c2c2c;
+            margin-bottom: 5px;
+        }
+        
+        .education-school {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .education-year {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* CONTACT INFO SIDEBAR */
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #495057;
+        }
+        
+        .contact-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                padding: 30px 25px;
+            }
+            
+            .header {
+                padding: 30px 25px;
+                clip-path: polygon(0 0, 100% 0, 90% 100%, 0 100%);
+            }
+            
+            .header-content {
+                max-width: 80%;
+            }
+            
+            .header h1 {
+                font-size: 32px;
+            }
+            
+            .sidebar {
+                order: -1;
+            }
+        }
+        
+        /* PRINT STYLES */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .container::before {
+                display: none;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="header-content">
+                <h1>{{FIRST_NAME}} {{LAST_NAME}}</h1>
+                <div class="tagline">{{PROFESSIONAL_TITLE}}</div>
+                <div class="contact">
+                    {{EMAIL}} • {{PHONE}}<br>
+                    {{ADDRESS}}
+                    {{#PORTFOLIO_URL}}<br><a href="{{PORTFOLIO_URL}}">Portfolio en ligne</a>{{/PORTFOLIO_URL}}
+                </div>
+            </div>
+        </header>
+        
+        <div class="content">
+            <!-- MAIN CONTENT -->
+            <div class="main-content">
+                <!-- CREATIVE SUMMARY -->
+                {{#SUMMARY}}
+                <div class="creative-summary">
+                    <div class="quote-content">{{SUMMARY}}</div>
+                </div>
+                {{/SUMMARY}}
+                
+                <!-- EXPERIENCE -->
+                <section class="section">
+                    <h2 class="section-title">Expérience</h2>
+                    {{#EXPERIENCES}}
+                    <div class="experience-item">
+                        <div class="experience-header">
+                            <div class="experience-title">{{POSITION}}</div>
+                            <div class="experience-company">{{COMPANY}}</div>
+                            <div class="experience-dates">{{START_DATE}} - {{END_DATE}}</div>
+                        </div>
+                        <div class="experience-description">{{DESCRIPTION}}</div>
+                    </div>
+                    {{/EXPERIENCES}}
+                </section>
+                
+                <!-- PORTFOLIO PROJECTS -->
+                {{#PORTFOLIO}}
+                <section class="section">
+                    <h2 class="section-title">Projets Portfolio</h2>
+                    {{#PORTFOLIO}}
+                    <div class="portfolio-item">
+                        <div class="portfolio-title">{{PROJECT_NAME}}</div>
+                        <div class="portfolio-description">{{PROJECT_DESCRIPTION}}</div>
+                        {{#TECHNOLOGIES}}
+                        <div class="portfolio-tech">
+                            {{#TECHNOLOGIES}}
+                            <span class="tech-tag">{{.}}</span>
+                            {{/TECHNOLOGIES}}
+                        </div>
+                        {{/TECHNOLOGIES}}
+                    </div>
+                    {{/PORTFOLIO}}
+                </section>
+                {{/PORTFOLIO}}
+            </div>
+            
+            <!-- SIDEBAR -->
+            <div class="sidebar">
+                <!-- CONTACT INFO -->
+                <section class="section">
+                    <h3 class="section-title">Contact</h3>
+                    <div class="contact-info">
+                        <div class="contact-item">
+                            <div class="contact-icon">@</div>
+                            <span>{{EMAIL}}</span>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon">📱</div>
+                            <span>{{PHONE}}</span>
+                        </div>
+                        {{#LINKEDIN}}
+                        <div class="contact-item">
+                            <div class="contact-icon">💼</div>
+                            <a href="{{LINKEDIN}}">LinkedIn</a>
+                        </div>
+                        {{/LINKEDIN}}
+                        {{#PORTFOLIO_URL}}
+                        <div class="contact-item">
+                            <div class="contact-icon">🎨</div>
+                            <a href="{{PORTFOLIO_URL}}">Portfolio</a>
+                        </div>
+                        {{/PORTFOLIO_URL}}
+                    </div>
+                </section>
+                
+                <!-- SKILLS -->
+                {{#SKILLS}}
+                <section class="section">
+                    <h3 class="section-title">Compétences</h3>
+                    {{#SKILL_CATEGORIES}}
+                    <div class="skills-category">
+                        <div class="skill-category-title">{{CATEGORY_NAME}}</div>
+                        <div class="skill-items">
+                            {{#SKILLS}}
+                            <div class="skill-item">
+                                <span class="skill-name">{{SKILL_NAME}}</span>
+                                <span class="skill-level">{{LEVEL}}</span>
+                            </div>
+                            {{/SKILLS}}
+                        </div>
+                    </div>
+                    {{/SKILL_CATEGORIES}}
+                </section>
+                {{/SKILLS}}
+                
+                <!-- TOOLS & SOFTWARE -->
+                {{#TOOLS}}
+                <section class="section">
+                    <h3 class="section-title">Outils & Logiciels</h3>
+                    <div class="tools-grid">
+                        {{#TOOLS}}
+                        <div class="tool-item">{{.}}</div>
+                        {{/TOOLS}}
+                    </div>
+                </section>
+                {{/TOOLS}}
+                
+                <!-- EDUCATION -->
+                {{#EDUCATION}}
+                <section class="section">
+                    <h3 class="section-title">Formation</h3>
+                    {{#EDUCATION}}
+                    <div class="education-item">
+                        <div class="education-degree">{{DEGREE}}</div>
+                        <div class="education-school">{{INSTITUTION}}</div>
+                        <div class="education-year">{{GRADUATION_YEAR}}</div>
+                    </div>
+                    {{/EDUCATION}}
+                </section>
+                {{/EDUCATION}}
+                
+                <!-- LANGUAGES -->
+                {{#LANGUAGES}}
+                <section class="section">
+                    <h3 class="section-title">Langues</h3>
+                    <div class="skill-items">
+                        {{#LANGUAGES}}
+                        <div class="skill-item">
+                            <span class="skill-name">{{LANGUAGE}}</span>
+                            <span class="skill-level">{{LEVEL}}</span>
+                        </div>
+                        {{/LANGUAGES}}
+                    </div>
+                </section>
+                {{/LANGUAGES}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

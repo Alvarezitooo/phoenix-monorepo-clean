@@ -31,6 +31,7 @@ class RateLimitScope(Enum):
     API_CV_GENERATION = "api_cv_generation"
     API_LETTER_GENERATION = "api_letter_generation"
     API_LUNA_CHAT = "api_luna_chat"
+    CONVERSATION = "conversation"
     
     # Administrative
     ADMIN_OPERATIONS = "admin_operations"
@@ -81,53 +82,83 @@ class RateLimiter:
     - HTTP standard headers for client communication
     """
     
-    # Enhanced rate limit rules configuration
-    RULES = {
-        # Authentication endpoints (stricter limits)
-        RateLimitScope.AUTH_LOGIN: RateLimitRule(
-            scope=RateLimitScope.AUTH_LOGIN,
-            strategy=RateLimitStrategy.SLIDING_WINDOW,
-            requests_per_window=5,
-            window_seconds=900,  # 15 minutes
-            block_duration_seconds=1800,  # 30 minutes
-            priority=1
-        ),
-        RateLimitScope.AUTH_REGISTER: RateLimitRule(
-            scope=RateLimitScope.AUTH_REGISTER,
-            strategy=RateLimitStrategy.FIXED_WINDOW,
-            requests_per_window=3,
-            window_seconds=3600,  # 1 hour
-            block_duration_seconds=7200,  # 2 hours
-            priority=1
-        ),
-        RateLimitScope.PASSWORD_RESET: RateLimitRule(
-            scope=RateLimitScope.PASSWORD_RESET,
-            strategy=RateLimitStrategy.SLIDING_WINDOW,
-            requests_per_window=3,
-            window_seconds=3600,  # 1 hour
-            block_duration_seconds=3600,  # 1 hour
-            priority=1
-        ),
+    def __init__(self):
+        """Initialise le système de rate limiting robuste"""
+        self.metrics = {
+            "total_requests": 0,
+            "allowed": 0,
+            "limited": 0, 
+            "blocked": 0,
+            "redis_errors": 0
+        }
+        self.lua_scripts_loaded = False
         
-        # API endpoints (moderate limits with bursts)
-        RateLimitScope.API_GENERAL: RateLimitRule(
-            scope=RateLimitScope.API_GENERAL,
-            strategy=RateLimitStrategy.TOKEN_BUCKET,
-            requests_per_window=100,
-            window_seconds=60,  # 1 minute
-            burst_size=20,  # Allow bursts
-            block_duration_seconds=300,  # 5 minutes
-            priority=2
-        ),
-        RateLimitScope.API_ENERGY: RateLimitRule(
-            scope=RateLimitScope.API_ENERGY,
-            strategy=RateLimitStrategy.SLIDING_WINDOW,
-            requests_per_window=50,
-            window_seconds=60,
-            block_duration_seconds=300,
-            priority=2
-        ),
-        RateLimitScope.API_CV_GENERATION: RateLimitRule(
+        # Configuration des règles selon l'environnement
+        import os
+        self.is_development = os.getenv("ENVIRONMENT", "development") == "development"
+        self.RULES = self._get_environment_rules()
+        
+    def _get_environment_rules(self):
+        """Configuration des règles selon l'environnement"""
+        if self.is_development:
+            # 🟢 DEVELOPMENT: Très permissif pour les tests
+            return {
+                RateLimitScope.AUTH_LOGIN: RateLimitRule(
+                    scope=RateLimitScope.AUTH_LOGIN,
+                    strategy=RateLimitStrategy.SLIDING_WINDOW,
+                    requests_per_window=100,  # 100 tentatives au lieu de 5
+                    window_seconds=300,  # 5 minutes au lieu de 15
+                    block_duration_seconds=60,  # 1 minute au lieu de 30
+                    priority=1
+                ),
+                RateLimitScope.AUTH_REGISTER: RateLimitRule(
+                    scope=RateLimitScope.AUTH_REGISTER,
+                    strategy=RateLimitStrategy.FIXED_WINDOW,
+                    requests_per_window=50,  # 50 tentatives au lieu de 3
+                    window_seconds=300,  # 5 minutes au lieu de 1 heure
+                    block_duration_seconds=60,  # 1 minute au lieu de 2 heures
+                    priority=1
+                ),
+                # Règles de développement très permissives pour les autres scopes
+                RateLimitScope.PASSWORD_RESET: RateLimitRule(
+                    scope=RateLimitScope.PASSWORD_RESET,
+                    strategy=RateLimitStrategy.SLIDING_WINDOW,
+                    requests_per_window=20,
+                    window_seconds=300,
+                    block_duration_seconds=60,
+                    priority=1
+                ),
+                RateLimitScope.API_GENERAL: RateLimitRule(
+                    scope=RateLimitScope.API_GENERAL,
+                    strategy=RateLimitStrategy.TOKEN_BUCKET,
+                    requests_per_window=1000,  # Très permissif en dev
+                    window_seconds=60,
+                    burst_size=100,
+                    block_duration_seconds=60,
+                    priority=2
+                ),
+            }
+        else:
+            # 🔴 PRODUCTION: Strictes pour la sécurité
+            return {
+                RateLimitScope.AUTH_LOGIN: RateLimitRule(
+                    scope=RateLimitScope.AUTH_LOGIN,
+                    strategy=RateLimitStrategy.SLIDING_WINDOW,
+                    requests_per_window=5,  # Strict en production
+                    window_seconds=900,  # 15 minutes
+                    block_duration_seconds=1800,  # 30 minutes
+                    priority=1
+                ),
+                RateLimitScope.AUTH_REGISTER: RateLimitRule(
+                    scope=RateLimitScope.AUTH_REGISTER,
+                    strategy=RateLimitStrategy.FIXED_WINDOW,
+                    requests_per_window=3,
+                    window_seconds=3600,  # 1 heure
+                    block_duration_seconds=7200,  # 2 heures
+                    priority=1
+                ),
+                # Règles de production pour autres scopes - plus restrictives
+                RateLimitScope.API_CV_GENERATION: RateLimitRule(
             scope=RateLimitScope.API_CV_GENERATION,
             strategy=RateLimitStrategy.FIXED_WINDOW,
             requests_per_window=10,  # Resource intensive
@@ -141,6 +172,15 @@ class RateLimiter:
             requests_per_window=30,
             window_seconds=60,
             burst_size=5,
+            block_duration_seconds=300,
+            priority=2
+        ),
+        RateLimitScope.CONVERSATION: RateLimitRule(
+            scope=RateLimitScope.CONVERSATION,
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
+            requests_per_window=20,
+            window_seconds=60,
+            burst_size=3,
             block_duration_seconds=300,
             priority=2
         ),
@@ -386,6 +426,16 @@ class RateLimiter:
         try:
             self.metrics["total_requests"] += 1
             now = datetime.now(timezone.utc)
+            
+            # 🟢 DÉVELOPPEMENT : Désactiver le rate limiting complètement
+            import os
+            if os.getenv("ENVIRONMENT", "development") == "development":
+                self.metrics["allowed"] += 1
+                return RateLimitResult.ALLOWED, {
+                    "scope": scope.value,
+                    "rule": "development_bypass",
+                    "message": "Rate limiting désactivé en développement"
+                }
             
             # Obtenir la règle de rate limiting
             rule = self.RULES.get(scope)

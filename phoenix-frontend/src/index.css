@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap');
 
 :root {
   --phoenix-primary: #ff4500;
@@ -15,6 +15,48 @@
   --phoenix-warning: #f59e0b;
   --phoenix-gradient: linear-gradient(135deg, #ff4500 0%, #ff6b35 50%, #ff8c42 100%);
   --luna-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+}
+
+/* Custom Scrollbar for Luna Sidebars */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #a855f7 #f3e8ff;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f3e8ff;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #a855f7;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9333ea;
+}
+
+/* Animations pour les sections expandables */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out forwards;
 }
 
 * {
@@ -30,7 +72,9 @@ body {
   background-color: #ffffff;
 }
 
-/* Custom animations */
+/* 🎭 Phoenix Animation System - Phase D */
+
+/* Energy glow animation (existing) */
 @keyframes energy-glow {
   0%, 100% { 
     transform: scale(1) rotate(0deg);
@@ -48,6 +92,148 @@ body {
     transform: scale(1.05) rotate(0.5deg);
     filter: hue-rotate(5deg);
   }
+}
+
+/* 🌟 Micro-interactions élégantes */
+@keyframes soft-bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-8px) scale(1.05);
+  }
+  60% {
+    transform: translateY(-4px) scale(1.02);
+  }
+}
+
+@keyframes gentle-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@keyframes success-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+@keyframes luna-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+    transform: scale(1.02);
+  }
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ✨ Classes utilitaires pour micro-interactions */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.click-scale {
+  transition: transform 0.1s ease;
+}
+
+.click-scale:active {
+  transform: scale(0.95);
+}
+
+.success-feedback {
+  animation: success-pulse 0.6s ease-out;
+}
+
+.luna-glow-effect {
+  animation: luna-glow 3s ease-in-out infinite;
+}
+
+.soft-bounce-effect {
+  animation: soft-bounce 2s ease-in-out infinite;
+}
+
+.gentle-shake-effect {
+  animation: gentle-shake 0.5s ease-in-out;
+}
+
+.typewriter-effect {
+  overflow: hidden;
+  border-right: 2px solid #6366f1;
+  white-space: nowrap;
+  animation: typewriter 2s steps(40) 1s forwards, blink 0.75s step-end infinite;
+}
+
+@keyframes blink {
+  50% { border-color: transparent; }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.6s ease-out;
+}
+
+.scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+/* 🎨 États de focus accessibles */
+.focus-ring {
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.focus-ring:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+/* 🌊 Loading shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.shimmer-effect {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 @keyframes luna-rise {
@@ -109,6 +295,85 @@ body {
 
 .animation-delay-1000 {
   animation-delay: 1s;
+}
+
+/* 🌟 Page Transition Animations - Phase D */
+@keyframes page-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes page-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes page-fade-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+    filter: blur(1px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes page-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes page-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-30px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Classes utilitaires pour transitions */
+.page-enter {
+  animation: page-fade-scale 0.5s ease-out forwards;
+}
+
+.page-enter-up {
+  animation: page-slide-up 0.4s ease-out forwards;
+}
+
+.page-enter-down {
+  animation: page-slide-down 0.4s ease-out forwards;
+}
+
+.page-enter-left {
+  animation: page-slide-left 0.3s ease-out forwards;
+}
+
+.page-enter-right {
+  animation: page-slide-right 0.3s ease-out forwards;
 }
 
 /* Custom utility classes */
@@ -192,6 +457,17 @@ body {
   border-radius: 50%;
   opacity: 0.8;
   animation: energy-rise 2s ease-out infinite;
+}
+
+/* Animations Luna Lottie nouvelles */
+@keyframes luna-breath {
+  0%, 100% { transform: scale(1); opacity: 0.1; }
+  50% { transform: scale(1.02); opacity: 0.2; }
+}
+
+@keyframes luna-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.1); }
+  50% { box-shadow: 0 0 25px rgba(124, 58, 237, 0.2); }
 }
 
 @keyframes energy-rise {

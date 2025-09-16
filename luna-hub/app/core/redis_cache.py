@@ -413,6 +413,7 @@ def cached(key_type: str, ttl: Optional[int] = None, key_fn=None):
 
 # Instance globale
 redis_cache = RedisCache()
+cache_manager = redis_cache  # Alias pour compatibilité
 
 
 async def initialize_redis_cache() -> bool:

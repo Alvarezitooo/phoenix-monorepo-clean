@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, Crown, Zap, Moon, Calendar, Coffee, Croissant, Pizza, Gift, MessageCircle, FileText, BarChart3, Target } from 'lucide-react';
-import PhoenixButton from './PhoenixButton';
+import PhoenixButton from '../shared/PhoenixButton';
 
 interface EnergyOption {
   type: string;

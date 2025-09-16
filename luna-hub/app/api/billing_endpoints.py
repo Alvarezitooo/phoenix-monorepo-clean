@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from typing import Optional, Dict, Any
 import time
 import uuid
+import os
 import structlog
 
 from ..models.billing import (
@@ -155,7 +156,7 @@ async def create_payment_intent(
             },
             metadata={
                 "billing_action": "create_intent",
-                "stripe_environment": "live" if "sk_live" in StripeManager.STRIPE_SECRET_KEY else "test"
+                "stripe_environment": "live" if "sk_live" in (os.getenv("STRIPE_SECRET_KEY", "")) else "test"
             }
         )
         
@@ -611,7 +612,7 @@ async def create_subscription(
                 metadata={
                     "billing_action": "create_subscription",
                     "subscription_plan": body.plan,
-                    "stripe_environment": "live" if "sk_live" in StripeManager.STRIPE_SECRET_KEY else "test"
+                    "stripe_environment": "live" if "sk_live" in (os.getenv("STRIPE_SECRET_KEY", "")) else "test"
                 }
             )
             

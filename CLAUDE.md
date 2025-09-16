@@ -74,24 +74,63 @@ ENERGY_COSTS = {
 
 ## 📊 État Actuel du Projet
 
-### ✅ Accompli (Phases 1-4)
+### ✅ Accompli (Phases 1-5) - SEPTEMBRE 2024
 - Architecture JAMstack Multi-SPA complète
-- 3 services IA sophistiqués opérationnels
+- **🌙 Luna Conversational Sidebar FONCTIONNELLE** (3 modes + énergie temps réel)
+- **🌅 Module Aube complet** avec algorithme de matching intelligent  
 - Energy system avec événements immutables
 - Frontend unifié avec composants production
 - Tests E2E et monitoring complets
-- Documentation technique exhaustive
+- Documentation technique exhaustive + Journal de bord
 
 ### 📁 Structure Fichiers Importants
 ```
 phoenix-production/
+├── JOURNAL_CLAUDE.md           # 📖 Mémoire persistante entre sessions
 ├── luna-hub/config/energy/     # Configs energy sauvegardées
 │   ├── LUNA_ENERGY_GRID.txt   # Grille complète tarifs
 │   └── energy_grid.yaml       # Config Aube coûts
+├── phoenix-frontend/src/luna/  # 🌙 Luna Conversational System
+│   ├── LunaConversationalSidebar.tsx  # ⭐ CŒUR interface Luna
+│   └── LunaContext.tsx         # Contexte global Luna
+├── phoenix-frontend/src/modules/aube/ # 🌅 Module Aube fonctionnel
 ├── test-*.js                   # Tests E2E production
 ├── monitoring-config.yaml      # Observabilité
 └── *.md                       # Documentation fraîche
 ```
+
+## 🎯 FOCUS BETA - READY FOR TESTING
+
+### 🌙 Luna Conversational Sidebar
+**Statut**: ✅ FONCTIONNELLE  
+**Localisation**: Bouton flottant à droite → sidebar s'ouvre  
+**Fonctionnalités**:
+- 3 modes conversation (Bavardage 5⚡, Conseil 15⚡, Coaching 40⚡)
+- Contexte intelligent (reconnaît le module actuel)
+- Scroll, animations, gestion énergie temps réel
+
+### 🌅 Module Aube Discovery
+**Statut**: ✅ COMPLET ET FONCTIONNEL  
+**Beta Flow**:
+1. Aller sur `/aube`
+2. Remplir formulaire "Découverte de Carrière"
+3. Cliquer "Découvrir mes métiers compatibles"  
+4. Voir animation "Luna analyse votre profil..." (2s)
+5. Résultats personnalisés avec scores 82-94%
+
+### 🚀 Démarrage Beta (3 Terminaux)
+```bash
+# Terminal 1 - Luna Hub
+cd luna-hub && python3 -m uvicorn api_main:app --host 0.0.0.0 --port 8003 --reload
+
+# Terminal 2 - Phoenix API  
+cd phoenix-api && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Terminal 3 - Phoenix Frontend
+cd phoenix-frontend && npm run dev
+```
+
+**URL Beta**: http://localhost:5176
 
 ## 🔧 Commandes de Développement
 
@@ -143,6 +182,7 @@ Ce projet est le résultat d'une collaboration exceptionnelle entre **Matt Vanes
 2. **Phase 2**: Architecture Multi-SPA (JAMstack + proxy intelligent)  
 3. **Phase 3**: Services IA sophistiqués (narrative context + predictions)
 4. **Phase 4**: Production readiness (tests + monitoring + docs)
+5. **Phase 5**: Luna Copilot Interface + Module Aube fonctionnel (SEPTEMBRE 2024)
 
 ### Style de Collaboration
 - **Pragmatique**: Focus résultats, pas théorie

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phoenix CV Template - Legal Formal</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Source Serif Pro', 'Times New Roman', serif;
+            line-height: 1.7;
+            color: #1a1a1a;
+            background: #ffffff;
+            max-width: 210mm; /* A4 width */
+            margin: 0 auto;
+            padding: 30mm 25mm;
+            min-height: 297mm; /* A4 height */
+        }
+        
+        /* HEADER - Ultra formal traditional */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 3px solid #1a1a1a;
+            position: relative;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 2px;
+            background: #4a4a4a;
+        }
+        
+        .header h1 {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .header .title {
+            font-size: 16px;
+            color: #2c2c2c;
+            font-weight: 600;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        .header .contact {
+            font-size: 13px;
+            color: #4a4a4a;
+            line-height: 2;
+            font-weight: 400;
+        }
+        
+        .header .contact a {
+            color: #1a1a1a;
+            text-decoration: none;
+            border-bottom: 1px solid #4a4a4a;
+        }
+        
+        .header .contact a:hover {
+            border-bottom-color: #1a1a1a;
+        }
+        
+        /* BAR NUMBER - Professional credential display */
+        .bar-number {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 15px;
+            background: #f8f8f8;
+            border: 1px solid #d0d0d0;
+        }
+        
+        .bar-number .label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        .bar-number .number {
+            font-size: 14px;
+            color: #1a1a1a;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        /* SECTIONS - Classical hierarchical */
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .section-title::before,
+        .section-title::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 100px;
+            height: 1px;
+            background: #4a4a4a;
+        }
+        
+        .section-title::before {
+            left: 0;
+        }
+        
+        .section-title::after {
+            right: 0;
+        }
+        
+        /* PROFESSIONAL SUMMARY - Formal statement */
+        .professional-statement {
+            background: #fafafa;
+            border: 2px solid #e0e0e0;
+            padding: 30px;
+            margin-bottom: 45px;
+            text-align: justify;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #2c2c2c;
+            position: relative;
+        }
+        
+        .professional-statement::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            bottom: 15px;
+            border: 1px solid #d0d0d0;
+            pointer-events: none;
+        }
+        
+        .statement-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* EXPERIENCE - Formal chronological */
+        .experience-item {
+            margin-bottom: 40px;
+            padding-bottom: 35px;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .experience-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .experience-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 25px;
+            background: #1a1a1a;
+        }
+        
+        .experience-header {
+            margin-bottom: 20px;
+            padding-left: 15px;
+        }
+        
+        .experience-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .experience-company {
+            font-size: 15px;
+            color: #2c2c2c;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .experience-location {
+            font-size: 13px;
+            color: #4a4a4a;
+            font-style: italic;
+            margin-bottom: 6px;
+        }
+        
+        .experience-dates {
+            font-size: 13px;
+            color: #666;
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .experience-description {
+            font-size: 14px;
+            color: #2c2c2c;
+            text-align: justify;
+            line-height: 1.8;
+            padding-left: 15px;
+        }
+        
+        /* LEGAL SPECIALIZATIONS - Formal listing */
+        .specialization-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .specialization-category {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            padding: 25px 20px;
+            text-align: center;
+        }
+        
+        .specialization-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #d0d0d0;
+            padding-bottom: 8px;
+        }
+        
+        .specialization-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .specialization-item {
+            font-size: 13px;
+            color: #2c2c2c;
+            text-align: left;
+            padding-left: 15px;
+            position: relative;
+        }
+        
+        .specialization-item::before {
+            content: '§';
+            position: absolute;
+            left: 0;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        /* EDUCATION - Academic hierarchy */
+        .education-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            padding: 20px 0;
+            border-bottom: 1px dotted #c0c0c0;
+        }
+        
+        .education-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        
+        .education-content {
+            flex: 1;
+            padding-right: 20px;
+        }
+        
+        .education-degree {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .education-school {
+            font-size: 14px;
+            color: #2c2c2c;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .education-location {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .education-year {
+            font-size: 13px;
+            color: #1a1a1a;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        /* BAR ADMISSIONS - Professional credentials */
+        .admission-item {
+            background: #f5f5f5;
+            border: 2px solid #d0d0d0;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .admission-bar {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .admission-date {
+            font-size: 13px;
+            color: #4a4a4a;
+            margin-bottom: 6px;
+        }
+        
+        .admission-number {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        /* PUBLICATIONS - Academic format */
+        .publication-item {
+            margin-bottom: 20px;
+            padding-left: 20px;
+            text-indent: -20px;
+            font-size: 13px;
+            line-height: 1.7;
+            color: #2c2c2c;
+        }
+        
+        .publication-authors {
+            font-weight: 600;
+        }
+        
+        .publication-title {
+            font-style: italic;
+            margin: 0 5px;
+        }
+        
+        .publication-journal {
+            font-weight: 600;
+        }
+        
+        .publication-details {
+            color: #666;
+        }
+        
+        /* MEMBERSHIPS - Professional associations */
+        .membership-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background: #fafafa;
+            border-left: 3px solid #1a1a1a;
+        }
+        
+        .membership-org {
+            font-size: 14px;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+        
+        .membership-date {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        /* HONORS & AWARDS - Distinction format */
+        .award-item {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .award-name {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+        
+        .award-issuer {
+            font-size: 12px;
+            color: #4a4a4a;
+            margin-bottom: 4px;
+        }
+        
+        .award-year {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            body {
+                padding: 20mm 15mm;
+                font-size: 13px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .education-item {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .education-year {
+                text-align: left;
+            }
+            
+            .specialization-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* PRINT STYLES */
+        @media print {
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+            
+            .experience-item {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <h1>{{FIRST_NAME}} {{LAST_NAME}}</h1>
+        <div class="title">{{PROFESSIONAL_TITLE}}</div>
+        <div class="contact">
+            {{EMAIL}} • {{PHONE}}<br>
+            {{ADDRESS}}
+            {{#LINKEDIN}}<br><a href="{{LINKEDIN}}">Profil LinkedIn</a>{{/LINKEDIN}}
+        </div>
+    </header>
+    
+    <!-- BAR ADMISSION NUMBER -->
+    {{#BAR_NUMBER}}
+    <div class="bar-number">
+        <div class="label">Numéro d'Inscription au Barreau</div>
+        <div class="number">{{BAR_NUMBER}}</div>
+    </div>
+    {{/BAR_NUMBER}}
+    
+    <!-- PROFESSIONAL SUMMARY -->
+    {{#SUMMARY}}
+    <div class="professional-statement">
+        <div class="statement-content">{{SUMMARY}}</div>
+    </div>
+    {{/SUMMARY}}
+    
+    <!-- PROFESSIONAL EXPERIENCE -->
+    <section class="section">
+        <h2 class="section-title">Expérience Professionnelle</h2>
+        {{#EXPERIENCES}}
+        <div class="experience-item">
+            <div class="experience-header">
+                <div class="experience-title">{{POSITION}}</div>
+                <div class="experience-company">{{COMPANY}}</div>
+                {{#LOCATION}}<div class="experience-location">{{LOCATION}}</div>{{/LOCATION}}
+                <div class="experience-dates">{{START_DATE}} - {{END_DATE}}</div>
+            </div>
+            <div class="experience-description">{{DESCRIPTION}}</div>
+        </div>
+        {{/EXPERIENCES}}
+    </section>
+    
+    <!-- LEGAL SPECIALIZATIONS -->
+    {{#SPECIALIZATIONS}}
+    <section class="section">
+        <h2 class="section-title">Domaines de Spécialisation</h2>
+        <div class="specialization-grid">
+            {{#SPECIALIZATION_CATEGORIES}}
+            <div class="specialization-category">
+                <div class="specialization-title">{{CATEGORY_NAME}}</div>
+                <div class="specialization-items">
+                    {{#SPECIALIZATIONS}}
+                    <div class="specialization-item">{{.}}</div>
+                    {{/SPECIALIZATIONS}}
+                </div>
+            </div>
+            {{/SPECIALIZATION_CATEGORIES}}
+        </div>
+    </section>
+    {{/SPECIALIZATIONS}}
+    
+    <!-- EDUCATION -->
+    <section class="section">
+        <h2 class="section-title">Formation</h2>
+        {{#EDUCATION}}
+        <div class="education-item">
+            <div class="education-content">
+                <div class="education-degree">{{DEGREE}}</div>
+                <div class="education-school">{{INSTITUTION}}</div>
+                {{#LOCATION}}<div class="education-location">{{LOCATION}}</div>{{/LOCATION}}
+            </div>
+            <div class="education-year">{{GRADUATION_YEAR}}</div>
+        </div>
+        {{/EDUCATION}}
+    </section>
+    
+    <!-- BAR ADMISSIONS -->
+    {{#BAR_ADMISSIONS}}
+    <section class="section">
+        <h2 class="section-title">Inscriptions aux Barreaux</h2>
+        {{#BAR_ADMISSIONS}}
+        <div class="admission-item">
+            <div class="admission-bar">{{BAR_NAME}}</div>
+            <div class="admission-date">Admis le {{ADMISSION_DATE}}</div>
+            {{#BAR_NUMBER}}<div class="admission-number">Numéro: {{BAR_NUMBER}}</div>{{/BAR_NUMBER}}
+        </div>
+        {{/BAR_ADMISSIONS}}
+    </section>
+    {{/BAR_ADMISSIONS}}
+    
+    <!-- PUBLICATIONS -->
+    {{#PUBLICATIONS}}
+    <section class="section">
+        <h2 class="section-title">Publications</h2>
+        {{#PUBLICATIONS}}
+        <div class="publication-item">
+            <span class="publication-authors">{{AUTHORS}}</span>,
+            <span class="publication-title">{{TITLE}}</span>,
+            <span class="publication-journal">{{JOURNAL}}</span>,
+            <span class="publication-details">{{DETAILS}}</span>
+        </div>
+        {{/PUBLICATIONS}}
+    </section>
+    {{/PUBLICATIONS}}
+    
+    <!-- PROFESSIONAL MEMBERSHIPS -->
+    {{#MEMBERSHIPS}}
+    <section class="section">
+        <h2 class="section-title">Affiliations Professionnelles</h2>
+        {{#MEMBERSHIPS}}
+        <div class="membership-item">
+            <span class="membership-org">{{ORGANIZATION}}</span>
+            <span class="membership-date">Depuis {{SINCE_DATE}}</span>
+        </div>
+        {{/MEMBERSHIPS}}
+    </section>
+    {{/MEMBERSHIPS}}
+    
+    <!-- HONORS & AWARDS -->
+    {{#AWARDS}}
+    <section class="section">
+        <h2 class="section-title">Distinctions & Récompenses</h2>
+        {{#AWARDS}}
+        <div class="award-item">
+            <div class="award-name">{{AWARD_NAME}}</div>
+            <div class="award-issuer">{{ISSUING_ORGANIZATION}}</div>
+            <div class="award-year">{{YEAR}}</div>
+        </div>
+        {{/AWARDS}}
+    </section>
+    {{/AWARDS}}
+    
+    <!-- LANGUAGES -->
+    {{#LANGUAGES}}
+    <section class="section">
+        <h2 class="section-title">Langues</h2>
+        {{#LANGUAGES}}
+        <div class="membership-item">
+            <span class="membership-org">{{LANGUAGE}}</span>
+            <span class="membership-date">{{LEVEL}}</span>
+        </div>
+        {{/LANGUAGES}}
+    </section>
+    {{/LANGUAGES}}
+</body>
+</html>

@@ -227,6 +227,8 @@ class RefreshTokenManager:
             })
             
             logger.info(f"Refresh token rotated for user {user_id}")
+            # Include user_id in response for JWT generation
+            new_token_data["user_id"] = user_id
             return new_token_data
             
         except Exception as e:

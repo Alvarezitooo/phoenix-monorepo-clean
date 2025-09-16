@@ -5,6 +5,10 @@ Luna Session Zero Complete Authentication System
 
 import os
 import uvicorn
+from dotenv import load_dotenv
+
+# 🔧 Chargement des variables d'environnement
+load_dotenv()
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,9 +22,10 @@ from app.api.luna_endpoints import router as luna_router
 from app.api.monitoring_endpoints import router as monitoring_router
 from app.api.capital_narratif_endpoints import narratif_router
 from app.api.refund_endpoints import router as refund_router
-from app.api.luna_narrative_endpoints import router as luna_narrative_router
 from app.api.aube_endpoints import router as aube_router
 from app.api.ai_endpoints import router as ai_router
+from app.api.luna_conversation_endpoints import router as luna_conversation_router
+from app.api.narrative_endpoints import router as narrative_router  # 🧠 NEW: Narrative Intelligence
 from app.core.logging_config import logger
 
 # Lifespan management for FastAPI
@@ -89,6 +94,7 @@ else:
         "http://localhost:3001",   # Alternative dev
         "http://localhost:5173",   # Vite dev
         "http://localhost:5174",   # Vite alternative 
+        "http://localhost:5175",   # Vite phoenix-frontend
         "http://localhost:8001",   # Letters local
         "http://localhost:8002"    # CV local
     ]
@@ -184,9 +190,10 @@ app.include_router(luna_router)
 app.include_router(monitoring_router)
 app.include_router(narratif_router)
 app.include_router(refund_router)
-app.include_router(luna_narrative_router)
 app.include_router(aube_router)
 app.include_router(ai_router)
+app.include_router(luna_conversation_router)  # 🌙 Luna Distributed Architecture
+app.include_router(narrative_router, prefix="/luna")  # 🧠 Narrative Intelligence System
 
 # Global exception handler
 @app.exception_handler(Exception)
